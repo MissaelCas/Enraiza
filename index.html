@@ -324,6 +324,23 @@
   .ig-comment-row button{ background:none; border:none; color: var(--moss-dark); font-weight:700; font-size: 0.85rem; cursor:pointer; opacity:0.4; flex-shrink:0; }
   .ig-comment-row button.active{ opacity:1; }
 
+  /* Vista de comentarios estilo IG de escritorio (imagen fija + comentarios deslizables) */
+  .modal.modal-wide{ max-width: 920px; width:100%; padding:0; overflow:hidden; }
+  .modal-wide .modal-close{ color:#fff; background: rgba(0,0,0,0.45); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; top:10px; right:10px; }
+  .comments-view{ display:flex; flex-direction:column; max-height:85vh; }
+  @media (min-width:700px){ .comments-view{ flex-direction:row; height:80vh; max-height:80vh; } }
+  .comments-view-media{ flex:1; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; min-height:220px; }
+  .comments-view-media img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .comments-view-side{ display:flex; flex-direction:column; background:var(--white-ish); min-height:0; }
+  @media (min-width:700px){ .comments-view-side{ width:360px; flex-shrink:0; border-left:1px solid var(--line); } }
+  .comments-view-header{ display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .comments-view-header strong{ font-size:0.9rem; }
+  .comments-view-caption{ padding:12px 14px; border-bottom:1px solid var(--line); font-size:0.88rem; flex-shrink:0; }
+  .comments-view-list{ flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:10px; min-height:60px; }
+  .comments-view-empty{ color:var(--ink-soft); font-style:italic; font-size:0.88rem; }
+  .comments-view-input-row{ display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0; }
+  .comments-view-input-row input{ flex:1; min-width:0; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:0.88rem; font-family:var(--sans); }
+
   /* Visor de historias */
   body.story-open{ overflow:hidden; height:100%; position:fixed; width:100%; }
   .story-view-backdrop{ background: rgba(0,0,0,0.9); padding:0; }
@@ -1040,11 +1057,15 @@ Object.keys(PLANTS).forEach((key, i) => {
 });
 
 // ---------- CAMBIO DE PANTALLA ----------
+const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora','perfil'];
 function showView(name){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const target = document.getElementById(name);
   if(target) target.classList.add('active');
   window.scrollTo({top:0, behavior:'instant'});
+  if(PERSISTABLE_VIEWS.includes(name)){
+    try{ sessionStorage.setItem('enraiza:view', name); }catch(err){ /* ignore */ }
+  }
   if(name === 'perfil') renderProfile();
   if(name === 'perfilVisita') renderUserProfileVisit();
 }
@@ -1385,7 +1406,7 @@ async function renderUserProfileVisit(){
   }
   let posts = [];
   try{ posts = await DB.posts.list(); }catch(err){ posts = []; }
-  if(uid !== viewingUserId) return; // el usuario ya cambió de perfil mientras cargaba
+  if(uid !== viewingUserId) return;
   posts = posts.filter(p => p.authorId === uid);
   const totalLikes = posts.reduce((sum, p) => sum + (p.likedBy || []).length, 0);
   document.getElementById('profileVisitStats').innerHTML = `
@@ -1470,85 +1491,7 @@ async function renderPostModalContent(postId){
   const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
   const saved = savedIds.includes(post.id);
   modalContent.innerHTML = postCardHTML(post, authorName, authorObj, liked, saved);
-
-  modalContent.querySelectorAll('[data-comment-author]').forEach(el => {
-    const uid = el.dataset.commentAuthor;
-    el.querySelector('strong').textContent = usersCache[uid]?.name || 'Alguien';
-  });
-
-  const car = modalContent.querySelector('[data-carousel]');
-  if(car){
-    const track = car.querySelector('.ig-carousel-track');
-    const dots = car.querySelectorAll('.ig-carousel-dots span');
-    const countEl = car.querySelector('.ig-carousel-count');
-    const prevBtn = car.querySelector('[data-caract="prev"]');
-    const nextBtn = car.querySelector('[data-caract="next"]');
-    if(track && track.children.length > 1){
-      const total = track.children.length;
-      const syncUI = (idx) => {
-        dots.forEach((d,i) => d.classList.toggle('active', i===idx));
-        if(countEl) countEl.textContent = `${idx+1}/${total}`;
-        if(prevBtn) prevBtn.disabled = idx === 0;
-        if(nextBtn) nextBtn.disabled = idx === total - 1;
-      };
-      track.addEventListener('scroll', () => syncUI(Math.round(track.scrollLeft / track.clientWidth)));
-      if(prevBtn) prevBtn.addEventListener('click', () => { const idx = Math.max(0, Math.round(track.scrollLeft/track.clientWidth)-1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
-      if(nextBtn) nextBtn.addEventListener('click', () => { const idx = Math.min(total-1, Math.round(track.scrollLeft/track.clientWidth)+1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
-    }
-  }
-
-  modalContent.querySelectorAll('[data-like]').forEach(btn => btn.addEventListener('click', () => handleLike(post.id)));
-  modalContent.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', async () => {
-    if(!requireLogin('guardar publicaciones')) return;
-    await DB.saved.toggle(currentUser.id, post.id);
-    renderPostModalContent(postId);
-  }));
-  modalContent.querySelectorAll('[data-focuscomment]').forEach(btn => btn.addEventListener('click', () => {
-    if(!requireLogin('comentar')) return;
-    const row = modalContent.querySelector(`.ig-comment-row[data-id="${post.id}"] input`);
-    if(row) row.focus();
-  }));
-  modalContent.querySelectorAll('[data-viewmore]').forEach(btn => btn.addEventListener('click', () => {
-    expandedComments.add(post.id);
-    renderPostModalContent(postId);
-  }));
-  modalContent.querySelectorAll('.ig-comment-row').forEach(f => {
-    const input = f.querySelector('input');
-    const submitBtn = f.querySelector('button');
-    input.addEventListener('input', () => submitBtn.classList.toggle('active', input.value.trim().length > 0));
-    f.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if(!requireLogin('comentar')) return;
-      const text = input.value.trim();
-      if(!text) return;
-      await DB.posts.addComment(post.id, { authorId: currentUser.id, text });
-      renderPostModalContent(postId);
-    });
-  });
-  modalContent.querySelectorAll('[data-menu]').forEach(btn => btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openMenuId = openMenuId === btn.dataset.menu ? null : btn.dataset.menu;
-    renderPostModalContent(postId);
-  }));
-  modalContent.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderPostModalContent(postId); }));
-  modalContent.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
-    openMenuId = null;
-    if(!currentUser) return;
-    try{ await DB.posts.remove(btn.dataset.del, currentUser.id); }catch(err){ alert(err.message); }
-    closeModal();
-    renderUserProfileVisit();
-    renderFeed();
-  }));
-  modalContent.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => {
-    closeModal();
-    handleEditPost(btn.dataset.edit);
-  }));
-  modalContent.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderPostModalContent(postId); }));
-  modalContent.querySelectorAll('[data-openprofile]').forEach(el => el.addEventListener('click', (e) => {
-    e.stopPropagation();
-    closeModal();
-    openUserProfile(el.dataset.openprofile, usersCache[el.dataset.openprofile]?.name || 'Alguien de la comunidad');
-  }));
+  bindPostCard(modalContent.querySelector('.ig-post'));
 }
 
 // ---------- MODAL DE AUTENTICACIÓN (Supabase Auth) ----------
@@ -1748,7 +1691,7 @@ document.getElementById('btnActivity').addEventListener('click', () => {
 const feedEntriesEl = document.getElementById('feedEntries');
 const expandedComments = new Set();
 let openMenuId = null;
-const likeInFlight = new Set(); // evita mandar el toggle repetido mientras una petición sigue en curso
+const likeInFlight = new Set();
 
 function carouselHTML(post){
   const photos = (post.photos && post.photos.length) ? post.photos : [placeholderImage(post.id + post.title, post.category)];
@@ -1822,6 +1765,126 @@ async function resolveAuthorObjs(posts){
   await Promise.all([...ids].map(id => getUserCached(id)));
 }
 
+// ---------- VINCULAR EVENTOS DE UNA SOLA TARJETA ----------
+function bindPostCard(article){
+  if(!article) return;
+  const id = article.dataset.id;
+
+  article.querySelectorAll('[data-comment-author]').forEach(el => {
+    const uid = el.dataset.commentAuthor;
+    const name = usersCache[uid]?.name || 'Alguien';
+    el.querySelector('strong').textContent = name + ':';
+  });
+
+  const car = article.querySelector('[data-carousel]');
+  if(car){
+    const track = car.querySelector('.ig-carousel-track');
+    const dots = car.querySelectorAll('.ig-carousel-dots span');
+    const countEl = car.querySelector('.ig-carousel-count');
+    const prevBtn = car.querySelector('[data-caract="prev"]');
+    const nextBtn = car.querySelector('[data-caract="next"]');
+    if(track && track.children.length > 1){
+      const total = track.children.length;
+      const syncUI = (idx) => {
+        dots.forEach((d,i) => d.classList.toggle('active', i===idx));
+        if(countEl) countEl.textContent = `${idx+1}/${total}`;
+        if(prevBtn) prevBtn.disabled = idx === 0;
+        if(nextBtn) nextBtn.disabled = idx === total - 1;
+      };
+      track.addEventListener('scroll', () => syncUI(Math.round(track.scrollLeft / track.clientWidth)));
+      if(prevBtn) prevBtn.addEventListener('click', () => { const idx = Math.max(0, Math.round(track.scrollLeft/track.clientWidth)-1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
+      if(nextBtn) nextBtn.addEventListener('click', () => { const idx = Math.min(total-1, Math.round(track.scrollLeft/track.clientWidth)+1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
+    }
+  }
+
+  article.querySelectorAll('[data-like]').forEach(btn => btn.addEventListener('click', () => handleLike(id)));
+  article.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', () => handleSave(id)));
+  const track = article.querySelector('[data-doublelike]');
+  if(track){
+    let lastClickTime = 0;
+    let lastTouchTime = 0;
+    track.addEventListener('click', (e) => {
+      const now = Date.now();
+      if(now - lastClickTime < 350){
+        const rect = track.getBoundingClientRect();
+        handleLike(id, true, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+      }
+      lastClickTime = now;
+    });
+    track.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if(now - lastTouchTime < 350){
+        e.preventDefault();
+        const rect = track.getBoundingClientRect();
+        const touch = e.changedTouches[0];
+        handleLike(id, true, { x: touch.clientX - rect.left, y: touch.clientY - rect.top });
+      }
+      lastTouchTime = now;
+    }, { passive:false });
+  }
+  article.querySelectorAll('[data-focuscomment]').forEach(btn => btn.addEventListener('click', () => {
+    if(!requireLogin('comentar')) return;
+    const row = article.querySelector(`.ig-comment-row[data-id="${id}"] input`);
+    if(row) row.focus();
+  }));
+  article.querySelectorAll('[data-viewmore]').forEach(btn => btn.addEventListener('click', () => openCommentsView(id)));
+  const form = article.querySelector('.ig-comment-row');
+  if(form){
+    const input = form.querySelector('input');
+    const submitBtn = form.querySelector('button');
+    input.addEventListener('input', () => submitBtn.classList.toggle('active', input.value.trim().length > 0));
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if(!requireLogin('comentar')) return;
+      const text = input.value.trim();
+      if(!text) return;
+      input.value = '';
+      await DB.posts.addComment(id, { authorId: currentUser.id, text });
+      updatePostInPlace(id);
+      renderProfile();
+    });
+  }
+  article.querySelectorAll('[data-menu]').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMenuId = openMenuId === id ? null : id;
+    updatePostInPlace(id);
+  }));
+  article.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; updatePostInPlace(id); }));
+  article.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeletePost(id)));
+  article.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => handleEditPost(id)));
+  article.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; updatePostInPlace(id); }));
+  article.querySelectorAll('[data-openprofile]').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openUserProfile(btn.dataset.openprofile, usersCache[btn.dataset.openprofile]?.name || 'Alguien de la comunidad');
+  }));
+}
+
+// ---------- REFRESCAR UNA SOLA PUBLICACIÓN EN SU LUGAR (sin recargar todo el feed) ----------
+async function updatePostInPlace(postId){
+  let posts = [];
+  try{ posts = await DB.posts.list(); }catch(err){ return; }
+  const post = posts.find(p => p.id === postId);
+  const article = feedEntriesEl.querySelector(`.ig-post[data-id="${postId}"]`);
+  if(!post){ if(article) article.remove(); return; }
+  await resolveAuthorObjs([post]);
+  const authorObj = usersCache[post.authorId];
+  const authorName = authorObj?.name || 'Alguien de la comunidad';
+  const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
+  const liked = currentUser ? (post.likedBy||[]).includes(currentUser.id) : false;
+  const saved = savedIds.includes(post.id);
+  const html = postCardHTML(post, authorName, authorObj, liked, saved);
+  if(article){
+    const temp = document.createElement('div');
+    temp.innerHTML = html.trim();
+    const newArticle = temp.firstElementChild;
+    article.replaceWith(newArticle);
+    bindPostCard(newArticle);
+  }
+  if(document.getElementById('commentsViewList') && modalBackdrop.classList.contains('open')){
+    renderCommentsList(post);
+  }
+}
+
 async function renderFeed(){
   renderSearchFilterBanner();
   feedEntriesEl.innerHTML = '<p class="feed-empty">Cargando publicaciones…</p>';
@@ -1845,96 +1908,7 @@ async function renderFeed(){
     return postCardHTML(post, authorName, authorObj, liked, saved);
   }).join('');
 
-  feedEntriesEl.querySelectorAll('[data-comment-author]').forEach(el => {
-    const uid = el.dataset.commentAuthor;
-    const name = usersCache[uid]?.name || 'Alguien';
-    el.querySelector('strong').textContent = name;
-  });
-
-  // Carrusel: puntos, contador y flechas siguen el scroll / lo controlan
-  feedEntriesEl.querySelectorAll('[data-carousel]').forEach(car => {
-    const track = car.querySelector('.ig-carousel-track');
-    const dots = car.querySelectorAll('.ig-carousel-dots span');
-    const countEl = car.querySelector('.ig-carousel-count');
-    const prevBtn = car.querySelector('[data-caract="prev"]');
-    const nextBtn = car.querySelector('[data-caract="next"]');
-    if(!track || track.children.length <= 1) return;
-    const total = track.children.length;
-    function syncUI(idx){
-      dots.forEach((d,i) => d.classList.toggle('active', i===idx));
-      if(countEl) countEl.textContent = `${idx+1}/${total}`;
-      if(prevBtn) prevBtn.disabled = idx === 0;
-      if(nextBtn) nextBtn.disabled = idx === total - 1;
-    }
-    track.addEventListener('scroll', () => {
-      const idx = Math.round(track.scrollLeft / track.clientWidth);
-      syncUI(idx);
-    });
-    if(prevBtn) prevBtn.addEventListener('click', () => {
-      const idx = Math.max(0, Math.round(track.scrollLeft / track.clientWidth) - 1);
-      track.scrollTo({ left: idx * track.clientWidth, behavior:'smooth' });
-    });
-    if(nextBtn) nextBtn.addEventListener('click', () => {
-      const idx = Math.min(total - 1, Math.round(track.scrollLeft / track.clientWidth) + 1);
-      track.scrollTo({ left: idx * track.clientWidth, behavior:'smooth' });
-    });
-  });
-
-  feedEntriesEl.querySelectorAll('[data-like]').forEach(btn => btn.addEventListener('click', () => handleLike(btn.dataset.like)));
-  feedEntriesEl.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', () => handleSave(btn.dataset.save)));
-  feedEntriesEl.querySelectorAll('[data-doublelike]').forEach(track => {
-    let lastClickTime = 0;
-    let lastTouchTime = 0;
-    // Clic rápido repetido (PC): cada clic que llega antes de 350ms del anterior dispara su propio corazón,
-    // sin depender del evento nativo "dblclick" (que solo dispara en pares y se pierde si tocas muy rápido).
-    track.addEventListener('click', (e) => {
-      const now = Date.now();
-      if(now - lastClickTime < 350){
-        const rect = track.getBoundingClientRect();
-        handleLike(track.dataset.doublelike, true, { x: e.clientX - rect.left, y: e.clientY - rect.top });
-      }
-      lastClickTime = now;
-    });
-    // Toque rápido repetido (teléfono): igual, cada toque cuenta por separado.
-    track.addEventListener('touchend', (e) => {
-      const now = Date.now();
-      if(now - lastTouchTime < 350){
-        e.preventDefault(); // evita el "clic fantasma" del navegador y el zoom por doble toque
-        const rect = track.getBoundingClientRect();
-        const touch = e.changedTouches[0];
-        handleLike(track.dataset.doublelike, true, { x: touch.clientX - rect.left, y: touch.clientY - rect.top });
-      }
-      lastTouchTime = now;
-    }, { passive:false });
-  });
-  feedEntriesEl.querySelectorAll('[data-focuscomment]').forEach(btn => btn.addEventListener('click', () => {
-    if(!requireLogin('comentar')) return;
-    const row = feedEntriesEl.querySelector(`.ig-comment-row[data-id="${btn.dataset.focuscomment}"] input`);
-    if(row) row.focus();
-  }));
-  feedEntriesEl.querySelectorAll('[data-viewmore]').forEach(btn => btn.addEventListener('click', () => {
-    expandedComments.add(btn.dataset.viewmore);
-    renderFeed();
-  }));
-  feedEntriesEl.querySelectorAll('.ig-comment-row').forEach(f => {
-    const input = f.querySelector('input');
-    const submitBtn = f.querySelector('button');
-    input.addEventListener('input', () => submitBtn.classList.toggle('active', input.value.trim().length > 0));
-    f.addEventListener('submit', handleComment);
-  });
-  feedEntriesEl.querySelectorAll('[data-menu]').forEach(btn => btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openMenuId = openMenuId === btn.dataset.menu ? null : btn.dataset.menu;
-    renderFeed();
-  }));
-  feedEntriesEl.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderFeed(); }));
-  feedEntriesEl.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeletePost(btn.dataset.del)));
-  feedEntriesEl.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => handleEditPost(btn.dataset.edit)));
-  feedEntriesEl.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderFeed(); }));
-  feedEntriesEl.querySelectorAll('[data-openprofile]').forEach(btn => btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openUserProfile(btn.dataset.openprofile, usersCache[btn.dataset.openprofile]?.name || 'Alguien de la comunidad');
-  }));
+  feedEntriesEl.querySelectorAll('.ig-post').forEach(article => bindPostCard(article));
 }
 
 function spawnHeartBurst(id, point){
@@ -1958,46 +1932,29 @@ async function handleLike(id, forceLike, point){
   const likeBtns = document.querySelectorAll(`[data-like="${id}"]`);
   const alreadyLikedInUI = likeBtns.length ? likeBtns[0].classList.contains('liked') : false;
 
-  // Animación del corazón: cada toque crea su propio corazón y se sobreponen sin interrumpirse, como en IG
   if(forceLike){
     spawnHeartBurst(id, point);
-    if(alreadyLikedInUI) return; // ya tenía like: el doble toque solo repite la animación, no lo quita
+    if(alreadyLikedInUI) return;
   }
 
-  // Corazón e ícono se actualizan al instante (optimista), antes de hablar con el servidor
   const willLike = forceLike ? true : !alreadyLikedInUI;
   likeBtns.forEach(btn => {
     btn.classList.toggle('liked', willLike);
     btn.innerHTML = willLike ? ICONS.heartFilled : ICONS.heart;
   });
 
-  if(likeInFlight.has(id)) return; // ya hay una petición en curso para esta publicación
+  if(likeInFlight.has(id)) return;
   likeInFlight.add(id);
   try{
     await DB.posts.toggleLike(id, currentUser.id);
-  }catch(err){
-    // si falla, se corrige solo con el refresco de abajo
-  }
+  }catch(err){ /* se corrige solo con el refresco de abajo */ }
   likeInFlight.delete(id);
-  // Si fue un doble toque, espera a que la animación del corazón termine antes de
-  // refrescar la publicación completa, para no cortarla a la mitad.
-  setTimeout(() => { renderFeed(); renderProfile(); }, forceLike ? 950 : 0);
+  setTimeout(() => { updatePostInPlace(id); renderProfile(); }, forceLike ? 950 : 0);
 }
 async function handleSave(id){
   if(!requireLogin('guardar publicaciones')) return;
   await DB.saved.toggle(currentUser.id, id);
-  renderFeed();
-  renderProfile();
-}
-async function handleComment(e){
-  e.preventDefault();
-  const id = e.target.dataset.id;
-  if(!requireLogin('comentar')) return;
-  const input = e.target.querySelector('input');
-  const text = input.value.trim();
-  if(!text) return;
-  await DB.posts.addComment(id, { authorId: currentUser.id, text });
-  renderFeed();
+  updatePostInPlace(id);
   renderProfile();
 }
 async function handleDeletePost(id){
@@ -2024,7 +1981,70 @@ async function handleEditPost(id){
   document.getElementById('composerGreeting').textContent = 'Editar publicación';
   document.getElementById('composerSubmitBtn').textContent = 'Guardar cambios';
 }
-document.addEventListener('click', () => { if(openMenuId){ openMenuId = null; renderFeed(); } });
+document.addEventListener('click', () => {
+  if(openMenuId){ const id = openMenuId; openMenuId = null; updatePostInPlace(id); }
+});
+
+// ---------- VISTA DE COMENTARIOS ESTILO IG DE ESCRITORIO (imagen fija + comentarios deslizables) ----------
+async function openCommentsView(postId){
+  let posts = [];
+  try{ posts = await DB.posts.list(); }catch(err){ return; }
+  const post = posts.find(p => p.id === postId);
+  if(!post) return;
+  await resolveAuthorObjs([post]);
+  const authorObj = usersCache[post.authorId];
+  const authorName = authorObj?.name || 'Alguien de la comunidad';
+  const img = (post.photos && post.photos[0]) || placeholderImage(post.id + post.title, post.category);
+  modalBox.className = 'modal modal-wide';
+  modalContent.innerHTML = `
+    <div class="comments-view">
+      <div class="comments-view-media"><img src="${img}" alt=""></div>
+      <div class="comments-view-side">
+        <div class="comments-view-header">
+          <div class="avatar">${avatarHTML(authorObj)}</div>
+          <strong>${escapeHtml(authorName)}</strong>
+        </div>
+        <div class="comments-view-caption"><strong>${escapeHtml(authorName)}</strong> ${escapeHtml(post.notes)}</div>
+        <div class="comments-view-list" id="commentsViewList"></div>
+        <form class="comments-view-input-row" id="commentsViewForm">
+          <input type="text" placeholder="${currentUser ? 'Agrega un comentario…' : 'Inicia sesión para comentar…'}" required>
+          <button type="submit" class="btn btn-primary btn-small">Publicar</button>
+        </form>
+      </div>
+    </div>
+  `;
+  modalBackdrop.classList.add('open');
+  renderCommentsList(post);
+  document.getElementById('commentsViewForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if(!requireLogin('comentar')) return;
+    const input = e.target.querySelector('input');
+    const text = input.value.trim();
+    if(!text) return;
+    input.value = '';
+    await DB.posts.addComment(post.id, { authorId: currentUser.id, text });
+    let fresh = [];
+    try{ fresh = await DB.posts.list(); }catch(err){ /* ignore */ }
+    const freshPost = fresh.find(p => p.id === post.id);
+    if(freshPost){
+      post.comments = freshPost.comments;
+      await resolveAuthorObjs([post]);
+      renderCommentsList(post);
+    }
+    updatePostInPlace(post.id);
+  });
+}
+function renderCommentsList(post){
+  const listEl = document.getElementById('commentsViewList');
+  if(!listEl) return;
+  const comments = post.comments || [];
+  if(!comments.length){ listEl.innerHTML = '<p class="comments-view-empty">Todavía no hay comentarios.</p>'; return; }
+  listEl.innerHTML = comments.map(c => `<div class="comment-item" data-comment-author="${c.authorId}"><strong>…</strong> ${escapeHtml(c.text)}</div>`).join('');
+  listEl.querySelectorAll('[data-comment-author]').forEach(el => {
+    const uid = el.dataset.commentAuthor;
+    el.querySelector('strong').textContent = (usersCache[uid]?.name || 'Alguien') + ':';
+  });
+}
 
 // ---------- COMPOSER: publica o edita ----------
 document.getElementById('composerForm').addEventListener('submit', async (e) => {
@@ -2595,6 +2615,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
   renderProfile();
   renderSidePanels();
   authReady = true;
+
+  // Restaurar la pantalla donde estaba antes de recargar (se olvida si cierra la pestaña)
+  let savedView = null;
+  try{ savedView = sessionStorage.getItem('enraiza:view'); }catch(err){ /* ignore */ }
+  if(savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)){
+    showView(savedView);
+  }
 })();
 </script>
 </body>
