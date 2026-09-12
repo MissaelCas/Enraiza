@@ -1889,8 +1889,19 @@ document.getElementById('logForm').addEventListener('submit', async (e) => {
 });
 
 // ---------- ARRANQUE ----------
-sb.auth.onAuthStateChange((_event, session) => {
-  // Mantiene currentUser sincronizado si la sesión cambia en otra pestaña.
+// Escucha cambios de sesión en tiempo real: si alguien confirma su correo y
+// vuelve a caer en esta página, o si inicia/cierra sesión en otra pestaña,
+// la app se actualiza sola sin que nadie tenga que recargar a mano.
+let authReady = false;
+sb.auth.onAuthStateChange(async (event, session) => {
+  if(!authReady) return; // el arranque de abajo ya se encarga de la sesión inicial
+  if(session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
+    await loadCurrentUserFromSession(session);
+    await refreshAppAfterAuthChange();
+  } else if(event === 'SIGNED_OUT'){
+    currentUser = null;
+    await refreshAppAfterAuthChange();
+  }
 });
 
 (async () => {
@@ -1899,6 +1910,7 @@ sb.auth.onAuthStateChange((_event, session) => {
   applyProfileToUI();
   await Promise.all([renderLog(), renderFeed(), renderStories()]);
   renderProfile();
+  authReady = true;
 })();
 </script>
 </body>
