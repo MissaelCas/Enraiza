@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enraíza — Por una vida más sostenible, una raíz a la vez</title>
+<style>
+  :root{
+    --paper: #EFE9D8;
+    --paper-alt: #E5DFC6;
+    --ink: #23301D;
+    --ink-soft: #4A5A42;
+    --moss: #3F6B4A;
+    --moss-dark: #2C4E35;
+    --clay: #C1793C;
+    --clay-dark: #9C5F2C;
+    --sage: #8AA399;
+    --line: #B8AE93;
+    --white-ish: #FAF7EE;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+  }
+  a{ color: var(--moss-dark); }
+  img,svg{ max-width:100%; display:block; }
+
+  .wrap{ max-width: 1080px; margin:0 auto; padding: 0 24px; }
+
+  header.nav{
+    position: sticky; top:0; z-index: 50;
+    background: rgba(239,233,216,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding: 14px 24px; max-width:1080px; margin:0 auto; gap: 10px; }
+  .logo{ font-family: var(--serif); font-size: 1.35rem; font-weight:700; color: var(--moss-dark); text-decoration:none; letter-spacing: 0.2px; }
+  .logo span{ color: var(--clay-dark); }
+
+  .btn{
+    display:inline-block; font-family: var(--sans); font-size: 0.98rem; font-weight:600;
+    padding: 13px 22px; border-radius: 3px; text-decoration:none; cursor:pointer; border: 1.5px solid transparent;
+  }
+  .btn-primary{ background: var(--moss); color: var(--white-ish); }
+  .btn-primary:hover{ background: var(--moss-dark); }
+  .btn-primary:disabled{ opacity:0.6; cursor:default; }
+  .btn-outline{ background:transparent; border-color: var(--ink); color: var(--ink); }
+  .btn-outline:hover{ background: var(--ink); color: var(--paper); }
+  .btn-small{ padding: 8px 14px; font-size: 0.85rem; }
+  .btn-text{ background:none; border:none; padding:0; font-size:0.85rem; color: var(--ink-soft); text-decoration: underline; cursor:pointer; }
+
+  section{ padding: 40px 0 56px; }
+  .section-head{ display:flex; justify-content:space-between; align-items: flex-end; gap: 20px; margin-bottom: 28px; flex-wrap:wrap; }
+  h2.section-title{ font-family: var(--serif); font-size: clamp(1.5rem, 3vw, 2rem); margin: 0; color: var(--ink); }
+  .section-desc{ color: var(--ink-soft); max-width: 62ch; margin: 6px 0 0; }
+  .back-row{ margin-bottom: 18px; }
+  .back-link{ background:none; border:none; cursor:pointer; color: var(--ink-soft); font-size: 0.9rem; padding:0; display:inline-flex; align-items:center; gap:6px; }
+  .back-link:hover{ color: var(--ink); }
+
+  .filters{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 24px; }
+  .filter-pill{
+    border: 1.5px solid var(--line); background: transparent; color: var(--ink-soft);
+    padding: 7px 15px; border-radius: 999px; font-size: 0.87rem; cursor:pointer;
+  }
+  .filter-pill.active{ background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+  .project-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+  .project-card{
+    background: var(--paper-alt);
+    border-left: 4px solid var(--moss);
+    border-radius: 2px;
+    padding: 18px 18px 16px;
+    display:flex; flex-direction:column; gap: 10px;
+    cursor:pointer;
+  }
+  .project-card[data-cat="energia"]{ border-left-color: var(--clay); }
+  .project-card[data-cat="agua"]{ border-left-color: var(--sage); }
+  .project-card[data-cat="movilidad"]{ border-left-color: #6E5A9C; }
+  .project-card[data-cat="cultivo"]{ border-left-color: #7A8C3F; }
+  .project-card h3{ font-family: var(--serif); font-size: 1.12rem; margin:0; }
+  .project-meta{ font-size: 0.78rem; color: var(--ink-soft); display:flex; gap:10px; flex-wrap:wrap; }
+  .project-meta span{ border: 1px solid var(--line); padding: 2px 8px; border-radius: 999px; }
+  .project-card p.desc{ font-size: 0.92rem; color: var(--ink-soft); margin:0; flex:1; }
+
+  .modal-backdrop{
+    position: fixed; inset:0; background: rgba(35,48,29,0.55); display:none;
+    align-items:center; justify-content:center; z-index: 100; padding: 20px;
+  }
+  .modal-backdrop.open{ display:flex; }
+  .modal{
+    background: var(--white-ish); max-width: 560px; width:100%; max-height: 85vh; overflow-y:auto;
+    border-radius: 4px; padding: 28px; position:relative;
+  }
+  .modal-close{ position:absolute; top:14px; right:16px; background:none; border:none; font-size:1.4rem; cursor:pointer; color: var(--ink-soft); }
+  .modal h3{ font-family: var(--serif); font-size: 1.4rem; margin: 0 0 6px; }
+  .modal .project-meta{ margin-bottom: 14px; }
+  .modal-steps{ padding-left: 20px; margin: 0 0 18px; }
+  .modal-steps li{ margin-bottom: 8px; font-size: 0.95rem; }
+
+  .plant-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 24px; }
+  .plant-tab{
+    border: 1.5px solid var(--line); background: transparent; padding: 9px 16px; font-size: 0.9rem;
+    cursor:pointer; border-radius: 3px; color: var(--ink-soft);
+  }
+  .plant-tab.active{ background: var(--moss); border-color: var(--moss); color: var(--white-ish); }
+  .plant-panel{ display:none; }
+  .plant-panel.active{ display:block; }
+  .plant-intro{ font-size: 0.92rem; color: var(--ink-soft); margin: 0 0 18px; max-width: 62ch; }
+  .plant-panel-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap:20px; }
+  .plant-block{ background: var(--paper-alt); padding: 18px 20px; border-radius: 3px; }
+  .plant-block h4{ font-family: var(--serif); font-size: 1.02rem; margin: 0 0 8px; color: var(--moss-dark); }
+  .plant-block p, .plant-block ul{ font-size: 0.92rem; color: var(--ink-soft); margin: 0; }
+  .plant-block ul{ padding-left: 18px; }
+  .plant-alert{ border-left: 3px solid var(--clay); padding-left: 12px; margin-top:16px; font-size: 0.88rem; color: var(--clay-dark); }
+
+  .article-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 20px; }
+  .article-card{ border: 1px solid var(--line); padding: 20px; border-radius: 3px; background: var(--white-ish); }
+  .article-card h3{ font-family: var(--serif); font-size: 1.08rem; margin: 0 0 8px; }
+  .article-card p{ font-size: 0.92rem; color: var(--ink-soft); margin:0; }
+
+  .bitacora-layout{ display:grid; grid-template-columns: 340px 1fr; gap: 30px; }
+  @media (max-width: 760px){ .bitacora-layout{ grid-template-columns: 1fr; } }
+  .log-form{ background: var(--paper-alt); padding: 20px; border-radius: 4px; display:flex; flex-direction:column; gap:12px; height: fit-content; }
+  .log-form label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:4px; }
+  .log-form input, .log-form textarea, .log-form select{
+    width:100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px; font-family: var(--sans); font-size:0.92rem;
+    background: var(--white-ish);
+  }
+  .log-form textarea{ resize: vertical; min-height: 70px; }
+  .share-row{ display:flex; align-items:flex-start; gap: 8px; border-top: 1px dashed var(--line); padding-top: 12px; }
+  .share-row input[type="checkbox"]{ width:auto; margin-top:3px; }
+  .share-note{ font-size: 0.78rem; color: var(--ink-soft); margin: 2px 0 0; }
+  .log-entries{ display:flex; flex-direction:column; gap: 16px; }
+  .log-entry{ border: 1px solid var(--line); border-radius: 3px; padding: 16px 18px; background: var(--white-ish); }
+  .log-entry-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .log-entry h4{ font-family: var(--serif); margin: 0 0 4px; font-size: 1.02rem; }
+  .log-entry .log-date{ font-size: 0.78rem; color: var(--ink-soft); }
+  .log-entry p{ margin: 8px 0 0; font-size: 0.92rem; color: var(--ink-soft); white-space: pre-wrap; }
+  .log-entry img{ margin-top:10px; border-radius: 3px; max-height: 220px; object-fit:cover; width:100%; }
+  .log-del{ background:none; border:none; color: var(--ink-soft); cursor:pointer; font-size:0.8rem; text-decoration:underline; }
+  .empty-note{ color: var(--ink-soft); font-style: italic; font-size: 0.92rem; }
+
+  footer{ padding: 40px 0 60px; border-top: 1px solid var(--line); }
+  footer p{ font-size: 0.85rem; color: var(--ink-soft); }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  .feed-empty{ color: var(--ink-soft); font-style: italic; font-size: 0.92rem; }
+
+  .badge-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 14px; }
+  .badge-card{
+    border: 1.5px solid var(--moss); border-radius: 4px; padding: 16px; background: var(--paper-alt);
+    display:flex; gap: 12px; align-items:flex-start;
+  }
+  .badge-card.locked{ border-color: var(--line); background: transparent; opacity: 0.65; }
+  .badge-icon{ font-size: 1.5rem; line-height:1; }
+  .badge-card h4{ font-family: var(--serif); font-size: 0.98rem; margin: 0 0 4px; }
+  .badge-card p{ font-size: 0.82rem; color: var(--ink-soft); margin:0; }
+
+  .avatar{
+    width: 38px; height:38px; border-radius: 50%; background: var(--moss);
+    color: var(--white-ish); display:flex; align-items:center; justify-content:center;
+    font-family: var(--serif); font-size: 1rem; flex-shrink:0; overflow:hidden;
+  }
+  .avatar img{ width:100%; height:100%; object-fit:cover; }
+
+  .profile-sub-title{ font-family: var(--serif); font-size: 1.2rem; margin: 30px 0 14px; }
+
+  .law-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 20px; margin-top: 10px; }
+  .law-card{ border: 1px solid var(--line); border-radius: 3px; padding: 20px; background: var(--white-ish); border-left: 4px solid var(--clay); }
+  .law-card h4{ font-family: var(--serif); font-size: 1.02rem; margin: 0 0 4px; }
+  .law-source{ font-size: 0.78rem; color: var(--ink-soft); margin: 0 0 12px; }
+  blockquote.law-quote{
+    margin: 0 0 12px; padding: 10px 14px; border-left: 3px solid var(--moss);
+    font-family: var(--serif); font-style: italic; font-size: 0.98rem; color: var(--ink);
+    background: var(--paper-alt);
+  }
+  .law-card p.explain{ font-size: 0.88rem; color: var(--ink-soft); margin: 0 0 12px; }
+  .law-card a.read-more{ font-size: 0.82rem; text-decoration: underline; }
+  .glossary-note{ font-size: 0.78rem; color: var(--ink-soft); margin: 0 0 12px; }
+  .glossary-note b{ color: var(--ink); }
+
+  /* ---------- INSTAGRAM-STYLE LAYER ---------- */
+  .ig-icons{ display:flex; align-items:center; gap: 18px; }
+  .ig-icon-btn{ background:none; border:none; cursor:pointer; color: var(--ink); padding: 4px; line-height:0; position:relative; }
+  .ig-icon-btn svg{ width: 24px; height:24px; display:block; }
+  .ig-icon-btn .avatar{ width:28px; height:28px; font-size:0.8rem; }
+  .ig-dot{ position:absolute; top:0; right:0; width:8px; height:8px; border-radius:50%; background: var(--clay); border: 1.5px solid var(--paper); }
+
+  .feed-col{ max-width: 470px; margin: 0 auto; }
+
+  .stories-row{ display:flex; gap: 16px; overflow-x:auto; padding: 16px 4px 20px; }
+  .story-item{ display:flex; flex-direction:column; align-items:center; gap: 6px; flex-shrink:0; width: 68px; cursor:pointer; background:none; border:none; font-family: var(--sans); }
+  .story-ring{
+    width: 62px; height:62px; border-radius:50%; padding: 2.5px;
+    background: linear-gradient(45deg, var(--clay), var(--clay-dark), var(--moss));
+    display:flex; align-items:center; justify-content:center;
+  }
+  .story-ring.seen{ background: var(--line); }
+  .story-avatar{
+    width: 100%; height:100%; border-radius:50%; background: var(--paper);
+    border: 2px solid var(--paper); display:flex; align-items:center; justify-content:center;
+    font-family: var(--serif); color: var(--moss-dark); font-size: 1.1rem; overflow:hidden;
+  }
+  .story-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .story-add .story-ring{ background: var(--paper-alt); border: 1.5px dashed var(--line); padding:0; }
+  .story-add .story-ring span{ font-size: 1.4rem; color: var(--ink-soft); }
+  .story-label{ font-size: 0.72rem; color: var(--ink-soft); max-width: 68px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .create-bar{
+    display:flex; align-items:center; gap: 10px; background: var(--white-ish);
+    border: 1px solid var(--line); border-radius: 20px; padding: 10px 16px; margin-bottom: 18px;
+    cursor:pointer; color: var(--ink-soft); font-size: 0.92rem;
+  }
+  .create-bar:hover{ border-color: var(--moss); }
+
+  .composer{ background: var(--white-ish); border: 1px solid var(--line); border-radius: 4px; padding: 20px; margin-bottom: 30px; display:none; }
+  .composer.open{ display:block; }
+  .composer-top{ display:flex; gap:10px; align-items:center; margin-bottom: 12px; }
+  .composer-top strong{ font-size: 0.95rem; }
+  .composer input, .composer textarea, .composer select{
+    width:100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px;
+    font-family: var(--sans); font-size:0.92rem; background: var(--paper); margin-bottom: 10px;
+  }
+  .composer textarea{ resize: vertical; min-height: 60px; }
+  .composer-row{ display:flex; gap:10px; }
+  .composer-row > *{ flex:1; }
+  .composer-footer{ display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap; margin-top: 4px; }
+  .photo-picker-btn{ border: 1.5px dashed var(--line); background: var(--paper); border-radius: 3px; padding: 10px 12px; font-size: 0.85rem; color: var(--ink-soft); cursor:pointer; width:100%; text-align:left; margin-bottom:10px; }
+  .photo-preview-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px; }
+  .photo-preview-item{ position:relative; width:64px; height:64px; border-radius:4px; overflow:hidden; background: var(--paper-alt); }
+  .photo-preview-item img{ width:100%; height:100%; object-fit:cover; }
+  .photo-preview-item button{ position:absolute; top:2px; right:2px; background: rgba(35,48,29,0.7); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:0.7rem; cursor:pointer; line-height:1; }
+  .upload-note{ font-size: 0.76rem; color: var(--ink-soft); margin: -4px 0 10px; }
+
+  .ig-post{ background: var(--white-ish); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 22px; overflow:hidden; }
+  .ig-post-header{ display:flex; align-items:center; gap: 10px; padding: 12px 14px; position:relative; }
+  .ig-post-header .avatar{ width:34px; height:34px; font-size:0.85rem; }
+  .ig-post-meta{ flex:1; min-width:0; }
+  .ig-post-meta .uname{ font-weight:700; font-size: 0.88rem; display:flex; align-items:center; gap:6px; }
+  .ig-demo-tag{ font-size: 0.66rem; font-weight:400; color: var(--clay-dark); border: 1px solid var(--clay); border-radius: 999px; padding: 1px 7px; }
+  .ig-post-meta .time{ font-size: 0.74rem; color: var(--ink-soft); }
+  .ig-menu-btn{ background:none; border:none; cursor:pointer; color: var(--ink-soft); font-size: 1.1rem; padding: 4px 8px; }
+  .ig-dropdown{
+    position:absolute; top: 40px; right: 10px; background: var(--white-ish); border: 1px solid var(--line);
+    border-radius: 6px; box-shadow: 0 4px 14px rgba(35,48,29,0.12); min-width: 170px; z-index: 20; overflow:hidden;
+  }
+  .ig-dropdown button{ display:block; width:100%; text-align:left; background:none; border:none; padding: 10px 14px; font-size: 0.85rem; cursor:pointer; color: var(--ink); }
+  .ig-dropdown button:hover{ background: var(--paper-alt); }
+  .ig-dropdown button.danger{ color: #a3392c; }
+
+  /* Carrusel de fotos deslizable, estilo IG */
+  .ig-post-carousel{ position:relative; width:100%; aspect-ratio: 1/1; background: var(--paper-alt); overflow:hidden; }
+  .ig-carousel-track{ display:flex; width:100%; height:100%; overflow-x:auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .ig-carousel-track::-webkit-scrollbar{ display:none; }
+  .ig-carousel-track img{ flex: 0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; cursor:pointer; }
+  .ig-carousel-dots{ position:absolute; bottom:10px; left:0; right:0; display:flex; justify-content:center; gap:5px; pointer-events:none; }
+  .ig-carousel-dots span{ width:5px; height:5px; border-radius:50%; background: rgba(255,255,255,0.6); }
+  .ig-carousel-dots span.active{ background:#fff; }
+  .ig-carousel-count{ position:absolute; top:10px; right:10px; background: rgba(0,0,0,0.45); color:#fff; font-size:0.72rem; padding:2px 8px; border-radius:999px; pointer-events:none; }
+  .ig-heart-burst{
+    position:absolute; top:50%; left:50%; transform: translate(-50%,-50%) scale(0.5); width:90px; height:90px;
+    color:#fff; opacity:0; pointer-events:none; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.35));
+  }
+  .ig-heart-burst.show{ animation: heartBurst 0.85s ease forwards; }
+  @keyframes heartBurst{
+    0%{ opacity:0; transform: translate(-50%,-50%) scale(0.4); }
+    25%{ opacity:1; transform: translate(-50%,-50%) scale(1.15); }
+    40%{ transform: translate(-50%,-50%) scale(0.95); }
+    75%{ opacity:1; transform: translate(-50%,-50%) scale(1); }
+    100%{ opacity:0; transform: translate(-50%,-50%) scale(1); }
+  }
+
+  .ig-actions{ display:flex; align-items:center; padding: 10px 14px 2px; gap: 16px; }
+  .ig-actions .spacer{ flex:1; }
+  .ig-icon{ background:none; border:none; cursor:pointer; padding:0; line-height:0; color: var(--ink); }
+  .ig-icon svg{ width: 25px; height:25px; }
+  .ig-icon.liked svg{ fill: #c1473c; stroke: #c1473c; }
+  .ig-icon.saved svg{ fill: var(--ink); }
+  .ig-icon.disabled{ opacity: 0.35; cursor:default; }
+
+  .ig-likes-line{ padding: 0 14px; font-size: 0.85rem; font-weight:700; margin: 2px 0 4px; }
+  .ig-caption{ padding: 0 14px; font-size: 0.88rem; margin: 0 0 6px; white-space:pre-wrap; }
+  .ig-caption .uname{ font-weight:700; margin-right: 6px; }
+  .ig-comments-preview{ padding: 0 14px; display:flex; flex-direction:column; gap: 3px; margin-bottom: 6px; }
+  .comment-item{ font-size: 0.86rem; color: var(--ink-soft); }
+  .comment-item strong{ color: var(--ink); }
+  .ig-view-more{ background:none; border:none; padding: 0 14px; margin-bottom: 6px; color: var(--ink-soft); font-size: 0.82rem; cursor:pointer; text-align:left; }
+  .ig-comment-row{ display:flex; align-items:center; gap: 8px; padding: 8px 14px 14px; border-top: 1px solid var(--line); }
+  .ig-comment-row input{ flex:1; border:none; background:none; font-size: 0.88rem; padding: 6px 0; font-family: var(--sans); }
+  .ig-comment-row input:focus{ outline:none; }
+  .ig-comment-row button{ background:none; border:none; color: var(--moss-dark); font-weight:700; font-size: 0.85rem; cursor:pointer; opacity:0.4; }
+  .ig-comment-row button.active{ opacity:1; }
+
+  /* Visor de historias: centrado, con barra de tiempo arriba */
+  .story-view-backdrop{ background: rgba(0,0,0,0.85); }
+  .story-view{ background:#111; border-radius: 8px; padding:0; max-width:400px; width:100%; position:relative; overflow:hidden; }
+  .story-progress-row{ position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; z-index:5; }
+  .story-progress-track{ flex:1; height:3px; background: rgba(255,255,255,0.35); border-radius:3px; overflow:hidden; }
+  .story-progress-fill{ height:100%; width:0%; background:#fff; }
+  .story-progress-fill.filled{ width:100%; }
+  .story-progress-fill.animating{ animation: storyFill linear forwards; }
+  @keyframes storyFill{ from{ width:0%; } to{ width:100%; } }
+  .story-view-img-wrap{ width:100%; aspect-ratio: 9/16; background:#222; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .story-view-img-wrap img{ width:100%; height:100%; object-fit:cover; }
+  .story-view-head{ display:flex; align-items:center; gap:8px; padding: 20px 14px 10px; position:absolute; top:0; left:0; right:0; color:#fff; }
+  .story-view-head .avatar{ width:28px; height:28px; font-size:0.75rem; }
+  .story-view-head span{ font-size:0.82rem; }
+  .story-view-text{ padding: 14px; font-size:0.95rem; color:#fff; background: rgba(0,0,0,0.35); }
+  .story-tap-zone{ position:absolute; top:0; bottom:0; width:35%; z-index:4; background:none; border:none; cursor:pointer; }
+  .story-tap-zone.left{ left:0; }
+  .story-tap-zone.right{ right:0; }
+  .story-view-close{ position:absolute; top:14px; right:14px; z-index:6; background: rgba(0,0,0,0.4); color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:1rem; }
+
+  /* Actividad */
+  .activity-item{ display:flex; flex-direction:column; gap:2px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size:0.88rem; }
+  .activity-item:last-child{ border-bottom:none; }
+  .activity-item .when{ font-size:0.74rem; color: var(--ink-soft); }
+
+  /* Perfil, estilo IG */
+  .profile-ig-head{ display:flex; gap: 22px; align-items:center; margin-bottom: 16px; flex-wrap:wrap; }
+  .avatar-big-wrap{ position:relative; flex-shrink:0; }
+  .avatar-big{
+    width: 68px; height:68px; border-radius: 50%; background: var(--moss);
+    color: var(--white-ish); display:flex; align-items:center; justify-content:center;
+    font-family: var(--serif); font-size: 1.5rem; overflow:hidden;
+  }
+  .avatar-big img{ width:100%; height:100%; object-fit:cover; }
+  .avatar-edit-btn{
+    position:absolute; bottom:-2px; right:-2px; width:24px; height:24px; border-radius:50%;
+    background: var(--moss); color:#fff; border: 2px solid var(--paper); cursor:pointer; font-size:0.72rem;
+  }
+  .profile-ig-right{ flex:1; min-width:200px; }
+  .profile-ig-name{ font-size: 1.1rem; font-weight:700; margin: 0 0 10px; }
+  .profile-stats-row{ display:flex; gap: 26px; margin-bottom: 12px; }
+  .profile-stats-row div{ font-size: 0.85rem; color: var(--ink-soft); }
+  .profile-stats-row strong{ display:block; font-size: 1.05rem; color: var(--ink); font-family: var(--serif); }
+  .profile-bio{ font-size: 0.88rem; color: var(--ink-soft); max-width: 46ch; }
+  .profile-bio strong{ display:block; color: var(--ink); font-family: var(--serif); font-size: 1rem; margin-bottom: 2px; }
+
+  .profile-post-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 6px; }
+  .profile-post-thumb{ aspect-ratio: 1/1; object-fit:cover; width:100%; cursor:pointer; background: var(--paper-alt); }
+  .profile-empty-grid{ color: var(--ink-soft); font-style: italic; font-size: 0.88rem; padding: 20px 0; }
+
+  .settings-block{ border: 1px solid var(--line); border-radius: 4px; padding: 18px 20px; background: var(--white-ish); margin-top: 14px; }
+  .settings-block label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:6px; }
+  .settings-block input{ padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px; font-size:0.92rem; width:100%; max-width:320px; margin-bottom: 14px; }
+  .settings-privacy{ font-size: 0.82rem; color: var(--ink-soft); border-left: 3px solid var(--clay); padding-left: 12px; margin: 14px 0; }
+
+  .explore-menu{ padding:6px 0; margin-top:0; }
+  .explore-menu a{ display:block; padding:14px 20px; text-decoration:none; color:var(--ink); border-bottom:1px solid var(--line); cursor:pointer; }
+  .explore-menu a:last-child{ border-bottom:none; }
+  .explore-menu a:hover{ background: var(--paper-alt); }
+
+  .auth-form{ display:flex; flex-direction:column; gap:12px; }
+  .auth-form label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:4px; }
+  .auth-form input{ width:100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px; font-family: var(--sans); font-size:0.92rem; }
+  .auth-error{ font-size: 0.85rem; color: #a3392c; margin: 0; }
+  .auth-switch{ font-size: 0.85rem; color: var(--ink-soft); margin-top: 4px; }
+  .auth-switch button{ background:none; border:none; color: var(--moss-dark); text-decoration:underline; cursor:pointer; padding:0; font-size:inherit; }
+  .auth-gate{ text-align:center; padding: 30px 20px; color: var(--ink-soft); }
+  .auth-gate .btn{ margin-top: 12px; }
+  .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="#" class="logo" data-view="inicio">Enra<span>í</span>za</a>
+    <div class="ig-icons">
+      <button class="ig-icon-btn" id="btnGoHome" title="Inicio" aria-label="Inicio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H17.5a1 1 0 0 0 1-1v-9"/></svg>
+      </button>
+      <button class="ig-icon-btn" id="btnNewPost" title="Nueva publicación" aria-label="Nueva publicación">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
+      </button>
+      <button class="ig-icon-btn" id="btnActivity" title="Actividad" aria-label="Actividad">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7.2-4.6-9.7-9.1C.6 8.6 2 5 5.4 4.2 7.7 3.6 10 4.6 12 7c2-2.4 4.3-3.4 6.6-2.8C22 5 23.4 8.6 21.7 11.9 19.2 16.4 12 21 12 21Z"/></svg>
+        <span class="ig-dot" id="activityDot" style="display:none;"></span>
+      </button>
+      <button class="ig-icon-btn" id="btnGoProfile" title="Perfil" aria-label="Perfil">
+        <div class="avatar" id="topbarAvatar">?</div>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===================== INICIO: SOLO RED SOCIAL ===================== -->
+  <section id="inicio" class="view active" style="padding-top: 18px;">
+    <div class="feed-col">
+      <div class="stories-row" id="storiesRow"></div>
+
+      <div class="create-bar" id="createBar">
+        <div class="avatar" id="createBarAvatar">?</div>
+        <span id="createBarText">¿Qué proyecto o planta quieres compartir hoy?</span>
+      </div>
+
+      <form class="composer" id="composerForm">
+        <div class="composer-top">
+          <div class="avatar" id="composerAvatar">?</div>
+          <strong id="composerGreeting">Nueva publicación</strong>
+        </div>
+        <input type="hidden" id="postEditId" value="">
+        <input type="text" id="postTitle" placeholder="Título (ej. Mi aguacate ya sacó raíz)" required>
+        <div class="composer-row">
+          <select id="postCategory">
+            <option value="proyecto">Proyecto</option>
+            <option value="planta">Planta</option>
+            <option value="observacion">Observación general</option>
+          </select>
+        </div>
+        <textarea id="postNotes" placeholder="Cuenta cómo te fue, qué aprendiste o qué dudas tienes" required></textarea>
+        <button type="button" class="photo-picker-btn" id="postPhotoPickBtn">📷 Agregar fotos (puedes elegir varias)</button>
+        <input type="file" id="postPhotoInput" accept="image/*" multiple class="visually-hidden">
+        <div class="photo-preview-row" id="postPhotoPreview"></div>
+        <p class="upload-note" id="postPhotoNote"></p>
+        <div class="composer-footer" style="justify-content:flex-end;">
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-outline btn-small" id="composerCancel">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-small" id="composerSubmitBtn">Publicar</button>
+          </div>
+        </div>
+      </form>
+
+      <div id="feedEntries">
+        <p class="feed-empty">Cargando publicaciones…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PROYECTOS (pantalla aparte) ===================== -->
+  <section id="proyectos" class="view">
+    <div class="back-row"><button class="back-link" data-view="perfil">← Volver a Perfil</button></div>
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Elige un proyecto</h2>
+        <p class="section-desc">Ideas reales para empezar hoy, filtradas por lo que tienes ganas de hacer. Elige una, sigue los pasos, y si quieres, regístrala en tu bitácora.</p>
+      </div>
+    </div>
+    <div class="filters" id="filters">
+      <button class="filter-pill active" data-filter="todos">Todos</button>
+      <button class="filter-pill" data-filter="agua">Ahorro de agua</button>
+      <button class="filter-pill" data-filter="energia">Energía</button>
+      <button class="filter-pill" data-filter="reciclaje">Reciclaje</button>
+      <button class="filter-pill" data-filter="cultivo">Cultivo</button>
+      <button class="filter-pill" data-filter="familia">Familia y niños</button>
+      <button class="filter-pill" data-filter="movilidad">Movilidad</button>
+    </div>
+    <div class="project-grid" id="projectGrid"></div>
+  </section>
+
+  <!-- ===================== PLANTAS (pantalla aparte) ===================== -->
+  <section id="plantas" class="view">
+    <div class="back-row"><button class="back-link" data-view="perfil">← Volver a Perfil</button></div>
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Cuidado de plantas</h2>
+        <p class="section-desc">Cada planta se siembra y se cuida distinto: no es lo mismo un rosal que una lengua de suegra. Aquí va el proceso completo de cada una.</p>
+      </div>
+    </div>
+    <div class="plant-tabs" id="plantTabs"></div>
+    <div id="plantPanels"></div>
+  </section>
+
+  <!-- ===================== ARTÍCULOS Y LEYES (pantalla aparte) ===================== -->
+  <section id="articulos" class="view">
+    <div class="back-row"><button class="back-link" data-view="perfil">← Volver a Perfil</button></div>
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Artículos y leyes</h2>
+        <p class="section-desc">Para entender el panorama más grande detrás de cada proyecto pequeño, con enlaces para leer las fuentes completas.</p>
+      </div>
+    </div>
+    <div class="article-grid">
+      <div class="article-card">
+        <h3>¿Qué es la Agenda 2030?</h3>
+        <p>Es un plan impulsado por la ONU con 17 Objetivos de Desarrollo Sostenible que buscan, para el año 2030, reducir la pobreza, proteger el planeta y mejorar la calidad de vida de las personas. Temas como agua limpia, energía asequible, ciudades sostenibles y acción por el clima están directamente relacionados con los proyectos de esta página.</p>
+        <p style="margin-top:10px;"><a class="read-more" href="https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/" target="_blank" rel="noopener">Leer los 17 objetivos completos →</a></p>
+      </div>
+      <div class="article-card">
+        <h3>Leyes de protección ambiental</h3>
+        <p>La mayoría de los países cuentan con una ley marco de protección ambiental que regula el manejo de residuos, el uso del agua y la conservación de ecosistemas. Vale la pena revisar la legislación de tu país o estado antes de proyectos que involucren agua de pozo, tala o manejo de residuos a mayor escala.</p>
+      </div>
+      <div class="article-card">
+        <h3>Por qué empezar en pequeño funciona</h3>
+        <p>Los hábitos sostenibles se sostienen más cuando empiezan con proyectos pequeños y visibles, como una planta o un ahorro de agua, en lugar de cambios grandes de golpe. Esta página está pensada para ir sumando proyectos, no para hacerlos todos a la vez.</p>
+      </div>
+    </div>
+
+    <h3 class="profile-sub-title">La regla de "plantar varios árboles por cada uno talado"</h3>
+    <p class="section-desc" style="margin-bottom:20px;">Esta idea existe de verdad en distintas leyes, aunque cada lugar la aplica distinto. Aquí van ejemplos reales, con la cita exacta de la norma o de la autoridad, y un enlace para leer más si quieres profundizar.</p>
+    <div class="law-grid">
+      <div class="law-card">
+        <h4>Bolivia — reglamento municipal del arbolado</h4>
+        <p class="law-source">Ordenanza / Ley Municipal N.º 210, sobre conservación y arborización urbana</p>
+        <blockquote class="law-quote">"deberá plantar diez (10) nuevos individuos de especies nativas"</blockquote>
+        <p class="explain">Es la versión más literal de la regla "10 árboles por cada uno talado": si alguien tala sin permiso un árbol nativo en la ciudad, la norma le exige reponerlo con diez árboles nuevos y darles mantenimiento los primeros dos años.</p>
+        <a class="read-more" href="https://epconsultant.wordpress.com/2017/10/12/ley-de-conservacion-recuperacion-proteccion-del-arbol-politicas-de-arborizacion-urbana-y-el-embellecimiento-de-la-ciudad/" target="_blank" rel="noopener">Leer la fuente completa →</a>
+      </div>
+      <div class="law-card">
+        <h4>Michoacán, México — Fiscalía Ambiental</h4>
+        <p class="law-source">Declaración del titular de la Fiscalía Especializada en Delitos Contra el Medio Ambiente, reportada por Quadratín (2024)</p>
+        <blockquote class="law-quote">"por cada árbol perdido tiene que plantar 10"</blockquote>
+        <p class="explain">Además de plantar los árboles de reposición, la persona responsable debe garantizar que sobrevivan por un periodo mínimo antes de dar el caso por cerrado.</p>
+        <a class="read-more" href="https://www.quadratin.com.mx/politicas/por-cada-arbol-talado-se-deben-plantar-10-como-sancion-fiscalia/" target="_blank" rel="noopener">Leer la fuente completa →</a>
+      </div>
+      <div class="law-card">
+        <h4>Nuevo León, México — arbolado urbano</h4>
+        <p class="law-source">Ley para la Conservación y Protección del Arbolado Urbano del Estado de Nuevo León</p>
+        <blockquote class="law-quote">"reponer los árboles dañados y plantarlos en el lugar donde cometió la infracción"</blockquote>
+        <p class="glossary-note"><b>Restitución</b> es la palabra legal para "reponer el daño causado a un árbol", ya sea plantando uno nuevo o pagando el equivalente.</p>
+        <a class="read-more" href="https://www.hcnl.gob.mx/trabajo_legislativo/leyes/leyes/ley_para_la_conservacion_y_proteccion_del_arbolado_urbano_del_estado_de_nuevo_leon/" target="_blank" rel="noopener">Leer la fuente completa →</a>
+      </div>
+      <div class="law-card">
+        <h4>Cataluña, España — arbolado urbano</h4>
+        <p class="law-source">Ley 8/2005, de protección, gestión y ordenación del paisaje (texto consolidado, BOE)</p>
+        <blockquote class="law-quote">"la plantación de un ejemplar adulto de la misma especie por año de edad"</blockquote>
+        <p class="explain">Si no es posible trasplantar el árbol, la ley pide plantar un árbol ya adulto por cada año de vida que tenía el árbol talado, en vez de una plántula pequeña.</p>
+        <a class="read-more" href="https://www.boe.es/buscar/pdf/2006/BOE-A-2006-3669-consolidado.pdf" target="_blank" rel="noopener">Leer la fuente completa →</a>
+      </div>
+      <div class="law-card">
+        <h4>Bogotá, Colombia — compensación forestal</h4>
+        <p class="law-source">Resolución 3158 de 2021, Secretaría Distrital de Ambiente</p>
+        <blockquote class="law-quote">"equivalencias de individuos vegetales plantados... por cada individuo vegetal talado"</blockquote>
+        <p class="glossary-note"><b>Aprovechamiento forestal</b> aquí sólo significa "cortar o intervenir un árbol con permiso". La autoridad calcula cuántos árboles nuevos, de qué tamaño, se deben plantar como compensación.</p>
+        <a class="read-more" href="https://www.alcaldiabogota.gov.co/sisjur/normas/Norma1.jsp?i=117438" target="_blank" rel="noopener">Leer la fuente completa →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== BITÁCORA (pantalla aparte) ===================== -->
+  <section id="bitacora" class="view">
+    <div class="back-row"><button class="back-link" data-view="perfil">← Volver a Perfil</button></div>
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Bitácora</h2>
+        <p class="section-desc">Tu cuaderno privado. Solo tú lo ves, a menos que marques la casilla para compartir una entrada con la comunidad.</p>
+      </div>
+    </div>
+    <div class="bitacora-layout">
+      <form class="log-form" id="logForm">
+        <div>
+          <label for="logTitle">Título</label>
+          <input type="text" id="logTitle" placeholder="Ej. Aguacate, semana 3" required>
+        </div>
+        <div>
+          <label for="logCategory">Categoría</label>
+          <select id="logCategory">
+            <option value="planta">Planta</option>
+            <option value="proyecto">Proyecto</option>
+            <option value="observacion">Observación general</option>
+          </select>
+        </div>
+        <div>
+          <label for="logNotes">Notas</label>
+          <textarea id="logNotes" placeholder="¿Qué observaste? ¿Qué hiciste?" required></textarea>
+        </div>
+        <div>
+          <label for="logPhoto">Foto (URL, opcional)</label>
+          <input type="url" id="logPhoto" placeholder="https://...">
+        </div>
+        <div class="share-row">
+          <input type="checkbox" id="logShare">
+          <div>
+            <label for="logShare" style="margin:0;">Compartir esta entrada con la comunidad</label>
+            <p class="share-note">Si la compartes, aparecerá en el Inicio para cualquiera que visite la página, con tu cuenta.</p>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-small">Guardar entrada</button>
+      </form>
+      <div>
+        <div class="log-entries" id="logEntries">
+          <p class="empty-note">Cargando tu bitácora…</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PERFIL (pantalla aparte) ===================== -->
+  <section id="perfil" class="view">
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Perfil</h2>
+        <p class="section-desc">Cómo te ves en Enraíza y lo que has ido logrando.</p>
+      </div>
+    </div>
+
+    <div class="profile-ig-head">
+      <div class="avatar-big-wrap">
+        <div class="avatar-big" id="profileAvatar">?</div>
+        <button type="button" class="avatar-edit-btn" id="avatarEditBtn" title="Cambiar foto de perfil">✎</button>
+        <input type="file" id="avatarInput" accept="image/*" class="visually-hidden">
+      </div>
+      <div class="profile-ig-right">
+        <p class="profile-ig-name" id="profileDisplayName">Sin nombre todavía</p>
+        <div class="profile-stats-row" id="profileStats"></div>
+        <div class="profile-bio">
+          <strong>Enraíza</strong>
+          🌱 Por una vida más sostenible, una raíz a la vez.
+        </div>
+      </div>
+    </div>
+
+    <h3 class="profile-sub-title">Explorar Enraíza</h3>
+    <div class="settings-block explore-menu">
+      <a data-view="proyectos">🌿 Proyectos — ideas para empezar hoy</a>
+      <a data-view="plantas">🪴 Cuidado de plantas</a>
+      <a data-view="articulos">📜 Artículos y leyes</a>
+      <a data-view="bitacora">📔 Mi bitácora privada</a>
+    </div>
+
+    <h3 class="profile-sub-title">Tus publicaciones</h3>
+    <div class="profile-post-grid" id="profilePostGrid"></div>
+
+    <h3 class="profile-sub-title">Logros</h3>
+    <div class="badge-grid" id="badgeGrid"></div>
+
+    <h3 class="profile-sub-title">Cuenta</h3>
+    <div class="settings-block" id="accountBlock">
+      <!-- se llena dinámicamente -->
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p>Enraíza — un cuaderno vivo para ir sumando proyectos sostenibles. Iremos agregando más ideas, plantas y artículos con el tiempo.</p>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modalBox">
+    <button class="modal-close" id="modalClose">&times;</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- MODAL DE AUTENTICACIÓN -->
+<div class="modal-backdrop" id="authBackdrop">
+  <div class="modal" style="max-width:400px;">
+    <button class="modal-close" id="authClose">&times;</button>
+    <div id="authContent"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// =====================================================================
+// CONEXIÓN A SUPABASE (proyecto real del usuario)
+// =====================================================================
+const SUPABASE_URL = 'https://bizluypmotcgoxdjquyf.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_NQPTYNX-B3OFCEWOX5QuBw_O-dTAjPw';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const BUCKET = 'enraiza';
+const STORY_DAY_MS = 24 * 60 * 60 * 1000;
+const STORY_DURATION_MS = 5000;
+
+// ---------- DATA: PROJECTS ----------
+const PROJECTS = [
+  { id:'p1', cat:'agua', title:'Botella economizadora de agua', level:'Fácil', who:'Familia',
+    desc:'Reduce el agua que gasta cada descarga del inodoro.',
+    steps:['Consigue una o dos botellas de plástico pequeñas (500ml).','Llénalas con agua y agrega piedras o arena para que no floten.','Ciérralas bien y colócalas dentro del tanque del inodoro, sin que toquen el mecanismo de la válvula.','Cada botella desplaza ese volumen de agua, así que la descarga usa menos litros.'] },
+  { id:'p2', cat:'agua', title:'Recolector de agua de lluvia', level:'Fácil-media', who:'Familia',
+    desc:'Junta agua de lluvia para regar tus plantas.',
+    steps:['Coloca un tambo o cubeta grande bajo un bajante de techo.','Cubre la entrada con una malla para evitar hojas e insectos.','Usa esa agua para regar plantas o lavar exteriores, nunca para tomar sin tratarla.','Vacía y limpia el recipiente cada pocas semanas para evitar mosquitos.'] },
+  { id:'p3', cat:'agua', title:'Riego por goteo con botella PET', level:'Fácil', who:'Todos',
+    desc:'Riego lento y constante sin gastar de más.',
+    steps:['Haz 3-4 agujeros pequeños en la tapa de una botella.','Entierra la botella boca abajo junto al tallo de la planta.','Llena de agua; se filtrará lentamente hacia la raíz durante varios días.','Ideal para cuando te ausentas unos días.'] },
+  { id:'p4', cat:'energia', title:'Mini panel solar casero', level:'Media', who:'Adultos y adolescentes',
+    desc:'Introducción práctica a la energía solar.',
+    steps:['Consigue un kit de panel solar pequeño (los hay económicos en tiendas de electrónica).','Conéctalo a un LED o a un cargador de baterías AA según las instrucciones del kit.','Colócalo donde reciba sol directo la mayor parte del día.','Observa y registra cuánto tarda en cargar según la hora y la nubosidad.'] },
+  { id:'p5', cat:'energia', title:'Cocina solar tipo caja', level:'Media', who:'Familia',
+    desc:'Calienta o cocina alimentos usando solo el sol.',
+    steps:['Forra el interior de una caja de cartón con papel aluminio, sin arrugas.','Cubre la abertura con un vidrio o plástico transparente grueso.','Coloca dentro un recipiente oscuro con la comida.','Orienta la caja hacia el sol y ajusta el ángulo cada 30-40 minutos.'] },
+  { id:'p6', cat:'energia', title:'Auditoría energética casera', level:'Fácil', who:'Todos',
+    desc:'Encuentra dónde se va la energía en tu casa.',
+    steps:['Recorre la casa anotando qué focos y aparatos quedan encendidos sin usarse.','Identifica focos que no sean LED.','Propón 3 cambios concretos (cambiar focos, desconectar cargadores, usar temporizadores).','Vuelve a revisar en un mes y compara.'] },
+  { id:'p7', cat:'reciclaje', title:'Composta casera', level:'Fácil-media', who:'Familia',
+    desc:'Convierte restos de comida en abono para tus plantas.',
+    steps:['Consigue una caja o tambo con orificios de ventilación.','Alterna capas de restos húmedos (cáscaras, verduras) con capas secas (hojas, cartón).','Voltea la mezcla cada semana con una pala.','En 2-3 meses tendrás abono oscuro y con olor a tierra, listo para usar.'] },
+  { id:'p8', cat:'cultivo', title:'Huerto vertical con botellas PET', level:'Fácil', who:'Todos',
+    desc:'Siembra hierbas o lechugas usando una pared soleada.',
+    steps:['Corta un costado de varias botellas para formar una especie de maceta.','Haz agujeros pequeños en la base para drenaje.','Cuélgalas de un panel o pared con sol directo varias horas al día.','Rellena con tierra y siembra hierbas de rápido crecimiento como albahaca o cilantro.'] },
+  { id:'p9', cat:'reciclaje', title:'Jabón casero con aceite usado', level:'Media (solo adultos)', who:'Adultos',
+    desc:'Reutiliza el aceite de cocina en lugar de tirarlo al drenaje.',
+    steps:['Cuela el aceite usado para retirar residuos de comida.','Sigue una receta de saponificación en frío con sosa cáustica, manejada solo por un adulto con guantes y ventilación.','Vierte en moldes y deja curar 4-6 semanas antes de usar.','Nunca viertas aceite usado directo al drenaje mientras tanto.'] },
+  { id:'p10', cat:'familia', title:'Hotel de insectos', level:'Fácil', who:'Niños',
+    desc:'Da refugio a insectos polinizadores en el jardín.',
+    steps:['Consigue una caja de madera o cartón resistente.','Rellena con ramas huecas, cartón enrollado y piñas secas.','Cuelga la estructura en un lugar protegido de la lluvia directa.','Observa qué insectos la visitan durante las siguientes semanas.'] },
+  { id:'p11', cat:'familia', title:'Comedero de aves reciclado', level:'Fácil', who:'Niños',
+    desc:'Un proyecto rápido con una botella o cartón de leche.',
+    steps:['Lava bien una botella o cartón de leche vacío.','Corta una abertura grande en un costado.','Haz un par de agujeros para pasar un cordón y colgarlo.','Rellena con semillas para aves y cuélgalo cerca de una ventana para observar.'] },
+  { id:'p12', cat:'cultivo', title:'Semillero con cartón de huevo', level:'Muy fácil', who:'Niños',
+    desc:'El primer paso antes de trasplantar cualquier semilla.',
+    steps:['Llena cada compartimento del cartón con un poco de tierra.','Coloca una o dos semillas por compartimento.','Riega con poca agua y coloca en un lugar con luz indirecta.','Cuando salgan 2-3 hojas verdaderas, trasplanta a una maceta más grande, cartón incluido (se biodegrada).'] },
+  { id:'p13', cat:'familia', title:'Diario del clima y la huerta', level:'Fácil', who:'Niños',
+    desc:'Un hábito de observación semanal, ideal para aprender ciencia en casa.',
+    steps:['Cada domingo, anota temperatura, si llovió y cómo se ven las plantas.','Toma una foto de la misma planta cada semana desde el mismo ángulo.','Compara las fotos cada mes para ver el crecimiento.','Sube tus observaciones a tu bitácora.'] },
+  { id:'p14', cat:'movilidad', title:'Reto de una semana sin auto', level:'Media', who:'Adultos y familia',
+    desc:'Prueba caminar, usar bici o transporte público por una semana.',
+    steps:['Planea tus traslados de la semana usando bici, caminata o transporte público.','Anota cuánto tiempo y dinero usaste comparado con una semana normal.','Registra cómo te sentiste física y mentalmente.','Decide si quieres mantener alguno de esos cambios de forma permanente.'] },
+  { id:'p15', cat:'cultivo', title:'Hidroponía casera con botella PET', level:'Media', who:'Todos',
+    desc:'Cultiva hierbas sin tierra, con materiales reciclados.',
+    steps:['Corta la botella por la mitad, un poco más arriba de la mitad.','Invierte la parte de arriba (boca hacia abajo) y encájala dentro de la parte de abajo, como un embudo.','Pasa una mecha de tela de algodón o fieltro por la boca de la botella, dejando un extremo largo hacia abajo.','Llena la base con agua y un poco de fertilizante líquido diluido según las indicaciones del producto.','Llena la parte de arriba con un sustrato inerte: perlita, fibra de coco o piedra volcánica pequeña.','Siembra una plántula pequeña (lechuga, albahaca o hierbabuena funcionan bien para empezar).','Revisa cada semana: la mecha debe mantenerse húmeda; rellena el agua de la base cuando baje demasiado.'] },
+];
+
+// ---------- DATA: PLANTS ----------
+const PLANTS = {
+  aguacate: {
+    label: 'Aguacate',
+    intro: 'Se cultiva a partir del hueso. Es lento (puede tardar años en dar fruto y a veces no da), pero es de las plantas más agradecidas para empezar.',
+    blocks: [
+      { h:'Cómo empezar', p:'Lava el hueso sin quitar la cáscara café. Clava 3-4 palillos alrededor, a la mitad de su altura, y suspéndelo sobre un vaso con agua, cubriendo la base 2-3 cm. Cambia el agua cada 2-3 días y ubícalo en un lugar cálido, sin sol directo. La raíz suele aparecer entre 2 y 6 semanas.' },
+      { h:'Trasplante', p:'Cuando el tallo mida unos 15 cm, córtalo a la mitad para que crezca más fuerte y ramificado. Cuando las raíces se vean densas, trasplanta a una maceta con tierra suelta y buen drenaje, dejando la mitad superior del hueso fuera de la tierra.' },
+      { h:'Riego y luz', p:'Luz brillante pero indirecta al inicio; ya trasplantado, tolera algo de sol directo si se acostumbra poco a poco. Riega quedando la tierra húmeda pero no encharcada; deja secar los primeros 2-3 cm antes de volver a regar.' },
+      { h:'Plagas comunes', p:'Manchas amarillas moteadas o telarañas finas bajo las hojas suelen ser araña roja. Hojas pegajosas con bichos verdes son pulgones. En ambos casos, limpia con agua jabonosa suave (jabón neutro diluido) cada pocos días hasta que desaparezcan.' },
+    ],
+    alert: '¿Se quemó con sol directo? Si las hojas nuevas o la semilla se ven cafés o marchitas después de mucho sol, mueve la planta a un lugar con luz filtrada (cerca de una ventana con cortina) por 1-2 semanas y mantén el riego normal. Evita el sol directo del mediodía mientras se recupera.'
+  },
+  lengua: {
+    label: 'Lengua de suegra',
+    intro: 'No se siembra por semilla en casa: se propaga por división de la planta madre o por hojas cortadas. Es de las plantas más difíciles de matar.',
+    blocks: [
+      { h:'Cómo propagarla', p:'La forma más segura es dividir el rizoma (la base con raíces) de una planta ya grande y plantar cada parte por separado. También se puede cortar una hoja sana en secciones de 5-7 cm, dejar secar el corte 1-2 días y plantarla en tierra ligeramente húmeda hasta que enraíce.' },
+      { h:'Riego', p:'Riega solo cuando la tierra esté completamente seca, aproximadamente cada 2-3 semanas (aún menos en invierno).' },
+      { h:'Luz', p:'Tolera tanto sombra como sol, pero crece mejor con luz indirecta brillante.' },
+      { h:'Bitácora sugerida', p:'Anota la fecha de cada riego y el aspecto de las hojas cada 2 semanas: firmeza, color y si aparecen manchas blandas en la base.' },
+    ],
+    alert: 'Hojas blandas o con base oscura y olor a humedad son señal de exceso de agua, no de falta. Deja secar la tierra por completo antes de volver a regar; el exceso de riego es la causa número uno de que esta planta muera.'
+  },
+  rosal: {
+    label: 'Rosal',
+    intro: 'A diferencia de la lengua de suegra, el rosal sí se puede resembrar a partir de un tallo (esqueje), aunque también se consigue ya crecido en vivero.',
+    blocks: [
+      { h:'Propagación por esqueje', p:'Corta un tallo semi-leñoso de unos 20 cm, con al menos 3 yemas, justo después de que una flor se marchitó. Quita las hojas de la mitad inferior y entiérralo en tierra húmeda o perlita. Mantén la humedad y algo de sombra durante 3-4 semanas hasta que aparezcan raíces nuevas.' },
+      { h:'Poda', p:'Poda a finales de invierno o inicio de primavera, antes de que broten nuevas hojas. Corta tallos débiles o cruzados y deja 3-5 yemas por tallo sano, con un corte en ángulo de 45° justo arriba de una yema hacia afuera.' },
+      { h:'Cosecha de flores', p:'Corta las flores temprano por la mañana, cuando el capullo apenas empieza a abrirse. Corta con tallo largo, justo arriba de una hoja de 5 foliolos, para que el nuevo brote salga fuerte.' },
+      { h:'Riego y luz', p:'Necesita al menos 6 horas de sol directo. Riega profundo 2-3 veces por semana, evitando mojar las hojas para prevenir hongos.' },
+    ],
+    alert: 'Manchas negras en las hojas suelen ser mancha negra (un hongo); retira las hojas afectadas y evita regar por encima del follaje.'
+  },
+  fresa: {
+    label: 'Fresa',
+    intro: 'Se propaga sobre todo por los estolones (tallos rastreros) que ella misma produce, no tanto por semilla.',
+    blocks: [
+      { h:'Cómo propagarla', p:'Deja que un estolón toque tierra y eche raíz por sí solo; cuando esté bien enraizado, sepáralo de la planta madre cortando el tallo que los une.' },
+      { h:'Condiciones', p:'Necesita sol directo entre 6 y 8 horas al día y suelo suelto, bien drenado y ligeramente ácido.' },
+      { h:'Riego', p:'Riego frecuente y constante, sin encharcar, evitando mojar hojas y frutos para prevenir hongos.' },
+      { h:'Cuidados', p:'Corta algunos estolones si quieres concentrar la energía en la fruta, o déjalos si quieres propagar nuevas plantas. Cubrir el suelo con paja ayuda a mantener la fruta limpia y la humedad estable.' },
+    ],
+    alert: 'Frutos blandos o con moho gris suelen deberse a que la fruta toca tierra húmeda; usa paja o un soporte para mantenerla elevada.'
+  },
+  durazno: {
+    label: 'Durazno',
+    intro: 'Desde el hueso es posible, pero requiere un paso extra que mucha gente olvida: simular el invierno antes de que germine.',
+    blocks: [
+      { h:'Estratificación en frío', p:'Limpia el hueso y guárdalo dentro de una bolsa con turba o algodón húmedo en el refrigerador durante 8-10 semanas. Este "invierno simulado" es indispensable para que el hueso germine.' },
+      { h:'Siembra', p:'Después del frío, planta el hueso en una maceta profunda con tierra suelta, a unos 3-5 cm de profundidad, y mantenlo en un lugar cálido con luz.' },
+      { h:'Trasplante y cuidados', p:'Cuando la planta tenga raíces fuertes, trasplántala a su lugar definitivo con sol pleno y buen drenaje. Riego moderado, dejando secar la superficie entre riegos.' },
+      { h:'Plagas comunes', p:'La hoja crespa (hojas arrugadas y rojizas en primavera) es un hongo común; se previene con un tratamiento a base de cobre durante el invierno, antes de que broten las hojas.' },
+    ],
+    alert: 'Un árbol nacido de hueso puede tardar varios años en dar fruta, y esa fruta no siempre es igual a la del árbol original. Si quieres fruta garantizada más rápido, considera comprar un árbol ya injertado de vivero.'
+  },
+  piña: {
+    label: 'Piña',
+    intro: 'No se siembra por semilla: se vuelve a sembrar la corona (la parte de hojas) de una piña que ya compraste.',
+    blocks: [
+      { h:'Cómo empezar', p:'Corta la corona dejando un poco de pulpa, y retira las hojas inferiores hasta dejar 3-5 cm de tallo expuesto. Deja secar ese corte al aire durante 1-2 días para evitar que se pudra.' },
+      { h:'Enraizado', p:'Suspende la base en agua (sin que las hojas la toquen) hasta que salgan raíces, entre 2 y 3 semanas, cambiando el agua cada pocos días. Luego trasplanta a tierra suelta con buen drenaje.' },
+      { h:'Riego y luz', p:'Necesita mucho sol y calor. Es tolerante a la sequía, así que riega poco y deja secar bien la tierra entre riegos para evitar que se pudra la base.' },
+      { h:'Tiempo de espera', p:'Puede tardar entre 18 y 24 meses en producir una fruta nueva, así que es un proyecto de paciencia más que de mantenimiento diario.' },
+    ],
+    alert: 'La base blanda o con mal olor casi siempre significa exceso de agua antes de que las raíces estuvieran listas; deja secar más la tierra la próxima vez.'
+  },
+  cilantro: {
+    label: 'Cilantro',
+    intro: 'A diferencia de las anteriores, el cilantro se siembra directo por semilla en su lugar definitivo, porque no le gusta que muevan sus raíces.',
+    blocks: [
+      { h:'Siembra', p:'Siembra las semillas directo en la maceta o tierra donde va a quedarse, a poca profundidad (1 cm). Evita trasplantarlo después: sus raíces se dañan fácilmente y la planta se estresa.' },
+      { h:'Riego y luz', p:'Necesita riego constante para no secarse, y un clima fresco. Con calor y días largos "se va a flor" (bolting) muy rápido y las hojas se vuelven amargas.' },
+      { h:'Cómo evitar que se vaya a flor', p:'Siembra en tandas escalonadas cada 2-3 semanas para tener siempre cilantro joven, y en época calurosa ubícalo donde reciba algo de sombra al mediodía.' },
+    ],
+    alert: 'Si ya se fue a flor, deja que termine su ciclo y forme semillas (cilantro seco = semillas de cilantro para volver a sembrar) en vez de intentar rescatar las hojas, que ya estarán amargas.'
+  },
+  manzano: {
+    label: 'Manzano',
+    intro: 'Desde semilla es posible como experimento, pero para fruta confiable la mayoría de la gente compra un árbol ya injertado.',
+    blocks: [
+      { h:'Desde semilla', p:'Igual que el durazno, las semillas necesitan estratificación en frío: guárdalas húmedas en el refrigerador de 6 a 10 semanas antes de sembrarlas. El árbol resultante no será idéntico a la manzana de la que salió la semilla, por ser una planta híbrida.' },
+      { h:'Trasplante', p:'Cuando la plántula tenga varias hojas verdaderas y raíces firmes, trasplántala a un lugar con sol pleno y suelo bien drenado.' },
+      { h:'Riego y clima', p:'Riego moderado, dejando secar un poco entre riegos. Necesita inviernos fríos (horas-frío) para florear y dar fruta correctamente, por lo que no funciona igual en climas muy cálidos todo el año.' },
+      { h:'Poda', p:'Se poda en invierno, cuando el árbol está sin hojas, para darle forma abierta y dejar entrar luz y aire al centro.' },
+    ],
+    alert: 'La mayoría de los manzanos de semilla tardan años en dar fruta y muchas veces necesitan otro manzano cerca para polinizarse. Si tu meta es comer manzanas pronto, un árbol injertado de vivero es la opción más segura.'
+  }
+};
+
+// ---------- RENDER PROJECTS ----------
+const grid = document.getElementById('projectGrid');
+function renderProjects(filter){
+  grid.innerHTML = '';
+  const list = filter === 'todos' ? PROJECTS : PROJECTS.filter(p => p.cat === filter);
+  list.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'project-card';
+    card.dataset.cat = p.cat;
+    card.innerHTML = `
+      <h3>${p.title}</h3>
+      <div class="project-meta"><span>${p.level}</span><span>${p.who}</span></div>
+      <p class="desc">${p.desc}</p>
+      <span class="btn btn-outline btn-small" style="align-self:flex-start;">Ver pasos</span>
+    `;
+    card.addEventListener('click', () => openProjectModal(p));
+    grid.appendChild(card);
+  });
+}
+document.getElementById('filters').addEventListener('click', (e) => {
+  if(!e.target.classList.contains('filter-pill')) return;
+  document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  renderProjects(e.target.dataset.filter);
+});
+renderProjects('todos');
+
+// ---------- MODAL GENÉRICO ----------
+const modalBackdrop = document.getElementById('modalBackdrop');
+const modalContent = document.getElementById('modalContent');
+const modalBox = document.getElementById('modalBox');
+let modalOnClose = null;
+function openProjectModal(p){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>${p.title}</h3>
+    <div class="project-meta"><span>${p.level}</span><span>${p.who}</span></div>
+    <ol class="modal-steps">${p.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+    <button class="btn btn-primary btn-small" id="addToLogBtn">Agregar a mi bitácora</button>
+  `;
+  modalBackdrop.classList.add('open');
+  document.getElementById('addToLogBtn').addEventListener('click', () => {
+    document.getElementById('logTitle').value = p.title;
+    document.getElementById('logCategory').value = 'proyecto';
+    document.getElementById('logNotes').value = 'Empecé este proyecto hoy.';
+    closeModal();
+    showView('bitacora');
+  });
+}
+function closeModal(){
+  modalBackdrop.classList.remove('open');
+  if(modalOnClose){ modalOnClose(); modalOnClose = null; }
+  modalBox.className = 'modal';
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modalBackdrop.addEventListener('click', (e) => { if(e.target === modalBackdrop) closeModal(); });
+
+// ---------- PLANT TABS ----------
+const plantTabs = document.getElementById('plantTabs');
+const plantPanels = document.getElementById('plantPanels');
+Object.keys(PLANTS).forEach((key, i) => {
+  const tab = document.createElement('button');
+  tab.className = 'plant-tab' + (i===0 ? ' active' : '');
+  tab.textContent = PLANTS[key].label;
+  tab.dataset.plant = key;
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.plant-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.plant-panel').forEach(pnl => pnl.classList.remove('active'));
+    document.getElementById('panel-' + key).classList.add('active');
+  });
+  plantTabs.appendChild(tab);
+
+  const panel = document.createElement('div');
+  panel.className = 'plant-panel' + (i===0 ? ' active' : '');
+  panel.id = 'panel-' + key;
+  panel.innerHTML = `
+    <p class="plant-intro">${PLANTS[key].intro}</p>
+    <div class="plant-panel-grid">
+      ${PLANTS[key].blocks.map(b => `<div class="plant-block"><h4>${b.h}</h4><p>${b.p}</p></div>`).join('')}
+    </div>
+    <p class="plant-alert">${PLANTS[key].alert}</p>
+  `;
+  plantPanels.appendChild(panel);
+});
+
+// ---------- CAMBIO DE PANTALLA ----------
+function showView(name){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const target = document.getElementById(name);
+  if(target) target.classList.add('active');
+  window.scrollTo({top:0, behavior:'instant'});
+  if(name === 'perfil') renderProfile();
+}
+document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', (e) => {
+  e.preventDefault();
+  showView(el.dataset.view);
+}));
+
+// ---------- ICONS ----------
+const ICONS = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.5s-7.5-4.6-10-9.3C.4 8 1.8 4.6 5 3.8c2.2-.6 4.4.3 6 2.4 1.6-2.1 3.8-3 6-2.4 3.2.8 4.6 4.2 3 7.4-2.5 4.7-10 9.3-10 9.3Z"/></svg>',
+  heartFilled: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-10-9.3C.4 8 1.8 4.6 5 3.8c2.2-.6 4.4.3 6 2.4 1.6-2.1 3.8-3 6-2.4 3.2.8 4.6 4.2 3 7.4-2.5 4.7-10 9.3-10 9.3Z"/></svg>',
+  comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12c0 4.4-4 8-9 8-1.2 0-2.4-.2-3.4-.6L3 20l1.1-4.2C3.4 14.5 3 13.3 3 12c0-4.4 4-8 9-8s9 3.6 9 8Z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>',
+  bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-6-4-6 4Z"/></svg>',
+  dots: '&#8226;&#8226;&#8226;',
+};
+
+const PLACEHOLDER_SETS = {
+  proyecto: [ ['#3F6B4A','🌿'], ['#C1793C','☀️'], ['#8AA399','💧'], ['#6E5A9C','🚲'] ],
+  planta:   [ ['#2C4E35','🪴'], ['#7A8C3F','🌱'], ['#9C5F2C','🌵'] ],
+  observacion: [ ['#4A5A42','📔'], ['#C1793C','🌤️'] ],
+};
+function hashStr(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+function placeholderImage(seed, category){
+  const set = PLACEHOLDER_SETS[category] || PLACEHOLDER_SETS.proyecto;
+  const [color, emoji] = set[hashStr(seed) % set.length];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="${color}"/><text x="50%" y="53%" font-size="150" text-anchor="middle" dominant-baseline="middle">${emoji}</text></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+// ---------- HELPERS ----------
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+function fmtDate(ts){
+  return new Date(ts).toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
+}
+function fmtRelative(ts){
+  const diff = Date.now() - ts;
+  const min = Math.floor(diff / 60000);
+  if(min < 1) return 'ahora mismo';
+  if(min < 60) return `hace ${min} min`;
+  const hrs = Math.floor(min / 60);
+  if(hrs < 24) return `hace ${hrs} h`;
+  const days = Math.floor(hrs / 24);
+  if(days < 7) return `hace ${days} d`;
+  return fmtDate(ts);
+}
+function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+// =====================================================================
+// SUBIDA DE IMÁGENES A SUPABASE STORAGE
+// =====================================================================
+async function uploadImageFile(file, folder){
+  const uid = currentUser ? currentUser.id : 'anon';
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${folder}/${uid}/${Date.now()}_${Math.floor(Math.random()*1e6)}.${ext}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { cacheControl: '3600', upsert: false });
+  if(error) throw error;
+  const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// =====================================================================
+// CAPA DE DATOS (DB.*) — ahora contra Supabase real (Postgres + Auth + Storage)
+// Ver schema.sql para las tablas.
+// =====================================================================
+const DB = {
+  users: {
+    async findById(id){
+      const { data, error } = await sb.from('profiles').select('*').eq('id', id).maybeSingle();
+      if(error) throw error;
+      if(!data) return null;
+      return { id: data.id, name: data.name, avatarUrl: data.avatar_url };
+    },
+    async updateName(id, name){
+      const { data, error } = await sb.from('profiles').update({ name }).eq('id', id).select().single();
+      if(error) throw error;
+      return { id: data.id, name: data.name, avatarUrl: data.avatar_url };
+    },
+    async updateAvatar(id, avatarUrl){
+      const { data, error } = await sb.from('profiles').update({ avatar_url: avatarUrl }).eq('id', id).select().single();
+      if(error) throw error;
+      return { id: data.id, name: data.name, avatarUrl: data.avatar_url };
+    },
+  },
+
+  posts: {
+    async list(){
+      const { data, error } = await sb.from('posts').select('*, post_likes(user_id), post_comments(*)').order('created_at', { ascending:false });
+      if(error) throw error;
+      return (data||[]).map(mapPostRow);
+    },
+    async create({ authorId, title, category, notes, photos }){
+      const { data, error } = await sb.from('posts').insert({ author_id: authorId, title, category, notes, photos: photos||[] }).select().single();
+      if(error) throw error;
+      return mapPostRow(data);
+    },
+    async update(id, authorId, fields){
+      const patch = {};
+      if('title' in fields) patch.title = fields.title;
+      if('category' in fields) patch.category = fields.category;
+      if('notes' in fields) patch.notes = fields.notes;
+      if('photos' in fields) patch.photos = fields.photos;
+      patch.updated_at = new Date().toISOString();
+      const { data, error } = await sb.from('posts').update(patch).eq('id', id).eq('author_id', authorId).select().single();
+      if(error) throw error;
+      return mapPostRow(data);
+    },
+    async remove(id, authorId){
+      const { error } = await sb.from('posts').delete().eq('id', id).eq('author_id', authorId);
+      if(error) throw error;
+      return true;
+    },
+    async toggleLike(id, userId){
+      const { data: existing } = await sb.from('post_likes').select('*').eq('post_id', id).eq('user_id', userId).maybeSingle();
+      if(existing){
+        await sb.from('post_likes').delete().eq('post_id', id).eq('user_id', userId);
+      } else {
+        await sb.from('post_likes').insert({ post_id: id, user_id: userId });
+      }
+      return true;
+    },
+    async addComment(id, { authorId, text }){
+      const { error } = await sb.from('post_comments').insert({ post_id: id, author_id: authorId, text });
+      if(error) throw error;
+      return true;
+    },
+  },
+
+  stories: {
+    async listActive(){
+      const since = new Date(Date.now() - STORY_DAY_MS).toISOString();
+      const { data, error } = await sb.from('stories').select('*').gte('created_at', since).order('created_at', { ascending:true });
+      if(error) throw error;
+      return (data||[]).map(mapStoryRow);
+    },
+    async create({ authorId, photo, text }){
+      const { data, error } = await sb.from('stories').insert({ author_id: authorId, photo: photo||null, text: text||null }).select().single();
+      if(error) throw error;
+      return mapStoryRow(data);
+    },
+  },
+
+  saved: {
+    async listForUser(userId){
+      const { data, error } = await sb.from('saved_posts').select('post_id').eq('user_id', userId);
+      if(error) throw error;
+      return (data||[]).map(r => r.post_id);
+    },
+    async toggle(userId, postId){
+      const { data: existing } = await sb.from('saved_posts').select('*').eq('user_id', userId).eq('post_id', postId).maybeSingle();
+      if(existing){
+        await sb.from('saved_posts').delete().eq('user_id', userId).eq('post_id', postId);
+        return false;
+      }
+      await sb.from('saved_posts').insert({ user_id: userId, post_id: postId });
+      return true;
+    },
+  },
+
+  logbook: {
+    async listForUser(userId){
+      const { data, error } = await sb.from('logbook_entries').select('*').eq('user_id', userId).order('created_at', { ascending:false });
+      if(error) throw error;
+      return (data||[]).map(mapLogRow);
+    },
+    async create(userId, { title, category, notes, photo, shared }){
+      const { data, error } = await sb.from('logbook_entries').insert({ user_id: userId, title, category, notes, photo: photo||null, shared: !!shared }).select().single();
+      if(error) throw error;
+      return mapLogRow(data);
+    },
+    async remove(userId, entryId){
+      const { error } = await sb.from('logbook_entries').delete().eq('id', entryId).eq('user_id', userId);
+      if(error) throw error;
+      return true;
+    },
+  },
+};
+
+function mapPostRow(row){
+  return {
+    id: row.id, authorId: row.author_id, title: row.title, category: row.category,
+    notes: row.notes, photos: row.photos || [], date: new Date(row.created_at).getTime(),
+    demo: !!row.is_demo,
+    likedBy: (row.post_likes||[]).map(l => l.user_id),
+    comments: (row.post_comments||[]).map(c => ({ id:c.id, authorId:c.author_id, text:c.text, date:new Date(c.created_at).getTime() })).sort((a,b)=>a.date-b.date),
+  };
+}
+function mapStoryRow(row){
+  return { id: row.id, authorId: row.author_id, photo: row.photo, text: row.text, date: new Date(row.created_at).getTime(), demo: !!row.is_demo };
+}
+function mapLogRow(row){
+  return { id: row.id, title: row.title, category: row.category, notes: row.notes, photo: row.photo, shared: row.shared, date: new Date(row.created_at).getTime() };
+}
+
+// ---------- ESTADO DE SESIÓN EN MEMORIA ----------
+let currentUser = null; // {id, name, avatarUrl}
+let usersCache = {};
+
+async function getUserCached(id){
+  if(!id) return null;
+  if(usersCache[id]) return usersCache[id];
+  const u = await DB.users.findById(id);
+  if(u) usersCache[id] = u;
+  return u;
+}
+function initials(name){
+  const clean = (name || '').trim();
+  if(!clean) return '?';
+  return clean.slice(0, 2).toUpperCase();
+}
+function avatarHTML(user, sizeClass){
+  if(user && user.avatarUrl){
+    return `<img src="${user.avatarUrl}" alt="">`;
+  }
+  return initials(user ? user.name : '');
+}
+function isLoggedIn(){ return !!currentUser; }
+function requireLogin(actionLabel){
+  if(isLoggedIn()) return true;
+  openAuthModal('login', actionLabel);
+  return false;
+}
+
+// ---------- MODAL DE AUTENTICACIÓN (Supabase Auth) ----------
+const authBackdrop = document.getElementById('authBackdrop');
+const authContent = document.getElementById('authContent');
+function closeAuthModal(){ authBackdrop.classList.remove('open'); }
+document.getElementById('authClose').addEventListener('click', closeAuthModal);
+authBackdrop.addEventListener('click', (e) => { if(e.target === authBackdrop) closeAuthModal(); });
+
+function openAuthModal(mode, actionLabel){
+  const isLogin = mode !== 'register';
+  authContent.innerHTML = `
+    ${actionLabel ? `<p class="section-desc" style="margin-bottom:14px;">Necesitas una cuenta para ${actionLabel}.</p>` : ''}
+    <h3>${isLogin ? 'Inicia sesión' : 'Crea tu cuenta'}</h3>
+    <form class="auth-form" id="authForm">
+      ${!isLogin ? `
+        <div>
+          <label for="authName">Nombre o apodo</label>
+          <input type="text" id="authName" required>
+        </div>` : ''}
+      <div>
+        <label for="authEmail">Correo</label>
+        <input type="email" id="authEmail" required>
+      </div>
+      <div>
+        <label for="authPassword">Contraseña</label>
+        <input type="password" id="authPassword" minlength="6" required>
+      </div>
+      <p class="auth-error" id="authError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" id="authSubmitBtn">${isLogin ? 'Entrar' : 'Crear cuenta'}</button>
+      <p class="auth-switch">
+        ${isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
+        <button type="button" id="authSwitchBtn">${isLogin ? 'Regístrate' : 'Inicia sesión'}</button>
+      </p>
+    </form>
+  `;
+  authBackdrop.classList.add('open');
+  document.getElementById('authSwitchBtn').addEventListener('click', () => openAuthModal(isLogin ? 'register' : 'login', actionLabel));
+  document.getElementById('authForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('authError');
+    const submitBtn = document.getElementById('authSubmitBtn');
+    errorEl.style.display = 'none';
+    const email = document.getElementById('authEmail').value.trim().toLowerCase();
+    const password = document.getElementById('authPassword').value;
+    submitBtn.disabled = true;
+    try{
+      if(isLogin){
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if(error) throw error;
+        await loadCurrentUserFromSession(data.session);
+      } else {
+        const name = document.getElementById('authName').value.trim();
+        if(!name) throw new Error('Pon un nombre o apodo.');
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+        if(error) throw error;
+        if(data.session){
+          await loadCurrentUserFromSession(data.session);
+        } else {
+          errorEl.textContent = 'Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.';
+          errorEl.style.display = 'block';
+          submitBtn.disabled = false;
+          return;
+        }
+      }
+      await refreshAppAfterAuthChange();
+      closeAuthModal();
+    }catch(err){
+      errorEl.textContent = translateAuthError(err.message);
+      errorEl.style.display = 'block';
+    }
+    submitBtn.disabled = false;
+  });
+}
+function translateAuthError(msg){
+  if(!msg) return 'Algo salió mal, intenta de nuevo.';
+  if(/invalid login credentials/i.test(msg)) return 'Correo o contraseña incorrectos.';
+  if(/already registered|already exists/i.test(msg)) return 'Ya existe una cuenta con ese correo.';
+  if(/password/i.test(msg) && /least/i.test(msg)) return 'La contraseña debe tener al menos 6 caracteres.';
+  return msg;
+}
+
+async function loadCurrentUserFromSession(session){
+  if(!session || !session.user){ currentUser = null; return; }
+  // Espera breve para que el trigger de Supabase cree el perfil en registros nuevos.
+  let profile = await DB.users.findById(session.user.id);
+  if(!profile){
+    await wait(600);
+    profile = await DB.users.findById(session.user.id);
+  }
+  currentUser = profile || { id: session.user.id, name: session.user.user_metadata?.name || 'Sin nombre', avatarUrl: null };
+  usersCache[currentUser.id] = currentUser;
+}
+async function refreshAppAfterAuthChange(){
+  applyProfileToUI();
+  await Promise.all([renderLog(), renderFeed(), renderStories()]);
+  renderProfile();
+}
+async function logout(){
+  await sb.auth.signOut();
+  currentUser = null;
+  await refreshAppAfterAuthChange();
+}
+
+function applyProfileToUI(){
+  document.getElementById('composerAvatar').innerHTML = avatarHTML(currentUser);
+  document.getElementById('profileAvatar').innerHTML = avatarHTML(currentUser);
+  document.getElementById('topbarAvatar').innerHTML = avatarHTML(currentUser);
+  document.getElementById('createBarAvatar').innerHTML = avatarHTML(currentUser);
+  document.getElementById('createBarText').textContent = currentUser
+    ? `¿Qué quieres compartir hoy, ${currentUser.name}?`
+    : 'Inicia sesión para compartir un proyecto o planta';
+  document.getElementById('profileDisplayName').textContent = currentUser ? currentUser.name : 'Invitado';
+}
+
+// ---------- FOTO DE PERFIL ----------
+document.getElementById('avatarEditBtn').addEventListener('click', () => {
+  if(!requireLogin('cambiar tu foto de perfil')) return;
+  document.getElementById('avatarInput').click();
+});
+document.getElementById('avatarInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file || !currentUser) return;
+  const btn = document.getElementById('avatarEditBtn');
+  btn.textContent = '…';
+  try{
+    const url = await uploadImageFile(file, 'avatars');
+    currentUser = await DB.users.updateAvatar(currentUser.id, url);
+    usersCache[currentUser.id] = currentUser;
+    applyProfileToUI();
+    renderProfile();
+    renderFeed();
+  }catch(err){
+    alert('No se pudo subir la foto: ' + (err.message || err));
+  }
+  btn.textContent = '✎';
+});
+
+// ---------- CREATE BAR / COMPOSER ----------
+const composerForm = document.getElementById('composerForm');
+let pendingPhotos = []; // {file, url(local preview)}
+function openComposer(){
+  if(!requireLogin('publicar')) return;
+  composerForm.classList.add('open');
+  document.getElementById('createBar').style.display = 'none';
+  document.getElementById('postTitle').focus();
+}
+function closeComposer(){
+  composerForm.classList.remove('open');
+  document.getElementById('createBar').style.display = 'flex';
+  composerForm.reset();
+  document.getElementById('postEditId').value = '';
+  document.getElementById('composerGreeting').textContent = 'Nueva publicación';
+  document.getElementById('composerSubmitBtn').textContent = 'Publicar';
+  pendingPhotos = [];
+  renderPhotoPreview();
+}
+document.getElementById('createBar').addEventListener('click', openComposer);
+document.getElementById('composerCancel').addEventListener('click', closeComposer);
+
+document.getElementById('postPhotoPickBtn').addEventListener('click', () => document.getElementById('postPhotoInput').click());
+document.getElementById('postPhotoInput').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  files.forEach(file => pendingPhotos.push({ file, url: URL.createObjectURL(file) }));
+  renderPhotoPreview();
+});
+function renderPhotoPreview(){
+  const row = document.getElementById('postPhotoPreview');
+  row.innerHTML = pendingPhotos.map((p, i) => `
+    <div class="photo-preview-item">
+      <img src="${p.url}" alt="">
+      <button type="button" data-removeidx="${i}">&times;</button>
+    </div>
+  `).join('');
+  row.querySelectorAll('[data-removeidx]').forEach(btn => btn.addEventListener('click', () => {
+    pendingPhotos.splice(parseInt(btn.dataset.removeidx, 10), 1);
+    renderPhotoPreview();
+  }));
+}
+
+// ---------- TOPBAR ICON ACTIONS ----------
+document.getElementById('btnGoHome').addEventListener('click', () => { showView('inicio'); });
+document.getElementById('btnGoProfile').addEventListener('click', () => { showView('perfil'); });
+document.getElementById('btnNewPost').addEventListener('click', () => {
+  if(!requireLogin('publicar')) return;
+  showView('inicio');
+  openComposer();
+});
+document.getElementById('btnActivity').addEventListener('click', () => {
+  if(!requireLogin('ver tu actividad')) return;
+  openActivityModal();
+});
+
+// ---------- FEED DE INICIO ----------
+const feedEntriesEl = document.getElementById('feedEntries');
+const expandedComments = new Set();
+let openMenuId = null;
+
+function carouselHTML(post){
+  const photos = (post.photos && post.photos.length) ? post.photos : [placeholderImage(post.id + post.title, post.category)];
+  return `
+    <div class="ig-post-carousel" data-carousel="${post.id}">
+      <div class="ig-carousel-track" data-doublelike="${post.id}">
+        ${photos.map((src,i) => `<img src="${escapeHtml(src)}" alt="Imagen ${i+1} de ${escapeHtml(post.title)}" data-idx="${i}" onerror="this.src='${placeholderImage(post.id+i, post.category)}'">`).join('')}
+      </div>
+      ${photos.length > 1 ? `
+        <div class="ig-carousel-count">1/${photos.length}</div>
+        <div class="ig-carousel-dots">${photos.map((_,i)=>`<span class="${i===0?'active':''}"></span>`).join('')}</div>
+      ` : ''}
+      <svg class="ig-heart-burst" id="burst-${post.id}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-10-9.3C.4 8 1.8 4.6 5 3.8c2.2-.6 4.4.3 6 2.4 1.6-2.1 3.8-3 6-2.4 3.2.8 4.6 4.2 3 7.4-2.5 4.7-10 9.3-10 9.3Z"/></svg>
+    </div>
+  `;
+}
+
+function postCardHTML(post, authorName, authorObj, liked, saved){
+  const likeCount = (post.likedBy || []).length;
+  const comments = post.comments || [];
+  const expanded = expandedComments.has(post.id);
+  const shown = expanded ? comments : comments.slice(-2);
+  const hiddenCount = comments.length - shown.length;
+  const isMine = currentUser && post.authorId === currentUser.id;
+  return `
+    <article class="ig-post" data-id="${post.id}">
+      <div class="ig-post-header">
+        <div class="avatar">${avatarHTML(authorObj)}</div>
+        <div class="ig-post-meta">
+          <div class="uname">${escapeHtml(authorName)}${post.demo ? '<span class="ig-demo-tag">Ejemplo</span>' : ''}</div>
+          <div class="time">${fmtRelative(post.date)} · ${post.category}</div>
+        </div>
+        <button class="ig-menu-btn" data-menu="${post.id}">${ICONS.dots}</button>
+        ${openMenuId === post.id ? `
+          <div class="ig-dropdown">
+            ${isMine ? `<button data-edit="${post.id}">Editar publicación</button><button class="danger" data-del="${post.id}">Eliminar publicación</button>` : `<button data-report="${post.id}">Reportar (no envía nada aún)</button>`}
+            <button data-closemenu="1">Cerrar</button>
+          </div>` : ''}
+      </div>
+      ${carouselHTML(post)}
+      <div class="ig-actions">
+        <button class="ig-icon ${liked ? 'liked' : ''}" data-like="${post.id}" title="Me gusta">${liked ? ICONS.heartFilled : ICONS.heart}</button>
+        <button class="ig-icon" data-focuscomment="${post.id}" title="Comentar">${ICONS.comment}</button>
+        <button class="ig-icon disabled" title="Compartir (próximamente)">${ICONS.share}</button>
+        <span class="spacer"></span>
+        <button class="ig-icon ${saved ? 'saved' : ''}" data-save="${post.id}" title="Guardar">${ICONS.bookmark}</button>
+      </div>
+      <p class="ig-likes-line">${likeCount ? `A ${likeCount} persona${likeCount===1?'':'s'} le${likeCount===1?'':'s'} gusta esto` : 'Sé la primera persona en darle me gusta'}</p>
+      <p class="ig-caption"><strong>${escapeHtml(post.title)}</strong><br>${escapeHtml(post.notes)}</p>
+      ${comments.length ? `
+        <div class="ig-comments-preview">
+          ${hiddenCount > 0 ? `<button class="ig-view-more" data-viewmore="${post.id}">Ver los ${comments.length} comentarios</button>` : ''}
+          ${shown.map(c => `<div class="comment-item" data-comment-author="${c.authorId}"><strong>…</strong> ${escapeHtml(c.text)}</div>`).join('')}
+        </div>` : ''}
+      <form class="ig-comment-row" data-id="${post.id}">
+        <input type="text" placeholder="${currentUser ? 'Agrega un comentario…' : 'Inicia sesión para comentar…'}" required>
+        <button type="submit">Publicar</button>
+      </form>
+    </article>
+  `;
+}
+
+async function resolveAuthorObjs(posts){
+  const ids = new Set();
+  posts.forEach(p => { ids.add(p.authorId); (p.comments||[]).forEach(c => ids.add(c.authorId)); });
+  await Promise.all([...ids].map(id => getUserCached(id)));
+}
+
+async function renderFeed(){
+  feedEntriesEl.innerHTML = '<p class="feed-empty">Cargando publicaciones…</p>';
+  let posts;
+  try{ posts = await DB.posts.list(); }
+  catch(err){ feedEntriesEl.innerHTML = `<p class="feed-empty">No se pudo cargar el feed (${escapeHtml(err.message||'error')}).</p>`; return; }
+  await resolveAuthorObjs(posts);
+  const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
+  if(!posts.length){
+    feedEntriesEl.innerHTML = '<p class="feed-empty">Todavía no hay publicaciones. Inicia sesión y cuenta un proyecto o una planta arriba.</p>';
+    return;
+  }
+  feedEntriesEl.innerHTML = posts.map(post => {
+    const authorObj = usersCache[post.authorId];
+    const authorName = authorObj?.name || 'Alguien de la comunidad';
+    const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
+    const saved = savedIds.includes(post.id);
+    return postCardHTML(post, authorName, authorObj, liked, saved);
+  }).join('');
+
+  feedEntriesEl.querySelectorAll('[data-comment-author]').forEach(el => {
+    const uid = el.dataset.commentAuthor;
+    const name = usersCache[uid]?.name || 'Alguien';
+    el.querySelector('strong').textContent = name;
+  });
+
+  // Carrusel: puntos y contador siguen el scroll
+  feedEntriesEl.querySelectorAll('[data-carousel]').forEach(car => {
+    const track = car.querySelector('.ig-carousel-track');
+    const dots = car.querySelectorAll('.ig-carousel-dots span');
+    const countEl = car.querySelector('.ig-carousel-count');
+    if(!track || track.children.length <= 1) return;
+    track.addEventListener('scroll', () => {
+      const idx = Math.round(track.scrollLeft / track.clientWidth);
+      dots.forEach((d,i) => d.classList.toggle('active', i===idx));
+      if(countEl) countEl.textContent = `${idx+1}/${track.children.length}`;
+    });
+  });
+
+  feedEntriesEl.querySelectorAll('[data-like]').forEach(btn => btn.addEventListener('click', () => handleLike(btn.dataset.like)));
+  feedEntriesEl.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', () => handleSave(btn.dataset.save)));
+  feedEntriesEl.querySelectorAll('[data-doublelike]').forEach(track => {
+    let lastTap = 0;
+    track.addEventListener('dblclick', () => handleLike(track.dataset.doublelike, true));
+    track.addEventListener('touchend', () => {
+      const now = Date.now();
+      if(now - lastTap < 350){ handleLike(track.dataset.doublelike, true); }
+      lastTap = now;
+    });
+  });
+  feedEntriesEl.querySelectorAll('[data-focuscomment]').forEach(btn => btn.addEventListener('click', () => {
+    if(!requireLogin('comentar')) return;
+    const row = feedEntriesEl.querySelector(`.ig-comment-row[data-id="${btn.dataset.focuscomment}"] input`);
+    if(row) row.focus();
+  }));
+  feedEntriesEl.querySelectorAll('[data-viewmore]').forEach(btn => btn.addEventListener('click', () => {
+    expandedComments.add(btn.dataset.viewmore);
+    renderFeed();
+  }));
+  feedEntriesEl.querySelectorAll('.ig-comment-row').forEach(f => {
+    const input = f.querySelector('input');
+    const submitBtn = f.querySelector('button');
+    input.addEventListener('input', () => submitBtn.classList.toggle('active', input.value.trim().length > 0));
+    f.addEventListener('submit', handleComment);
+  });
+  feedEntriesEl.querySelectorAll('[data-menu]').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMenuId = openMenuId === btn.dataset.menu ? null : btn.dataset.menu;
+    renderFeed();
+  }));
+  feedEntriesEl.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderFeed(); }));
+  feedEntriesEl.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeletePost(btn.dataset.del)));
+  feedEntriesEl.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => handleEditPost(btn.dataset.edit)));
+  feedEntriesEl.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderFeed(); }));
+}
+
+async function handleLike(id, forceLike){
+  if(!requireLogin('dar me gusta')) return;
+  const posts = await DB.posts.list();
+  const post = posts.find(p => p.id === id);
+  if(!post) return;
+  const already = (post.likedBy || []).includes(currentUser.id);
+  if(forceLike){
+    const burst = document.getElementById('burst-' + id);
+    if(burst){
+      burst.classList.remove('show'); void burst.offsetWidth;
+      burst.classList.add('show');
+      setTimeout(() => burst.classList.remove('show'), 900);
+    }
+    if(already) return; // el doble toque solo da like, nunca lo quita
+  }
+  await DB.posts.toggleLike(id, currentUser.id);
+  renderFeed();
+  renderProfile();
+}
+async function handleSave(id){
+  if(!requireLogin('guardar publicaciones')) return;
+  await DB.saved.toggle(currentUser.id, id);
+  renderFeed();
+  renderProfile();
+}
+async function handleComment(e){
+  e.preventDefault();
+  const id = e.target.dataset.id;
+  if(!requireLogin('comentar')) return;
+  const input = e.target.querySelector('input');
+  const text = input.value.trim();
+  if(!text) return;
+  await DB.posts.addComment(id, { authorId: currentUser.id, text });
+  renderFeed();
+  renderProfile();
+}
+async function handleDeletePost(id){
+  openMenuId = null;
+  if(!currentUser) return;
+  try{ await DB.posts.remove(id, currentUser.id); }
+  catch(err){ alert(err.message); }
+  renderFeed();
+  renderProfile();
+}
+async function handleEditPost(id){
+  openMenuId = null;
+  const posts = await DB.posts.list();
+  const post = posts.find(p => p.id === id);
+  if(!post || !currentUser || post.authorId !== currentUser.id) return;
+  showView('inicio');
+  openComposer();
+  document.getElementById('postEditId').value = id;
+  document.getElementById('postTitle').value = post.title;
+  document.getElementById('postCategory').value = post.category;
+  document.getElementById('postNotes').value = post.notes;
+  pendingPhotos = (post.photos||[]).map(url => ({ file:null, url, existing:true }));
+  renderPhotoPreview();
+  document.getElementById('composerGreeting').textContent = 'Editar publicación';
+  document.getElementById('composerSubmitBtn').textContent = 'Guardar cambios';
+}
+document.addEventListener('click', () => { if(openMenuId){ openMenuId = null; renderFeed(); } });
+
+// ---------- COMPOSER: publica o edita ----------
+document.getElementById('composerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(!requireLogin('publicar')) return;
+  const editId = document.getElementById('postEditId').value;
+  const title = document.getElementById('postTitle').value.trim();
+  const category = document.getElementById('postCategory').value;
+  const notes = document.getElementById('postNotes').value.trim();
+  if(!title || !notes) return;
+
+  const submitBtn = document.getElementById('composerSubmitBtn');
+  const note = document.getElementById('postPhotoNote');
+  submitBtn.disabled = true;
+  try{
+    const toUpload = pendingPhotos.filter(p => p.file);
+    const already = pendingPhotos.filter(p => !p.file).map(p => p.url);
+    const uploaded = [];
+    for(let i=0;i<toUpload.length;i++){
+      note.textContent = `Subiendo foto ${i+1} de ${toUpload.length}…`;
+      uploaded.push(await uploadImageFile(toUpload[i].file, 'posts'));
+    }
+    note.textContent = '';
+    const photos = [...already, ...uploaded];
+
+    if(editId){
+      await DB.posts.update(editId, currentUser.id, { title, category, notes, photos });
+    } else {
+      await DB.posts.create({ authorId: currentUser.id, title, category, notes, photos });
+    }
+    closeComposer();
+    renderFeed();
+    renderProfile();
+  }catch(err){
+    alert('No se pudo publicar: ' + (err.message || err));
+  }
+  submitBtn.disabled = false;
+});
+
+// ---------- HISTORIAS (24 horas, con barra de tiempo que avanza sola) ----------
+let currentStoryList = [];
+let currentStoryIndex = 0;
+let storyTimer = null;
+
+async function renderStories(){
+  let all = [];
+  try{ all = await DB.stories.listActive(); }catch(err){ /* silencioso */ }
+  await Promise.all(all.map(s => getUserCached(s.authorId)));
+  currentStoryList = all;
+  const row = document.getElementById('storiesRow');
+  row.innerHTML = `
+    <button class="story-item story-add" id="storyAddBtn">
+      <div class="story-ring"><div class="story-avatar">${currentUser ? avatarHTML(currentUser) : '<span>+</span>'}</div></div>
+      <span class="story-label">Tu historia</span>
+    </button>
+    ${all.map((s, i) => {
+      const authorObj = usersCache[s.authorId];
+      const name = authorObj?.name || 'Comunidad Enraíza';
+      return `
+      <button class="story-item" data-storyindex="${i}">
+        <div class="story-ring"><div class="story-avatar">${s.photo ? `<img src="${s.photo}" alt="">` : avatarHTML(authorObj)}</div></div>
+        <span class="story-label">${escapeHtml(name)}${s.demo ? ' · ej.' : ''}</span>
+      </button>
+    `;}).join('')}
+  `;
+  document.getElementById('storyAddBtn').addEventListener('click', openAddStoryModal);
+  row.querySelectorAll('[data-storyindex]').forEach(btn => btn.addEventListener('click', () => openStoryViewer(parseInt(btn.dataset.storyindex, 10))));
+}
+
+function openAddStoryModal(){
+  if(!requireLogin('publicar una historia')) return;
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Nueva historia</h3>
+    <p class="section-desc" style="margin-bottom:14px;">Se ve centrada durante 24 horas y luego desaparece sola. Es pública: la puede ver cualquiera que abra la página.</p>
+    <form id="storyForm">
+      <button type="button" class="photo-picker-btn" id="storyPhotoPickBtn">📷 Elegir una foto (opcional)</button>
+      <input type="file" id="storyPhotoInput" accept="image/*" class="visually-hidden">
+      <div class="photo-preview-row" id="storyPhotoPreview"></div>
+      <div style="margin:12px 0 14px;">
+        <label style="font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:4px;">Texto</label>
+        <textarea id="storyText" placeholder="¿Qué está pasando ahora con tu proyecto o planta?" style="width:100%; min-height:70px; padding:9px 11px; border:1px solid var(--line); border-radius:3px; font-family:var(--sans);"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary btn-small" id="storySubmitBtn">Publicar historia (24 h)</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  let storyFile = null;
+  document.getElementById('storyPhotoPickBtn').addEventListener('click', () => document.getElementById('storyPhotoInput').click());
+  document.getElementById('storyPhotoInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    storyFile = file;
+    document.getElementById('storyPhotoPreview').innerHTML = `
+      <div class="photo-preview-item"><img src="${URL.createObjectURL(file)}" alt=""><button type="button" id="storyPhotoRemove">&times;</button></div>
+    `;
+    document.getElementById('storyPhotoRemove').addEventListener('click', () => { storyFile = null; document.getElementById('storyPhotoPreview').innerHTML = ''; });
+  });
+  document.getElementById('storyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = document.getElementById('storyText').value.trim();
+    if(!storyFile && !text) return;
+    const btn = document.getElementById('storySubmitBtn');
+    btn.disabled = true;
+    try{
+      let photoUrl = '';
+      if(storyFile) photoUrl = await uploadImageFile(storyFile, 'stories');
+      await DB.stories.create({ authorId: currentUser.id, photo: photoUrl, text });
+      closeModal();
+      renderStories();
+    }catch(err){
+      alert('No se pudo publicar la historia: ' + (err.message || err));
+      btn.disabled = false;
+    }
+  });
+}
+
+function openStoryViewer(index){
+  currentStoryIndex = index;
+  modalBox.className = 'modal story-view-backdrop';
+  renderStoryViewer();
+  modalBackdrop.classList.add('open');
+  modalOnClose = () => { if(storyTimer) clearTimeout(storyTimer); };
+}
+function renderStoryViewer(){
+  if(storyTimer) clearTimeout(storyTimer);
+  const s = currentStoryList[currentStoryIndex];
+  if(!s){ closeModal(); return; }
+  const authorObj = usersCache[s.authorId];
+  const name = authorObj?.name || 'Comunidad Enraíza';
+  const img = s.photo || placeholderImage(s.id + name, 'planta');
+  modalContent.innerHTML = `
+    <div class="story-view">
+      <div class="story-progress-row">
+        ${currentStoryList.map((_,i) => `
+          <div class="story-progress-track">
+            <div class="story-progress-fill ${i < currentStoryIndex ? 'filled' : ''} ${i === currentStoryIndex ? 'animating' : ''}" id="storyBar-${i}" style="animation-duration:${STORY_DURATION_MS}ms;"></div>
+          </div>`).join('')}
+      </div>
+      <button class="story-view-close" id="storyCloseBtn">&times;</button>
+      <div class="story-view-head">
+        <div class="avatar">${avatarHTML(authorObj)}</div>
+        <span>${escapeHtml(name)}${s.demo ? ' · ejemplo' : ''} · ${fmtRelative(s.date)}</span>
+      </div>
+      <div class="story-view-img-wrap"><img src="${img}" alt=""></div>
+      ${s.text ? `<p class="story-view-text">${escapeHtml(s.text)}</p>` : ''}
+      <button class="story-tap-zone left" id="storyPrevZone" aria-label="Historia anterior"></button>
+      <button class="story-tap-zone right" id="storyNextZone" aria-label="Siguiente historia"></button>
+    </div>
+  `;
+  document.getElementById('storyCloseBtn').addEventListener('click', closeModal);
+  document.getElementById('storyPrevZone').addEventListener('click', () => { if(currentStoryIndex>0){ currentStoryIndex--; renderStoryViewer(); } });
+  document.getElementById('storyNextZone').addEventListener('click', () => advanceStory());
+  storyTimer = setTimeout(() => advanceStory(), STORY_DURATION_MS);
+}
+function advanceStory(){
+  if(currentStoryIndex < currentStoryList.length - 1){
+    currentStoryIndex++;
+    renderStoryViewer();
+  } else {
+    closeModal();
+  }
+}
+
+// ---------- ACTIVIDAD ----------
+async function openActivityModal(){
+  const posts = await DB.posts.list();
+  await resolveAuthorObjs(posts);
+  const myId = currentUser.id;
+  const items = [];
+  posts.filter(p => p.authorId === myId).forEach(p => {
+    (p.comments || []).forEach(c => {
+      if(c.authorId !== myId) items.push({ post: p.title, authorId: c.authorId, text: c.text, date: c.date });
+    });
+  });
+  items.sort((a,b) => b.date - a.date);
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Actividad</h3>
+    ${!items.length ? '<p class="empty-note">Todavía no hay comentarios en tus publicaciones.</p>' : ''}
+    ${items.map(it => `
+      <div class="activity-item">
+        <span><strong>${escapeHtml(usersCache[it.authorId]?.name || 'Alguien')}</strong> comentó en "${escapeHtml(it.post)}": ${escapeHtml(it.text)}</span>
+        <span class="when">${fmtRelative(it.date)}</span>
+      </div>
+    `).join('')}
+  `;
+  modalBackdrop.classList.add('open');
+}
+
+// ---------- MI BITÁCORA (privada, por usuario) ----------
+const logEntriesEl = document.getElementById('logEntries');
+function renderLogGate(){
+  logEntriesEl.innerHTML = `
+    <div class="auth-gate">
+      <p>Inicia sesión para llevar tu bitácora privada.</p>
+      <button class="btn btn-primary btn-small" id="logGateBtn">Iniciar sesión</button>
+    </div>`;
+  const btn = document.getElementById('logGateBtn');
+  if(btn) btn.addEventListener('click', () => openAuthModal('login', 'usar tu bitácora'));
+}
+async function renderLog(){
+  if(!currentUser){ renderLogGate(); return; }
+  let entries = [];
+  try{ entries = await DB.logbook.listForUser(currentUser.id); }
+  catch(err){ logEntriesEl.innerHTML = `<p class="empty-note">No se pudo cargar tu bitácora.</p>`; return; }
+  if(!entries.length){
+    logEntriesEl.innerHTML = '<p class="empty-note">Aún no tienes entradas. Registra tu primer proyecto o planta con el formulario.</p>';
+    return;
+  }
+  logEntriesEl.innerHTML = entries.map(e => `
+    <div class="log-entry" data-id="${e.id}">
+      <div class="log-entry-head">
+        <div>
+          <h4>${escapeHtml(e.title)}</h4>
+          <span class="log-date">${fmtDate(e.date)} · ${e.category}${e.shared ? ' · compartida' : ''}</span>
+        </div>
+        <button class="log-del" data-id="${e.id}">Eliminar</button>
+      </div>
+      <p>${escapeHtml(e.notes)}</p>
+      ${e.photo ? `<img src="${e.photo}" alt="Foto de ${escapeHtml(e.title)}" onerror="this.style.display='none'">` : ''}
+    </div>
+  `).join('');
+  document.querySelectorAll('#logEntries .log-del').forEach(btn => btn.addEventListener('click', handleDelete));
+}
+async function handleDelete(e){
+  if(!currentUser) return;
+  const id = e.target.dataset.id;
+  await DB.logbook.remove(currentUser.id, id);
+  renderLog();
+}
+
+// ---------- LOGROS ----------
+const BADGES = [
+  { id:'primera-raiz', icon:'🌱', name:'Primera raíz', desc:'Guardaste tu primera entrada en la bitácora.', check: (s) => s.logCount >= 1 },
+  { id:'comparte', icon:'📣', name:'Comparte y crece', desc:'Compartiste tu primera publicación con la comunidad.', check: (s) => s.ownPosts >= 1 },
+  { id:'racha', icon:'📒', name:'Buena racha', desc:'Tienes 5 entradas guardadas en tu bitácora.', check: (s) => s.logCount >= 5 },
+  { id:'apoyo', icon:'💚', name:'Apoyo mutuo', desc:'Diste "me gusta" a 5 publicaciones de la comunidad.', check: (s) => s.likedCount >= 5 },
+  { id:'voz', icon:'💬', name:'Voz activa', desc:'Dejaste 3 comentarios en publicaciones de otras personas.', check: (s) => s.ownComments >= 3 },
+  { id:'guardador', icon:'🔖', name:'Guardador de ideas', desc:'Guardaste 3 publicaciones para leer después.', check: (s) => s.savedCount >= 3 },
+];
+
+async function computeStats(){
+  if(!currentUser) return { logCount:0, ownPosts:0, ownPostList:[], likedCount:0, savedCount:0, ownComments:0 };
+  let entries = [], posts = [], savedIds = [];
+  try{
+    [entries, posts, savedIds] = await Promise.all([
+      DB.logbook.listForUser(currentUser.id), DB.posts.list(), DB.saved.listForUser(currentUser.id)
+    ]);
+  }catch(err){ /* deja stats en 0 si algo falla */ }
+  const myId = currentUser.id;
+  const ownPosts = posts.filter(p => p.authorId === myId);
+  let likedCount = 0, ownComments = 0;
+  posts.forEach(p => {
+    if((p.likedBy || []).includes(myId)) likedCount++;
+    (p.comments || []).forEach(c => { if(c.authorId === myId) ownComments++; });
+  });
+  return { logCount: entries.length, ownPosts: ownPosts.length, ownPostList: ownPosts, likedCount, savedCount: savedIds.length, ownComments };
+}
+
+function renderAccountBlock(){
+  const block = document.getElementById('accountBlock');
+  if(!currentUser){
+    block.innerHTML = `
+      <p class="section-desc" style="margin:0 0 12px;">No has iniciado sesión.</p>
+      <button class="btn btn-primary btn-small" id="accountLoginBtn">Iniciar sesión o crear cuenta</button>
+    `;
+    document.getElementById('accountLoginBtn').addEventListener('click', () => openAuthModal('login'));
+    return;
+  }
+  block.innerHTML = `
+    <form id="profileForm">
+      <label for="profileNameInput">Tu nombre o apodo</label>
+      <input type="text" id="profileNameInput" value="${escapeHtml(currentUser.name)}">
+      <div style="display:flex; gap:8px;">
+        <button type="submit" class="btn btn-outline btn-small">Guardar nombre</button>
+        <button type="button" class="btn btn-text" id="logoutBtn">Cerrar sesión</button>
+      </div>
+    </form>
+    <p class="settings-privacy">
+      Lo que publicas en Inicio y las historias que subas son visibles para cualquiera que abra esta página. Tu bitácora es privada, a menos que marques "compartir" al guardar una entrada.
+    </p>
+  `;
+  document.getElementById('profileForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('profileNameInput').value.trim();
+    if(!name) return;
+    currentUser = await DB.users.updateName(currentUser.id, name);
+    usersCache[currentUser.id] = currentUser;
+    applyProfileToUI();
+    renderProfile();
+    renderFeed();
+  });
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+}
+
+async function renderProfile(){
+  applyProfileToUI();
+  renderAccountBlock();
+  const stats = await computeStats();
+  document.getElementById('profileStats').innerHTML = `
+    <div><strong>${stats.ownPosts}</strong>publicaciones</div>
+    <div><strong>${stats.logCount}</strong>en tu bitácora</div>
+    <div><strong>${stats.likedCount}</strong>me gusta dados</div>
+    <div><strong>${stats.savedCount}</strong>guardados</div>
+  `;
+  const profileGrid = document.getElementById('profilePostGrid');
+  if(!currentUser){
+    profileGrid.innerHTML = '<p class="profile-empty-grid">Inicia sesión para ver tus publicaciones aquí.</p>';
+  } else if(!stats.ownPostList.length){
+    profileGrid.innerHTML = '<p class="profile-empty-grid">Comparte algo en Inicio para verlo aquí.</p>';
+  } else {
+    profileGrid.innerHTML = stats.ownPostList.map(p => `
+      <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
+    `).join('');
+    profileGrid.querySelectorAll('[data-goto]').forEach(img => img.addEventListener('click', () => {
+      showView('inicio');
+      setTimeout(() => {
+        const target = feedEntriesEl.querySelector(`[data-id="${img.dataset.goto}"]`);
+        if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+      }, 100);
+    }));
+  }
+  document.getElementById('badgeGrid').innerHTML = BADGES.map(b => {
+    const earned = b.check(stats);
+    return `
+      <div class="badge-card ${earned ? '' : 'locked'}">
+        <div class="badge-icon">${b.icon}</div>
+        <div><h4>${b.name}</h4><p>${b.desc}</p></div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ---------- FORM SUBMIT (bitácora privada) ----------
+document.getElementById('logForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(!requireLogin('usar tu bitácora')) return;
+  const title = document.getElementById('logTitle').value.trim();
+  const category = document.getElementById('logCategory').value;
+  const notes = document.getElementById('logNotes').value.trim();
+  const photo = document.getElementById('logPhoto').value.trim();
+  const shared = document.getElementById('logShare').checked;
+  if(!title || !notes) return;
+
+  await DB.logbook.create(currentUser.id, { title, category, notes, photo, shared });
+  renderLog();
+
+  if(shared){
+    await DB.posts.create({ authorId: currentUser.id, title, category, notes, photos: photo ? [photo] : [] });
+    renderFeed();
+  }
+  e.target.reset();
+  renderProfile();
+});
+
+// ---------- ARRANQUE ----------
+sb.auth.onAuthStateChange((_event, session) => {
+  // Mantiene currentUser sincronizado si la sesión cambia en otra pestaña.
+});
+
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){ await loadCurrentUserFromSession(session); }
+  applyProfileToUI();
+  await Promise.all([renderLog(), renderFeed(), renderStories()]);
+  renderProfile();
+})();
+</script>
+</body>
+</html>
