@@ -20,7 +20,7 @@
     --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
-  *{ box-sizing: border-box; }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html{ scroll-behavior: smooth; }
   html, body{ overflow-x: hidden; width: 100%; }
   body{
@@ -31,7 +31,12 @@
     line-height: 1.55;
   }
   a{ color: var(--moss-dark); }
-  img,svg{ max-width:100%; display:block; }
+  img,svg{
+    max-width:100%; display:block;
+    -webkit-user-select:none; -moz-user-select:none; user-select:none;
+    -webkit-user-drag:none; user-drag:none;
+    -webkit-touch-callout:none;
+  }
 
   .wrap{ max-width: 1080px; margin:0 auto; padding: 0 24px; }
 
@@ -56,6 +61,11 @@
   .btn-outline:hover{ background: var(--ink); color: var(--paper); }
   .btn-small{ padding: 8px 14px; font-size: 0.85rem; }
   .btn-text{ background:none; border:none; padding:0; font-size:0.85rem; color: var(--ink-soft); text-decoration: underline; cursor:pointer; }
+
+  .btn, .ig-icon, .ig-icon-btn, .filter-pill, .plant-tab, .story-item, .btn-text, .btn-outline, button{
+    -webkit-user-select:none; -moz-user-select:none; user-select:none;
+    -webkit-touch-callout:none;
+  }
 
   section{ padding: 40px 0 56px; }
   .section-head{ display:flex; justify-content:space-between; align-items: flex-end; gap: 20px; margin-bottom: 28px; flex-wrap:wrap; }
@@ -431,7 +441,13 @@
   .side-panel{ display:none; }
   @media (min-width: 1180px){
     .inicio-layout{ display:grid; grid-template-columns: 240px minmax(0,470px) 240px; gap: 28px; align-items:start; justify-content:center; }
-    .side-panel{ display:block; position:sticky; top:84px; }
+    .side-panel{
+      display:block; align-self:stretch; min-width:0;
+    }
+    .side-panel-inner{
+      position:sticky; top:84px; max-height: calc(100vh - 104px); overflow-y:auto;
+      -ms-overflow-style:none; scrollbar-width:thin;
+    }
   }
   .minigame-card{ border: 1px solid var(--line); border-radius: 6px; background: var(--white-ish); padding: 16px; margin-bottom: 20px; }
   .minigame-card h4{ font-family: var(--serif); font-size: 0.98rem; margin: 0 0 4px; }
@@ -1084,6 +1100,16 @@ function fmtRelative(ts){
   return fmtDate(ts);
 }
 function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+// ---------- SEGURIDAD BÁSICA: bloquear guardar/copiar imagen desde el navegador ----------
+document.addEventListener('contextmenu', (e) => {
+  if(e.target.tagName === 'IMG' || e.target.closest('.ig-post-carousel') || e.target.closest('.profile-post-thumb') || e.target.closest('.story-view-img-wrap')){
+    e.preventDefault();
+  }
+});
+document.addEventListener('dragstart', (e) => {
+  if(e.target.tagName === 'IMG') e.preventDefault();
+});
 
 // =====================================================================
 // SUBIDA DE IMÁGENES A SUPABASE STORAGE
@@ -1860,10 +1886,17 @@ async function renderFeed(){
   feedEntriesEl.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', () => handleSave(btn.dataset.save)));
   feedEntriesEl.querySelectorAll('[data-doublelike]').forEach(track => {
     let lastTap = 0;
-    track.addEventListener('dblclick', () => handleLike(track.dataset.doublelike, true));
-    track.addEventListener('touchend', () => {
+    track.addEventListener('dblclick', (e) => {
+      const rect = track.getBoundingClientRect();
+      handleLike(track.dataset.doublelike, true, { x: e.clientX - rect.left, y: e.clientY - rect.top });
+    });
+    track.addEventListener('touchend', (e) => {
       const now = Date.now();
-      if(now - lastTap < 350){ handleLike(track.dataset.doublelike, true); }
+      if(now - lastTap < 350){
+        const rect = track.getBoundingClientRect();
+        const touch = e.changedTouches[0];
+        handleLike(track.dataset.doublelike, true, { x: touch.clientX - rect.left, y: touch.clientY - rect.top });
+      }
       lastTap = now;
     });
   });
@@ -1897,7 +1930,7 @@ async function renderFeed(){
   }));
 }
 
-async function handleLike(id, forceLike){
+async function handleLike(id, forceLike, point){
   if(!requireLogin('dar me gusta')) return;
   const posts = await DB.posts.list();
   const post = posts.find(p => p.id === id);
@@ -1906,6 +1939,13 @@ async function handleLike(id, forceLike){
   if(forceLike){
     const burst = document.getElementById('burst-' + id);
     if(burst){
+      if(point){
+        burst.style.left = point.x + 'px';
+        burst.style.top = point.y + 'px';
+      } else {
+        burst.style.left = '50%';
+        burst.style.top = '50%';
+      }
       burst.classList.remove('show'); void burst.offsetWidth;
       burst.classList.add('show');
       setTimeout(() => burst.classList.remove('show'), 900);
@@ -2501,8 +2541,8 @@ function renderSidePanels(){
   const left = document.getElementById('sidePanelLeft');
   const right = document.getElementById('sidePanelRight');
   if(!left || !right) return;
-  left.innerHTML = renderWaterGame();
-  right.innerHTML = renderQuizGame();
+  left.innerHTML = `<div class="side-panel-inner">${renderWaterGame()}</div>`;
+  right.innerHTML = `<div class="side-panel-inner">${renderQuizGame()}</div>`;
   bindWaterGame(left);
   bindQuizGame(right);
 }
