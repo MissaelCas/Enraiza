@@ -22,6 +22,7 @@
   }
   *{ box-sizing: border-box; }
   html{ scroll-behavior: smooth; }
+  html, body{ overflow-x: hidden; width: 100%; }
   body{
     margin:0;
     background: var(--paper);
@@ -195,7 +196,7 @@
   .ig-icon-btn .avatar{ width:28px; height:28px; font-size:0.8rem; }
   .ig-dot{ position:absolute; top:0; right:0; width:8px; height:8px; border-radius:50%; background: var(--clay); border: 1.5px solid var(--paper); }
 
-  .feed-col{ max-width: 470px; margin: 0 auto; }
+  .feed-col{ max-width: 470px; margin: 0 auto; min-width:0; }
 
   .stories-row{ display:flex; gap: 16px; overflow-x:auto; padding: 16px 4px 20px; }
   .story-item{ display:flex; flex-direction:column; align-items:center; gap: 6px; flex-shrink:0; width: 68px; cursor:pointer; background:none; border:none; font-family: var(--sans); }
@@ -222,21 +223,21 @@
   }
   .create-bar:hover{ border-color: var(--moss); }
 
-  .composer{ background: var(--white-ish); border: 1px solid var(--line); border-radius: 4px; padding: 20px; margin-bottom: 30px; display:none; }
+  .composer{ background: var(--white-ish); border: 1px solid var(--line); border-radius: 4px; padding: 20px; margin-bottom: 30px; display:none; box-sizing:border-box; max-width:100%; }
   .composer.open{ display:block; }
   .composer-top{ display:flex; gap:10px; align-items:center; margin-bottom: 12px; }
   .composer-top strong{ font-size: 0.95rem; }
   .composer input, .composer textarea, .composer select{
     width:100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px;
-    font-family: var(--sans); font-size:0.92rem; background: var(--paper); margin-bottom: 10px;
+    font-family: var(--sans); font-size:0.92rem; background: var(--paper); margin-bottom: 10px; box-sizing:border-box;
   }
   .composer textarea{ resize: vertical; min-height: 60px; }
-  .composer-row{ display:flex; gap:10px; }
-  .composer-row > *{ flex:1; }
+  .composer-row{ display:flex; gap:10px; min-width:0; }
+  .composer-row > *{ flex:1; min-width:0; }
   .composer-footer{ display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap; margin-top: 4px; }
-  .photo-picker-btn{ border: 1.5px dashed var(--line); background: var(--paper); border-radius: 3px; padding: 10px 12px; font-size: 0.85rem; color: var(--ink-soft); cursor:pointer; width:100%; text-align:left; margin-bottom:10px; }
-  .photo-preview-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px; }
-  .photo-preview-item{ position:relative; width:64px; height:64px; border-radius:4px; overflow:hidden; background: var(--paper-alt); }
+  .photo-picker-btn{ border: 1.5px dashed var(--line); background: var(--paper); border-radius: 3px; padding: 10px 12px; font-size: 0.85rem; color: var(--ink-soft); cursor:pointer; width:100%; text-align:left; margin-bottom:10px; box-sizing:border-box; }
+  .photo-preview-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px; max-width:100%; overflow:hidden; }
+  .photo-preview-item{ position:relative; width:64px; height:64px; border-radius:4px; overflow:hidden; background: var(--paper-alt); flex-shrink:0; }
   .photo-preview-item img{ width:100%; height:100%; object-fit:cover; }
   .photo-preview-item button{ position:absolute; top:2px; right:2px; background: rgba(35,48,29,0.7); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:0.7rem; cursor:pointer; line-height:1; }
   .upload-note{ font-size: 0.76rem; color: var(--ink-soft); margin: -4px 0 10px; }
@@ -266,6 +267,18 @@
   .ig-carousel-dots span{ width:5px; height:5px; border-radius:50%; background: rgba(255,255,255,0.6); }
   .ig-carousel-dots span.active{ background:#fff; }
   .ig-carousel-count{ position:absolute; top:10px; right:10px; background: rgba(0,0,0,0.45); color:#fff; font-size:0.72rem; padding:2px 8px; border-radius:999px; pointer-events:none; }
+  .ig-carousel-arrow{
+    position:absolute; top:50%; transform: translateY(-50%); width:32px; height:32px; border-radius:50%;
+    background: rgba(255,255,255,0.85); border:none; color: var(--ink); font-size:1rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; opacity:0; transition: opacity 0.15s; z-index:3;
+  }
+  .ig-post-carousel:hover .ig-carousel-arrow{ opacity:1; }
+  .ig-carousel-arrow.prev{ left:8px; }
+  .ig-carousel-arrow.next{ right:8px; }
+  .ig-carousel-arrow[disabled]{ display:none; }
+  @media (hover:none), (pointer:coarse){
+    .ig-carousel-arrow{ display:none; }
+  }
   .ig-heart-burst{
     position:absolute; top:50%; left:50%; transform: translate(-50%,-50%) scale(0.5); width:90px; height:90px;
     color:#fff; opacity:0; pointer-events:none; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.35));
@@ -294,31 +307,54 @@
   .comment-item{ font-size: 0.86rem; color: var(--ink-soft); }
   .comment-item strong{ color: var(--ink); }
   .ig-view-more{ background:none; border:none; padding: 0 14px; margin-bottom: 6px; color: var(--ink-soft); font-size: 0.82rem; cursor:pointer; text-align:left; }
-  .ig-comment-row{ display:flex; align-items:center; gap: 8px; padding: 8px 14px 14px; border-top: 1px solid var(--line); }
-  .ig-comment-row input{ flex:1; border:none; background:none; font-size: 0.88rem; padding: 6px 0; font-family: var(--sans); }
+  .ig-comment-row{ display:flex; align-items:center; gap: 8px; padding: 8px 14px 14px; border-top: 1px solid var(--line); min-width:0; }
+  .ig-comment-row input{ flex:1; min-width:0; border:none; background:none; font-size: 0.88rem; padding: 6px 0; font-family: var(--sans); }
   .ig-comment-row input:focus{ outline:none; }
-  .ig-comment-row button{ background:none; border:none; color: var(--moss-dark); font-weight:700; font-size: 0.85rem; cursor:pointer; opacity:0.4; }
+  .ig-comment-row button{ background:none; border:none; color: var(--moss-dark); font-weight:700; font-size: 0.85rem; cursor:pointer; opacity:0.4; flex-shrink:0; }
   .ig-comment-row button.active{ opacity:1; }
 
-  /* Visor de historias: centrado, con barra de tiempo arriba */
-  .story-view-backdrop{ background: rgba(0,0,0,0.85); }
-  .story-view{ background:#111; border-radius: 8px; padding:0; max-width:400px; width:100%; position:relative; overflow:hidden; }
+  /* Visor de historias */
+  body.story-open{ overflow:hidden; height:100%; position:fixed; width:100%; }
+  .story-view-backdrop{ background: rgba(0,0,0,0.9); padding:0; }
+  .story-view{
+    background:#000; border-radius: 10px; padding:0; max-width:420px; width:100%;
+    position:relative; overflow:hidden; aspect-ratio: 9/16; max-height: 88vh;
+    display:flex; align-items:center; justify-content:center; margin: 0 auto;
+    touch-action: pan-y;
+  }
+  @media (max-width: 640px){
+    .story-view-backdrop{ align-items:stretch; justify-content:stretch; }
+    .story-view-backdrop .modal{ max-width:none; width:100%; height:100%; max-height:none; padding:0; border-radius:0; background:#000; }
+    .story-view{ max-width:none; width:100%; height:100%; max-height:none; aspect-ratio: auto; border-radius:0; }
+  }
   .story-progress-row{ position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; z-index:5; }
   .story-progress-track{ flex:1; height:3px; background: rgba(255,255,255,0.35); border-radius:3px; overflow:hidden; }
   .story-progress-fill{ height:100%; width:0%; background:#fff; }
   .story-progress-fill.filled{ width:100%; }
   .story-progress-fill.animating{ animation: storyFill linear forwards; }
+  .story-progress-fill.paused{ animation-play-state: paused; }
   @keyframes storyFill{ from{ width:0%; } to{ width:100%; } }
-  .story-view-img-wrap{ width:100%; aspect-ratio: 9/16; background:#222; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .story-view-img-wrap img{ width:100%; height:100%; object-fit:cover; }
-  .story-view-head{ display:flex; align-items:center; gap:8px; padding: 20px 14px 10px; position:absolute; top:0; left:0; right:0; color:#fff; }
+  .story-view-img-wrap{ width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .story-view-img-wrap img{ max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; }
+  .story-view-head{ display:flex; align-items:center; gap:8px; padding: 20px 44px 10px 14px; position:absolute; top:0; left:0; right:0; color:#fff; z-index:6; }
   .story-view-head .avatar{ width:28px; height:28px; font-size:0.75rem; }
   .story-view-head span{ font-size:0.82rem; }
-  .story-view-text{ padding: 14px; font-size:0.95rem; color:#fff; background: rgba(0,0,0,0.35); }
+  .story-view-text{ position:absolute; left:0; right:0; bottom:0; padding: 14px; font-size:0.95rem; color:#fff; background: linear-gradient(transparent, rgba(0,0,0,0.55)); z-index:5; }
   .story-tap-zone{ position:absolute; top:0; bottom:0; width:35%; z-index:4; background:none; border:none; cursor:pointer; }
   .story-tap-zone.left{ left:0; }
   .story-tap-zone.right{ right:0; }
   .story-view-close{ position:absolute; top:14px; right:14px; z-index:6; background: rgba(0,0,0,0.4); color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:1rem; }
+  .story-owner-menu-btn{ position:absolute; top:14px; right:50px; z-index:6; background: rgba(0,0,0,0.4); color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:0.95rem; }
+  .story-owner-dropdown{
+    position:absolute; top:48px; right:14px; background: var(--white-ish); border-radius:6px; z-index:7;
+    min-width:180px; box-shadow: 0 4px 14px rgba(0,0,0,0.3); overflow:hidden;
+  }
+  .story-owner-dropdown button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.85rem; cursor:pointer; color:var(--ink); }
+  .story-owner-dropdown button:hover{ background: var(--paper-alt); }
+  .story-owner-dropdown button.danger{ color:#a3392c; }
+  .story-viewers-list{ padding:16px; background:var(--white-ish); }
+  .story-viewers-list h4{ font-family: var(--serif); margin:0 0 10px; }
+  .viewer-row{ display:flex; align-items:center; gap:8px; padding:6px 0; font-size:0.88rem; }
 
   /* Actividad */
   .activity-item{ display:flex; flex-direction:column; gap:2px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size:0.88rem; }
@@ -369,6 +405,49 @@
   .auth-gate{ text-align:center; padding: 30px 20px; color: var(--ink-soft); }
   .auth-gate .btn{ margin-top: 12px; }
   .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+  /* ---------- BÚSQUEDA DE PERSONAS ---------- */
+  .search-wrap{ position:relative; flex:1; max-width:260px; min-width:0; }
+  .search-input{
+    width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:999px;
+    font-size:0.85rem; background: var(--white-ish); font-family: var(--sans); box-sizing:border-box;
+  }
+  .search-results{
+    position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--white-ish);
+    border:1px solid var(--line); border-radius:6px; box-shadow: 0 6px 16px rgba(35,48,29,0.15);
+    max-height:280px; overflow-y:auto; z-index:60;
+  }
+  .search-result-row{ display:flex; align-items:center; gap:8px; padding:8px 12px; cursor:pointer; font-size:0.85rem; }
+  .search-result-row:hover{ background: var(--paper-alt); }
+  .search-empty{ padding:10px 12px; font-size:0.82rem; color:var(--ink-soft); }
+  .filter-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; background: var(--paper-alt);
+    border:1px solid var(--line); border-radius:4px; padding:10px 14px; margin-bottom:16px; font-size:0.85rem;
+  }
+  .filter-banner button{ background:none; border:none; text-decoration:underline; color: var(--moss-dark); cursor:pointer; font-size:0.82rem; }
+
+  /* ---------- LAYOUT DE ESCRITORIO CON PANELES LATERALES ---------- */
+  .inicio-layout{ display:block; min-width:0; }
+  .side-panel{ display:none; }
+  @media (min-width: 1180px){
+    .inicio-layout{ display:grid; grid-template-columns: 240px minmax(0,470px) 240px; gap: 28px; align-items:start; justify-content:center; }
+    .side-panel{ display:block; position:sticky; top:84px; }
+  }
+  .minigame-card{ border: 1px solid var(--line); border-radius: 6px; background: var(--white-ish); padding: 16px; margin-bottom: 20px; }
+  .minigame-card h4{ font-family: var(--serif); font-size: 0.98rem; margin: 0 0 4px; }
+  .minigame-card p.mg-desc{ font-size: 0.78rem; color: var(--ink-soft); margin: 0 0 12px; }
+  .mg-plant-scene{ text-align:center; font-size: 2.6rem; margin: 6px 0 4px; line-height:1; }
+  .mg-plant-stage-label{ text-align:center; font-size: 0.78rem; color: var(--ink-soft); margin-bottom: 10px; }
+  .mg-row{ display:flex; gap:8px; }
+  .mg-row .btn{ flex:1; text-align:center; }
+  .mg-quiz-options{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .mg-quiz-options button{
+    border:1px solid var(--line); background: var(--paper); padding:8px 10px; border-radius:4px;
+    font-size:0.82rem; cursor:pointer; text-align:left;
+  }
+  .mg-quiz-options button.correct{ border-color: var(--moss); background: #dfe9e0; }
+  .mg-quiz-options button.wrong{ border-color:#a3392c; background:#f3dedb; }
+  .mg-score{ font-size: 0.78rem; color: var(--ink-soft); margin-top:10px; text-align:center; }
 </style>
 </head>
 <body>
@@ -376,6 +455,10 @@
 <header class="nav">
   <div class="nav-inner">
     <a href="#" class="logo" data-view="inicio">Enra<span>í</span>za</a>
+    <div class="search-wrap">
+      <input type="text" id="userSearchInput" class="search-input" placeholder="Buscar personas…" autocomplete="off">
+      <div class="search-results" id="searchResults" style="display:none;"></div>
+    </div>
     <div class="ig-icons">
       <button class="ig-icon-btn" id="btnGoHome" title="Inicio" aria-label="Inicio">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H17.5a1 1 0 0 0 1-1v-9"/></svg>
@@ -398,44 +481,51 @@
 
   <!-- ===================== INICIO: SOLO RED SOCIAL ===================== -->
   <section id="inicio" class="view active" style="padding-top: 18px;">
-    <div class="feed-col">
-      <div class="stories-row" id="storiesRow"></div>
+    <div class="inicio-layout">
+      <aside class="side-panel" id="sidePanelLeft"></aside>
 
-      <div class="create-bar" id="createBar">
-        <div class="avatar" id="createBarAvatar">?</div>
-        <span id="createBarText">¿Qué proyecto o planta quieres compartir hoy?</span>
-      </div>
+      <div class="feed-col">
+        <div id="searchFilterBanner"></div>
+        <div class="stories-row" id="storiesRow"></div>
 
-      <form class="composer" id="composerForm">
-        <div class="composer-top">
-          <div class="avatar" id="composerAvatar">?</div>
-          <strong id="composerGreeting">Nueva publicación</strong>
+        <div class="create-bar" id="createBar">
+          <div class="avatar" id="createBarAvatar">?</div>
+          <span id="createBarText">¿Qué proyecto o planta quieres compartir hoy?</span>
         </div>
-        <input type="hidden" id="postEditId" value="">
-        <input type="text" id="postTitle" placeholder="Título (ej. Mi aguacate ya sacó raíz)" required>
-        <div class="composer-row">
-          <select id="postCategory">
-            <option value="proyecto">Proyecto</option>
-            <option value="planta">Planta</option>
-            <option value="observacion">Observación general</option>
-          </select>
-        </div>
-        <textarea id="postNotes" placeholder="Cuenta cómo te fue, qué aprendiste o qué dudas tienes" required></textarea>
-        <button type="button" class="photo-picker-btn" id="postPhotoPickBtn">📷 Agregar fotos (puedes elegir varias)</button>
-        <input type="file" id="postPhotoInput" accept="image/*" multiple class="visually-hidden">
-        <div class="photo-preview-row" id="postPhotoPreview"></div>
-        <p class="upload-note" id="postPhotoNote"></p>
-        <div class="composer-footer" style="justify-content:flex-end;">
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="btn btn-outline btn-small" id="composerCancel">Cancelar</button>
-            <button type="submit" class="btn btn-primary btn-small" id="composerSubmitBtn">Publicar</button>
+
+        <form class="composer" id="composerForm">
+          <div class="composer-top">
+            <div class="avatar" id="composerAvatar">?</div>
+            <strong id="composerGreeting">Nueva publicación</strong>
           </div>
-        </div>
-      </form>
+          <input type="hidden" id="postEditId" value="">
+          <input type="text" id="postTitle" placeholder="Título (ej. Mi aguacate ya sacó raíz)" required>
+          <div class="composer-row">
+            <select id="postCategory">
+              <option value="proyecto">Proyecto</option>
+              <option value="planta">Planta</option>
+              <option value="observacion">Observación general</option>
+            </select>
+          </div>
+          <textarea id="postNotes" placeholder="Cuenta cómo te fue, qué aprendiste o qué dudas tienes" required></textarea>
+          <button type="button" class="photo-picker-btn" id="postPhotoPickBtn">📷 Agregar fotos (puedes elegir varias)</button>
+          <input type="file" id="postPhotoInput" accept="image/*" multiple class="visually-hidden">
+          <div class="photo-preview-row" id="postPhotoPreview"></div>
+          <p class="upload-note" id="postPhotoNote"></p>
+          <div class="composer-footer" style="justify-content:flex-end;">
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn btn-outline btn-small" id="composerCancel">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-small" id="composerSubmitBtn">Publicar</button>
+            </div>
+          </div>
+        </form>
 
-      <div id="feedEntries">
-        <p class="feed-empty">Cargando publicaciones…</p>
+        <div id="feedEntries">
+          <p class="feed-empty">Cargando publicaciones…</p>
+        </div>
       </div>
+
+      <aside class="side-panel" id="sidePanelRight"></aside>
     </div>
   </section>
 
@@ -789,7 +879,7 @@ const PLANTS = {
     intro: 'A diferencia de las anteriores, el cilantro se siembra directo por semilla en su lugar definitivo, porque no le gusta que muevan sus raíces.',
     blocks: [
       { h:'Siembra', p:'Siembra las semillas directo en la maceta o tierra donde va a quedarse, a poca profundidad (1 cm). Evita trasplantarlo después: sus raíces se dañan fácilmente y la planta se estresa.' },
-      { h:'Riego y luz', p:'Necesita riego constante para no secarse, y un clima fresco. Con calor y días largos "se va a flor" (bolting) muy rápido y las hojas se vuelven amargas.' },
+      { h:'Riego y luz', p:'Necesita riego constante para no secarse, y un clima fresco. Con calor y días largos "se va a flor" muy rápido y las hojas se vuelven amargas.' },
       { h:'Cómo evitar que se vaya a flor', p:'Siembra en tandas escalonadas cada 2-3 semanas para tener siempre cilantro joven, y en época calurosa ubícalo donde reciba algo de sombra al mediodía.' },
     ],
     alert: 'Si ya se fue a flor, deja que termine su ciclo y forme semillas (cilantro seco = semillas de cilantro para volver a sembrar) en vez de intentar rescatar las hojas, que ya estarán amargas.'
@@ -858,6 +948,7 @@ function openProjectModal(p){
 }
 function closeModal(){
   modalBackdrop.classList.remove('open');
+  document.body.classList.remove('story-open');
   if(modalOnClose){ modalOnClose(); modalOnClose = null; }
   modalBox.className = 'modal';
 }
@@ -969,8 +1060,8 @@ async function uploadImageFile(file, folder){
 }
 
 // =====================================================================
-// CAPA DE DATOS (DB.*) — ahora contra Supabase real (Postgres + Auth + Storage)
-// Ver schema.sql para las tablas.
+// CAPA DE DATOS (DB.*) — contra Supabase real (Postgres + Auth + Storage)
+// Ver schema.sql para las tablas (incluye story_views).
 // =====================================================================
 const DB = {
   users: {
@@ -979,6 +1070,12 @@ const DB = {
       if(error) throw error;
       if(!data) return null;
       return { id: data.id, name: data.name, avatarUrl: data.avatar_url };
+    },
+    async search(query){
+      if(!query || !query.trim()) return [];
+      const { data, error } = await sb.from('profiles').select('*').ilike('name', `%${query.trim()}%`).limit(8);
+      if(error) throw error;
+      return (data||[]).map(d => ({ id: d.id, name: d.name, avatarUrl: d.avatar_url }));
     },
     async updateName(id, name){
       const { data, error } = await sb.from('profiles').update({ name }).eq('id', id).select().single();
@@ -1047,6 +1144,27 @@ const DB = {
       if(error) throw error;
       return mapStoryRow(data);
     },
+    async remove(id, authorId){
+      const { error } = await sb.from('stories').delete().eq('id', id).eq('author_id', authorId);
+      if(error) throw error;
+      return true;
+    },
+  },
+
+  storyViews: {
+    async record(storyId, viewerId){
+      try{
+        const { data: existing } = await sb.from('story_views').select('*').eq('story_id', storyId).eq('viewer_id', viewerId).maybeSingle();
+        if(!existing) await sb.from('story_views').insert({ story_id: storyId, viewer_id: viewerId });
+      }catch(err){ /* silencioso: no debe interrumpir la reproducción de la historia */ }
+    },
+    async listViewers(storyId){
+      try{
+        const { data, error } = await sb.from('story_views').select('viewer_id, created_at').eq('story_id', storyId).order('created_at', { ascending:false });
+        if(error) throw error;
+        return data || [];
+      }catch(err){ return []; }
+    },
   },
 
   saved: {
@@ -1104,6 +1222,7 @@ function mapLogRow(row){
 // ---------- ESTADO DE SESIÓN EN MEMORIA ----------
 let currentUser = null; // {id, name, avatarUrl}
 let usersCache = {};
+let activeAuthorFilter = null; // {id, name} cuando se filtra el feed por una búsqueda
 
 async function getUserCached(id){
   if(!id) return null;
@@ -1117,7 +1236,7 @@ function initials(name){
   if(!clean) return '?';
   return clean.slice(0, 2).toUpperCase();
 }
-function avatarHTML(user, sizeClass){
+function avatarHTML(user){
   if(user && user.avatarUrl){
     return `<img src="${user.avatarUrl}" alt="">`;
   }
@@ -1128,6 +1247,56 @@ function requireLogin(actionLabel){
   if(isLoggedIn()) return true;
   openAuthModal('login', actionLabel);
   return false;
+}
+
+// ---------- BÚSQUEDA DE PERSONAS ----------
+const userSearchInput = document.getElementById('userSearchInput');
+const searchResultsEl = document.getElementById('searchResults');
+let searchDebounce = null;
+userSearchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  const q = userSearchInput.value.trim();
+  if(!q){ searchResultsEl.style.display = 'none'; searchResultsEl.innerHTML = ''; return; }
+  searchDebounce = setTimeout(async () => {
+    let results = [];
+    try{ results = await DB.users.search(q); }catch(err){ results = []; }
+    if(!results.length){
+      searchResultsEl.innerHTML = '<div class="search-empty">Nadie con ese nombre todavía.</div>';
+    } else {
+      searchResultsEl.innerHTML = results.map(u => `
+        <div class="search-result-row" data-userid="${u.id}" data-username="${escapeHtml(u.name)}">
+          <div class="avatar" style="width:26px;height:26px;font-size:0.7rem;">${avatarHTML(u)}</div>
+          <span>${escapeHtml(u.name)}</span>
+        </div>
+      `).join('');
+      searchResultsEl.querySelectorAll('[data-userid]').forEach(row => row.addEventListener('click', () => {
+        usersCache[row.dataset.userid] = usersCache[row.dataset.userid] || { id: row.dataset.userid, name: row.dataset.username, avatarUrl: null };
+        activeAuthorFilter = { id: row.dataset.userid, name: row.dataset.username };
+        searchResultsEl.style.display = 'none';
+        userSearchInput.value = '';
+        showView('inicio');
+        renderFeed();
+      }));
+    }
+    searchResultsEl.style.display = 'block';
+  }, 300);
+});
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.search-wrap')) searchResultsEl.style.display = 'none';
+});
+function renderSearchFilterBanner(){
+  const el = document.getElementById('searchFilterBanner');
+  if(!activeAuthorFilter){ el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="filter-banner">
+      <span>Mostrando publicaciones de <strong>${escapeHtml(activeAuthorFilter.name)}</strong></span>
+      <button id="clearAuthorFilterBtn">Quitar filtro</button>
+    </div>
+  `;
+  document.getElementById('clearAuthorFilterBtn').addEventListener('click', () => {
+    activeAuthorFilter = null;
+    renderFeed();
+  });
 }
 
 // ---------- MODAL DE AUTENTICACIÓN (Supabase Auth) ----------
@@ -1212,7 +1381,6 @@ function translateAuthError(msg){
 
 async function loadCurrentUserFromSession(session){
   if(!session || !session.user){ currentUser = null; return; }
-  // Espera breve para que el trigger de Supabase cree el perfil en registros nuevos.
   let profile = await DB.users.findById(session.user.id);
   if(!profile){
     await wait(600);
@@ -1225,6 +1393,7 @@ async function refreshAppAfterAuthChange(){
   applyProfileToUI();
   await Promise.all([renderLog(), renderFeed(), renderStories()]);
   renderProfile();
+  renderSidePanels();
 }
 async function logout(){
   await sb.auth.signOut();
@@ -1330,12 +1499,15 @@ let openMenuId = null;
 
 function carouselHTML(post){
   const photos = (post.photos && post.photos.length) ? post.photos : [placeholderImage(post.id + post.title, post.category)];
+  const multi = photos.length > 1;
   return `
     <div class="ig-post-carousel" data-carousel="${post.id}">
       <div class="ig-carousel-track" data-doublelike="${post.id}">
         ${photos.map((src,i) => `<img src="${escapeHtml(src)}" alt="Imagen ${i+1} de ${escapeHtml(post.title)}" data-idx="${i}" onerror="this.src='${placeholderImage(post.id+i, post.category)}'">`).join('')}
       </div>
-      ${photos.length > 1 ? `
+      ${multi ? `
+        <button type="button" class="ig-carousel-arrow prev" data-caract="prev" disabled>‹</button>
+        <button type="button" class="ig-carousel-arrow next" data-caract="next">›</button>
         <div class="ig-carousel-count">1/${photos.length}</div>
         <div class="ig-carousel-dots">${photos.map((_,i)=>`<span class="${i===0?'active':''}"></span>`).join('')}</div>
       ` : ''}
@@ -1396,14 +1568,18 @@ async function resolveAuthorObjs(posts){
 }
 
 async function renderFeed(){
+  renderSearchFilterBanner();
   feedEntriesEl.innerHTML = '<p class="feed-empty">Cargando publicaciones…</p>';
   let posts;
   try{ posts = await DB.posts.list(); }
   catch(err){ feedEntriesEl.innerHTML = `<p class="feed-empty">No se pudo cargar el feed (${escapeHtml(err.message||'error')}).</p>`; return; }
   await resolveAuthorObjs(posts);
+  if(activeAuthorFilter) posts = posts.filter(p => p.authorId === activeAuthorFilter.id);
   const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
   if(!posts.length){
-    feedEntriesEl.innerHTML = '<p class="feed-empty">Todavía no hay publicaciones. Inicia sesión y cuenta un proyecto o una planta arriba.</p>';
+    feedEntriesEl.innerHTML = activeAuthorFilter
+      ? '<p class="feed-empty">Esta persona todavía no ha publicado nada.</p>'
+      : '<p class="feed-empty">Todavía no hay publicaciones. Inicia sesión y cuenta un proyecto o una planta arriba.</p>';
     return;
   }
   feedEntriesEl.innerHTML = posts.map(post => {
@@ -1420,16 +1596,32 @@ async function renderFeed(){
     el.querySelector('strong').textContent = name;
   });
 
-  // Carrusel: puntos y contador siguen el scroll
+  // Carrusel: puntos, contador y flechas siguen el scroll / lo controlan
   feedEntriesEl.querySelectorAll('[data-carousel]').forEach(car => {
     const track = car.querySelector('.ig-carousel-track');
     const dots = car.querySelectorAll('.ig-carousel-dots span');
     const countEl = car.querySelector('.ig-carousel-count');
+    const prevBtn = car.querySelector('[data-caract="prev"]');
+    const nextBtn = car.querySelector('[data-caract="next"]');
     if(!track || track.children.length <= 1) return;
+    const total = track.children.length;
+    function syncUI(idx){
+      dots.forEach((d,i) => d.classList.toggle('active', i===idx));
+      if(countEl) countEl.textContent = `${idx+1}/${total}`;
+      if(prevBtn) prevBtn.disabled = idx === 0;
+      if(nextBtn) nextBtn.disabled = idx === total - 1;
+    }
     track.addEventListener('scroll', () => {
       const idx = Math.round(track.scrollLeft / track.clientWidth);
-      dots.forEach((d,i) => d.classList.toggle('active', i===idx));
-      if(countEl) countEl.textContent = `${idx+1}/${track.children.length}`;
+      syncUI(idx);
+    });
+    if(prevBtn) prevBtn.addEventListener('click', () => {
+      const idx = Math.max(0, Math.round(track.scrollLeft / track.clientWidth) - 1);
+      track.scrollTo({ left: idx * track.clientWidth, behavior:'smooth' });
+    });
+    if(nextBtn) nextBtn.addEventListener('click', () => {
+      const idx = Math.min(total - 1, Math.round(track.scrollLeft / track.clientWidth) + 1);
+      track.scrollTo({ left: idx * track.clientWidth, behavior:'smooth' });
     });
   });
 
@@ -1483,7 +1675,7 @@ async function handleLike(id, forceLike){
       burst.classList.add('show');
       setTimeout(() => burst.classList.remove('show'), 900);
     }
-    if(already) return; // el doble toque solo da like, nunca lo quita
+    if(already) return;
   }
   await DB.posts.toggleLike(id, currentUser.id);
   renderFeed();
@@ -1570,34 +1762,61 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
   submitBtn.disabled = false;
 });
 
-// ---------- HISTORIAS (24 horas, con barra de tiempo que avanza sola) ----------
-let currentStoryList = [];
+// ---------- HISTORIAS (agrupadas por persona, 24 horas, con barra de tiempo) ----------
+let storyGroups = []; // [{authorId, stories:[...]}]
+let currentGroupIndex = 0;
 let currentStoryIndex = 0;
 let storyTimer = null;
+const VIEWED_STORIES_KEY = 'enraiza:historias_vistas';
+function getViewedStoryIds(){
+  try{ return new Set(JSON.parse(localStorage.getItem(VIEWED_STORIES_KEY) || '[]')); }catch(err){ return new Set(); }
+}
+function markStoryViewed(id){
+  const set = getViewedStoryIds();
+  set.add(id);
+  try{ localStorage.setItem(VIEWED_STORIES_KEY, JSON.stringify([...set])); }catch(err){ /* ignore */ }
+}
 
 async function renderStories(){
   let all = [];
   try{ all = await DB.stories.listActive(); }catch(err){ /* silencioso */ }
   await Promise.all(all.map(s => getUserCached(s.authorId)));
-  currentStoryList = all;
+
+  const byAuthor = {};
+  all.forEach(s => {
+    if(!byAuthor[s.authorId]) byAuthor[s.authorId] = [];
+    byAuthor[s.authorId].push(s);
+  });
+  storyGroups = Object.keys(byAuthor).map(authorId => ({
+    authorId,
+    stories: byAuthor[authorId].sort((a,b) => a.date - b.date),
+  })).sort((a,b) => {
+    const lastA = a.stories[a.stories.length-1].date;
+    const lastB = b.stories[b.stories.length-1].date;
+    return lastB - lastA;
+  });
+
+  const viewed = getViewedStoryIds();
   const row = document.getElementById('storiesRow');
   row.innerHTML = `
     <button class="story-item story-add" id="storyAddBtn">
       <div class="story-ring"><div class="story-avatar">${currentUser ? avatarHTML(currentUser) : '<span>+</span>'}</div></div>
       <span class="story-label">Tu historia</span>
     </button>
-    ${all.map((s, i) => {
-      const authorObj = usersCache[s.authorId];
+    ${storyGroups.map((g, i) => {
+      const authorObj = usersCache[g.authorId];
       const name = authorObj?.name || 'Comunidad Enraíza';
+      const allSeen = g.stories.every(s => viewed.has(s.id));
+      const cover = g.stories[g.stories.length-1];
       return `
-      <button class="story-item" data-storyindex="${i}">
-        <div class="story-ring"><div class="story-avatar">${s.photo ? `<img src="${s.photo}" alt="">` : avatarHTML(authorObj)}</div></div>
-        <span class="story-label">${escapeHtml(name)}${s.demo ? ' · ej.' : ''}</span>
+      <button class="story-item" data-groupindex="${i}">
+        <div class="story-ring ${allSeen ? 'seen' : ''}"><div class="story-avatar">${cover.photo ? `<img src="${cover.photo}" alt="">` : avatarHTML(authorObj)}</div></div>
+        <span class="story-label">${escapeHtml(name)}${g.stories.some(s=>s.demo) ? ' · ej.' : ''}</span>
       </button>
     `;}).join('')}
   `;
   document.getElementById('storyAddBtn').addEventListener('click', openAddStoryModal);
-  row.querySelectorAll('[data-storyindex]').forEach(btn => btn.addEventListener('click', () => openStoryViewer(parseInt(btn.dataset.storyindex, 10))));
+  row.querySelectorAll('[data-groupindex]').forEach(btn => btn.addEventListener('click', () => openStoryViewer(parseInt(btn.dataset.groupindex, 10))));
 }
 
 function openAddStoryModal(){
@@ -1605,7 +1824,7 @@ function openAddStoryModal(){
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>Nueva historia</h3>
-    <p class="section-desc" style="margin-bottom:14px;">Se ve centrada durante 24 horas y luego desaparece sola. Es pública: la puede ver cualquiera que abra la página.</p>
+    <p class="section-desc" style="margin-bottom:14px;">Se ve durante 24 horas y luego desaparece sola. Es pública: la puede ver cualquiera que abra la página.</p>
     <form id="storyForm">
       <button type="button" class="photo-picker-btn" id="storyPhotoPickBtn">📷 Elegir una foto (opcional)</button>
       <input type="file" id="storyPhotoInput" accept="image/*" class="visually-hidden">
@@ -1649,29 +1868,43 @@ function openAddStoryModal(){
   });
 }
 
-function openStoryViewer(index){
-  currentStoryIndex = index;
+function openStoryViewer(groupIndex){
+  currentGroupIndex = groupIndex;
+  const group = storyGroups[groupIndex];
+  const viewed = getViewedStoryIds();
+  const firstUnseen = group.stories.findIndex(s => !viewed.has(s.id));
+  currentStoryIndex = firstUnseen === -1 ? 0 : firstUnseen;
   modalBox.className = 'modal story-view-backdrop';
+  document.body.classList.add('story-open');
   renderStoryViewer();
   modalBackdrop.classList.add('open');
   modalOnClose = () => { if(storyTimer) clearTimeout(storyTimer); };
 }
+
+let storyDragStartY = null;
 function renderStoryViewer(){
   if(storyTimer) clearTimeout(storyTimer);
-  const s = currentStoryList[currentStoryIndex];
+  const group = storyGroups[currentGroupIndex];
+  if(!group){ closeModal(); return; }
+  const s = group.stories[currentStoryIndex];
   if(!s){ closeModal(); return; }
   const authorObj = usersCache[s.authorId];
   const name = authorObj?.name || 'Comunidad Enraíza';
   const img = s.photo || placeholderImage(s.id + name, 'planta');
+  const isMine = currentUser && s.authorId === currentUser.id;
+  markStoryViewed(s.id);
+  if(!isMine && currentUser) DB.storyViews.record(s.id, currentUser.id);
+
   modalContent.innerHTML = `
-    <div class="story-view">
+    <div class="story-view" id="storyViewBox">
       <div class="story-progress-row">
-        ${currentStoryList.map((_,i) => `
+        ${group.stories.map((_,i) => `
           <div class="story-progress-track">
             <div class="story-progress-fill ${i < currentStoryIndex ? 'filled' : ''} ${i === currentStoryIndex ? 'animating' : ''}" id="storyBar-${i}" style="animation-duration:${STORY_DURATION_MS}ms;"></div>
           </div>`).join('')}
       </div>
       <button class="story-view-close" id="storyCloseBtn">&times;</button>
+      ${isMine ? `<button class="story-owner-menu-btn" id="storyOwnerMenuBtn">${ICONS.dots}</button>` : ''}
       <div class="story-view-head">
         <div class="avatar">${avatarHTML(authorObj)}</div>
         <span>${escapeHtml(name)}${s.demo ? ' · ejemplo' : ''} · ${fmtRelative(s.date)}</span>
@@ -1683,17 +1916,93 @@ function renderStoryViewer(){
     </div>
   `;
   document.getElementById('storyCloseBtn').addEventListener('click', closeModal);
-  document.getElementById('storyPrevZone').addEventListener('click', () => { if(currentStoryIndex>0){ currentStoryIndex--; renderStoryViewer(); } });
+  document.getElementById('storyPrevZone').addEventListener('click', () => goPrevStory());
   document.getElementById('storyNextZone').addEventListener('click', () => advanceStory());
+  if(isMine){
+    document.getElementById('storyOwnerMenuBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openStoryOwnerMenu(s);
+    });
+  }
+  setupStorySwipeToClose();
   storyTimer = setTimeout(() => advanceStory(), STORY_DURATION_MS);
 }
+function goPrevStory(){
+  if(currentStoryIndex > 0){ currentStoryIndex--; renderStoryViewer(); }
+  else if(currentGroupIndex > 0){ currentGroupIndex--; currentStoryIndex = storyGroups[currentGroupIndex].stories.length - 1; renderStoryViewer(); }
+}
 function advanceStory(){
-  if(currentStoryIndex < currentStoryList.length - 1){
+  const group = storyGroups[currentGroupIndex];
+  if(currentStoryIndex < group.stories.length - 1){
     currentStoryIndex++;
+    renderStoryViewer();
+  } else if(currentGroupIndex < storyGroups.length - 1){
+    currentGroupIndex++;
+    currentStoryIndex = 0;
     renderStoryViewer();
   } else {
     closeModal();
+    renderStories();
   }
+}
+function openStoryOwnerMenu(story){
+  const existing = document.querySelector('.story-owner-dropdown');
+  if(existing){ existing.remove(); return; }
+  if(storyTimer) clearTimeout(storyTimer);
+  const box = document.getElementById('storyViewBox');
+  const dd = document.createElement('div');
+  dd.className = 'story-owner-dropdown';
+  dd.innerHTML = `
+    <button id="viewViewersBtn">Ver quién la vio</button>
+    <button class="danger" id="deleteStoryBtn">Eliminar historia</button>
+  `;
+  box.appendChild(dd);
+  document.getElementById('viewViewersBtn').addEventListener('click', async () => {
+    dd.remove();
+    const viewers = await DB.storyViews.listViewers(story.id);
+    await Promise.all(viewers.map(v => getUserCached(v.viewer_id)));
+    const list = document.createElement('div');
+    list.className = 'story-viewers-list';
+    list.innerHTML = `
+      <h4>Quién la vio</h4>
+      ${!viewers.length ? '<p class="empty-note">Todavía nadie la ha visto.</p>' : viewers.map(v => `
+        <div class="viewer-row">
+          <div class="avatar" style="width:24px;height:24px;font-size:0.7rem;">${avatarHTML(usersCache[v.viewer_id])}</div>
+          <span>${escapeHtml(usersCache[v.viewer_id]?.name || 'Alguien')}</span>
+        </div>
+      `).join('')}
+      <button class="btn btn-outline btn-small" id="closeViewersBtn" style="margin-top:10px;">Cerrar</button>
+    `;
+    box.appendChild(list);
+    document.getElementById('closeViewersBtn').addEventListener('click', () => { list.remove(); storyTimer = setTimeout(() => advanceStory(), STORY_DURATION_MS); });
+  });
+  document.getElementById('deleteStoryBtn').addEventListener('click', async () => {
+    dd.remove();
+    try{ await DB.stories.remove(story.id, currentUser.id); }catch(err){ alert(err.message); }
+    closeModal();
+    renderStories();
+  });
+}
+function setupStorySwipeToClose(){
+  const box = document.getElementById('storyViewBox');
+  if(!box) return;
+  let startY = 0, dragging = false;
+  box.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    dragging = true;
+  }, { passive:true });
+  box.addEventListener('touchmove', (e) => {
+    if(!dragging) return;
+    const dy = e.touches[0].clientY - startY;
+    if(dy > 0){ box.style.transform = `translateY(${dy}px)`; box.style.opacity = String(Math.max(0.3, 1 - dy/400)); }
+  }, { passive:true });
+  box.addEventListener('touchend', (e) => {
+    if(!dragging) return;
+    dragging = false;
+    const dy = (e.changedTouches[0].clientY - startY);
+    if(dy > 120){ closeModal(); renderStories(); }
+    else { box.style.transform = ''; box.style.opacity = ''; }
+  });
 }
 
 // ---------- ACTIVIDAD ----------
@@ -1888,13 +2197,91 @@ document.getElementById('logForm').addEventListener('submit', async (e) => {
   renderProfile();
 });
 
+// =====================================================================
+// MINIJUEGOS DE LOS PANELES LATERALES (solo en pantallas anchas, sin BD)
+// =====================================================================
+let waterStage = 0; // 0..4
+const WATER_STAGES = ['🌰','🌱','🌿','🪴','🌳'];
+const WATER_LABELS = ['Semilla seca','Recién germinada','Con un par de hojas','Ya es una planta','¡Árbol frondoso!'];
+function renderWaterGame(){
+  return `
+    <div class="minigame-card">
+      <h4>Riega la planta</h4>
+      <p class="mg-desc">Un mini-juego sin ciencia: dale clic y mira crecer tu planta.</p>
+      <div class="mg-plant-scene" id="waterScene">${WATER_STAGES[waterStage]}</div>
+      <div class="mg-plant-stage-label" id="waterLabel">${WATER_LABELS[waterStage]}</div>
+      <div class="mg-row">
+        <button class="btn btn-primary btn-small" id="waterBtn">💧 Regar</button>
+        ${waterStage === WATER_STAGES.length-1 ? `<button class="btn btn-outline btn-small" id="waterResetBtn">Reiniciar</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+function bindWaterGame(container){
+  const btn = container.querySelector('#waterBtn');
+  if(btn) btn.addEventListener('click', () => {
+    if(waterStage < WATER_STAGES.length - 1) waterStage++;
+    container.querySelector('#waterScene').textContent = WATER_STAGES[waterStage];
+    container.querySelector('#waterLabel').textContent = WATER_LABELS[waterStage];
+    if(waterStage === WATER_STAGES.length - 1) renderSidePanels();
+  });
+  const resetBtn = container.querySelector('#waterResetBtn');
+  if(resetBtn) resetBtn.addEventListener('click', () => { waterStage = 0; renderSidePanels(); });
+}
+
+const QUIZ_QUESTIONS = [
+  { q:'¿Qué parte del aguacate se usa para sembrarlo?', options:['La cáscara','El hueso','Una hoja'], correct:1 },
+  { q:'¿La lengua de suegra se riega...?', options:['Cada día','Cuando la tierra está bien seca','Nunca'], correct:1 },
+  { q:'¿La piña se vuelve a sembrar desde...?', options:['Una semilla','Su corona de hojas','Su cáscara'], correct:1 },
+  { q:'¿Qué le pasa al cilantro si trasplantas sus raíces?', options:['Nada, crece igual','Se estresa y se daña fácil','Crece más rápido'], correct:1 },
+  { q:'¿Para qué sirve estratificar en frío el hueso de durazno?', options:['Para que sepa mejor','Para simular el invierno y que germine','Para que no se pudra'], correct:1 },
+];
+let quizIndex = 0, quizScore = 0, quizAnswered = false;
+function renderQuizGame(){
+  const item = QUIZ_QUESTIONS[quizIndex];
+  return `
+    <div class="minigame-card">
+      <h4>Adivina la planta 🌿</h4>
+      <p class="mg-desc">${item.q}</p>
+      <div class="mg-quiz-options" id="quizOptions">
+        ${item.options.map((o,i) => `<button data-i="${i}">${o}</button>`).join('')}
+      </div>
+      <div class="mg-score">Aciertos: ${quizScore} / ${QUIZ_QUESTIONS.length}</div>
+    </div>
+  `;
+}
+function bindQuizGame(container){
+  const opts = container.querySelectorAll('#quizOptions button');
+  opts.forEach(btn => btn.addEventListener('click', () => {
+    if(quizAnswered) return;
+    quizAnswered = true;
+    const item = QUIZ_QUESTIONS[quizIndex];
+    const i = parseInt(btn.dataset.i, 10);
+    if(i === item.correct){ btn.classList.add('correct'); quizScore++; }
+    else { btn.classList.add('wrong'); opts[item.correct].classList.add('correct'); }
+    setTimeout(() => {
+      quizIndex = (quizIndex + 1) % QUIZ_QUESTIONS.length;
+      quizAnswered = false;
+      if(quizIndex === 0) quizScore = 0;
+      renderSidePanels();
+    }, 1100);
+  }));
+}
+
+function renderSidePanels(){
+  const left = document.getElementById('sidePanelLeft');
+  const right = document.getElementById('sidePanelRight');
+  if(!left || !right) return;
+  left.innerHTML = renderWaterGame();
+  right.innerHTML = renderQuizGame();
+  bindWaterGame(left);
+  bindQuizGame(right);
+}
+
 // ---------- ARRANQUE ----------
-// Escucha cambios de sesión en tiempo real: si alguien confirma su correo y
-// vuelve a caer en esta página, o si inicia/cierra sesión en otra pestaña,
-// la app se actualiza sola sin que nadie tenga que recargar a mano.
 let authReady = false;
 sb.auth.onAuthStateChange(async (event, session) => {
-  if(!authReady) return; // el arranque de abajo ya se encarga de la sesión inicial
+  if(!authReady) return;
   if(session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
     await loadCurrentUserFromSession(session);
     await refreshAppAfterAuthChange();
@@ -1910,6 +2297,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
   applyProfileToUI();
   await Promise.all([renderLog(), renderFeed(), renderStories()]);
   renderProfile();
+  renderSidePanels();
   authReady = true;
 })();
 </script>
