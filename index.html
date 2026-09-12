@@ -1213,9 +1213,9 @@ const DB = {
       return true;
     },
     async addComment(id, { authorId, text }){
-      const { error } = await sb.from('post_comments').insert({ post_id: id, author_id: authorId, text });
+      const { data, error } = await sb.from('post_comments').insert({ post_id: id, author_id: authorId, text }).select().single();
       if(error) throw error;
-      return true;
+      return data;
     },
   },
 
@@ -1306,6 +1306,16 @@ function mapLogRow(row){
   return { id: row.id, title: row.title, category: row.category, notes: row.notes, photo: row.photo, shared: row.shared, date: new Date(row.created_at).getTime() };
 }
 
+// ---------- CACHÉ LOCAL DE PUBLICACIONES (para no volver a pedir todo a Supabase en cada clic) ----------
+let postsCache = [];      // arreglo de posts ya mapeados, fuente de verdad para pintar el feed
+let postsCacheReady = false;
+function getCachedPost(id){ return postsCache.find(p => p.id === id) || null; }
+function upsertCachedPost(post){
+  const i = postsCache.findIndex(p => p.id === post.id);
+  if(i === -1) postsCache.unshift(post); else postsCache[i] = post;
+}
+function removeCachedPost(id){ postsCache = postsCache.filter(p => p.id !== id); }
+
 // ---------- ESTADO DE SESIÓN EN MEMORIA ----------
 let currentUser = null; // {id, name, avatarUrl}
 let usersCache = {};
@@ -1380,7 +1390,7 @@ function renderSearchFilterBanner(){
   `;
   document.getElementById('clearAuthorFilterBtn').addEventListener('click', () => {
     activeAuthorFilter = null;
-    renderFeed();
+    renderFeedFromCache();
   });
 }
 
@@ -1404,10 +1414,9 @@ async function renderUserProfileVisit(){
     document.getElementById('profileVisitName').textContent = freshUser.name;
     document.getElementById('profileVisitAvatar').innerHTML = avatarHTML(freshUser);
   }
-  let posts = [];
-  try{ posts = await DB.posts.list(); }catch(err){ posts = []; }
+  if(!postsCacheReady) await loadPostsIntoCache();
   if(uid !== viewingUserId) return;
-  posts = posts.filter(p => p.authorId === uid);
+  const posts = postsCache.filter(p => p.authorId === uid);
   const totalLikes = posts.reduce((sum, p) => sum + (p.likedBy || []).length, 0);
   document.getElementById('profileVisitStats').innerHTML = `
     <div><strong>${posts.length}</strong>publicaciones</div>
@@ -1421,18 +1430,18 @@ async function renderUserProfileVisit(){
   grid.innerHTML = posts.map(p => `
     <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
   `).join('');
-  grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto, posts));
+  grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
 }
 
 // ---------- VISTA PREVIA RÁPIDA AL MANTENER PRESIONADA UNA IMAGEN (estilo IG) ----------
-function attachLongPress(imgEl, postId, postsRef){
+function attachLongPress(imgEl, postId){
   let pressTimer = null;
   let longPressed = false;
   const start = () => {
     longPressed = false;
     pressTimer = setTimeout(() => {
       longPressed = true;
-      showQuickPreview(postId, postsRef);
+      showQuickPreview(postId);
     }, 350);
   };
   const cancel = () => {
@@ -1448,11 +1457,9 @@ function attachLongPress(imgEl, postId, postsRef){
     openPostModal(postId);
   });
 }
-async function showQuickPreview(postId, postsRef){
-  let post = (postsRef || []).find(p => p.id === postId);
-  if(!post){
-    try{ const all = await DB.posts.list(); post = all.find(p => p.id === postId); }catch(err){ return; }
-  }
+async function showQuickPreview(postId){
+  let post = getCachedPost(postId);
+  if(!post){ if(!postsCacheReady) await loadPostsIntoCache(); post = getCachedPost(postId); }
   if(!post) return;
   await resolveAuthorObjs([post]);
   const authorObj = usersCache[post.authorId];
@@ -1479,10 +1486,8 @@ async function openPostModal(postId){
   await renderPostModalContent(postId);
 }
 async function renderPostModalContent(postId){
-  let posts = [];
-  try{ posts = await DB.posts.list(); }
-  catch(err){ modalContent.innerHTML = '<p class="empty-note">No se pudo cargar la publicación.</p>'; return; }
-  const post = posts.find(p => p.id === postId);
+  if(!postsCacheReady) await loadPostsIntoCache();
+  const post = getCachedPost(postId);
   if(!post){ modalContent.innerHTML = '<p class="empty-note">Esta publicación ya no existe.</p>'; return; }
   await resolveAuthorObjs([post]);
   const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
@@ -1586,7 +1591,7 @@ async function loadCurrentUserFromSession(session){
 }
 async function refreshAppAfterAuthChange(){
   applyProfileToUI();
-  await Promise.all([renderLog(), renderFeed(), renderStories()]);
+  await Promise.all([renderLog(), reloadFeed(), renderStories()]);
   renderProfile();
   renderSidePanels();
 }
@@ -1624,7 +1629,7 @@ document.getElementById('avatarInput').addEventListener('change', async (e) => {
     usersCache[currentUser.id] = currentUser;
     applyProfileToUI();
     renderProfile();
-    renderFeed();
+    renderFeedFromCache();
   }catch(err){
     alert('No se pudo subir la foto: ' + (err.message || err));
   }
@@ -1744,7 +1749,7 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
         <span class="spacer"></span>
         <button class="ig-icon ${saved ? 'saved' : ''}" data-save="${post.id}" title="Guardar">${ICONS.bookmark}</button>
       </div>
-      <p class="ig-likes-line">${likeCount ? `A ${likeCount} persona${likeCount===1?'':'s'} le${likeCount===1?'':'s'} gusta esto` : 'Sé la primera persona en darle me gusta'}</p>
+      <p class="ig-likes-line" data-likesline="${post.id}">${likeCount ? `A ${likeCount} persona${likeCount===1?'':'s'} le${likeCount===1?'':'s'} gusta esto` : 'Sé la primera persona en darle me gusta'}</p>
       <p class="ig-caption"><strong>${escapeHtml(post.title)}</strong><br>${escapeHtml(post.notes)}</p>
       ${comments.length ? `
         <div class="ig-comments-preview">
@@ -1839,39 +1844,34 @@ function bindPostCard(article){
       const text = input.value.trim();
       if(!text) return;
       input.value = '';
-      await DB.posts.addComment(id, { authorId: currentUser.id, text });
-      updatePostInPlace(id);
-      renderProfile();
+      submitBtn.classList.remove('active');
+      await postComment(id, text);
     });
   }
   article.querySelectorAll('[data-menu]').forEach(btn => btn.addEventListener('click', (e) => {
     e.stopPropagation();
     openMenuId = openMenuId === id ? null : id;
-    updatePostInPlace(id);
+    rerenderCardFromCache(id);
   }));
-  article.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; updatePostInPlace(id); }));
+  article.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; rerenderCardFromCache(id); }));
   article.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeletePost(id)));
   article.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => handleEditPost(id)));
-  article.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; updatePostInPlace(id); }));
+  article.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; rerenderCardFromCache(id); }));
   article.querySelectorAll('[data-openprofile]').forEach(btn => btn.addEventListener('click', (e) => {
     e.stopPropagation();
     openUserProfile(btn.dataset.openprofile, usersCache[btn.dataset.openprofile]?.name || 'Alguien de la comunidad');
   }));
 }
 
-// ---------- REFRESCAR UNA SOLA PUBLICACIÓN EN SU LUGAR (sin recargar todo el feed) ----------
-async function updatePostInPlace(postId){
-  let posts = [];
-  try{ posts = await DB.posts.list(); }catch(err){ return; }
-  const post = posts.find(p => p.id === postId);
+// ---------- RE-PINTAR UNA SOLA TARJETA A PARTIR DE LA CACHÉ LOCAL (instantáneo, sin red) ----------
+function rerenderCardFromCache(postId){
+  const post = getCachedPost(postId);
   const article = feedEntriesEl.querySelector(`.ig-post[data-id="${postId}"]`);
   if(!post){ if(article) article.remove(); return; }
-  await resolveAuthorObjs([post]);
   const authorObj = usersCache[post.authorId];
   const authorName = authorObj?.name || 'Alguien de la comunidad';
-  const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
   const liked = currentUser ? (post.likedBy||[]).includes(currentUser.id) : false;
-  const saved = savedIds.includes(post.id);
+  const saved = currentUser ? !!post._savedLocal : false;
   const html = postCardHTML(post, authorName, authorObj, liked, saved);
   if(article){
     const temp = document.createElement('div');
@@ -1885,15 +1885,27 @@ async function updatePostInPlace(postId){
   }
 }
 
-async function renderFeed(){
-  renderSearchFilterBanner();
-  feedEntriesEl.innerHTML = '<p class="feed-empty">Cargando publicaciones…</p>';
-  let posts;
-  try{ posts = await DB.posts.list(); }
-  catch(err){ feedEntriesEl.innerHTML = `<p class="feed-empty">No se pudo cargar el feed (${escapeHtml(err.message||'error')}).</p>`; return; }
+// ---------- CARGAR TODAS LAS PUBLICACIONES UNA VEZ Y GUARDARLAS EN LA CACHÉ ----------
+async function loadPostsIntoCache(){
+  const posts = await DB.posts.list();
+  postsCache = posts;
+  postsCacheReady = true;
   await resolveAuthorObjs(posts);
+  if(currentUser){
+    try{
+      const savedIds = await DB.saved.listForUser(currentUser.id);
+      const savedSet = new Set(savedIds);
+      postsCache.forEach(p => { p._savedLocal = savedSet.has(p.id); });
+    }catch(err){ /* ignore */ }
+  }
+  return postsCache;
+}
+
+// ---------- RENDER DEL FEED DIRECTO DESDE LA CACHÉ (sin pedir nada a la red) ----------
+function renderFeedFromCache(){
+  renderSearchFilterBanner();
+  let posts = postsCache;
   if(activeAuthorFilter) posts = posts.filter(p => p.authorId === activeAuthorFilter.id);
-  const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
   if(!posts.length){
     feedEntriesEl.innerHTML = activeAuthorFilter
       ? '<p class="feed-empty">Esta persona todavía no ha publicado nada.</p>'
@@ -1904,12 +1916,25 @@ async function renderFeed(){
     const authorObj = usersCache[post.authorId];
     const authorName = authorObj?.name || 'Alguien de la comunidad';
     const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
-    const saved = savedIds.includes(post.id);
+    const saved = currentUser ? !!post._savedLocal : false;
     return postCardHTML(post, authorName, authorObj, liked, saved);
   }).join('');
-
   feedEntriesEl.querySelectorAll('.ig-post').forEach(article => bindPostCard(article));
 }
+
+// ---------- RECARGAR TODO DESDE CERO (solo al iniciar, iniciar/cerrar sesión, o si algo falla) ----------
+async function reloadFeed(){
+  feedEntriesEl.innerHTML = '<p class="feed-empty">Cargando publicaciones…</p>';
+  try{
+    await loadPostsIntoCache();
+  }catch(err){
+    feedEntriesEl.innerHTML = `<p class="feed-empty">No se pudo cargar el feed (${escapeHtml(err.message||'error')}).</p>`;
+    return;
+  }
+  renderFeedFromCache();
+}
+// alias usado por el resto del código
+async function renderFeed(){ await reloadFeed(); }
 
 function spawnHeartBurst(id, point){
   document.querySelectorAll(`[data-burstlayer="${id}"]`).forEach(layer => {
@@ -1926,49 +1951,85 @@ function spawnHeartBurst(id, point){
   });
 }
 
+// ---------- LIKE: 100% OPTIMISTA — se ve y se cuenta al instante, la red va detrás ----------
 async function handleLike(id, forceLike, point){
   if(!requireLogin('dar me gusta')) return;
-
-  const likeBtns = document.querySelectorAll(`[data-like="${id}"]`);
-  const alreadyLikedInUI = likeBtns.length ? likeBtns[0].classList.contains('liked') : false;
+  const post = getCachedPost(id);
+  if(!post) return;
+  post.likedBy = post.likedBy || [];
+  const already = post.likedBy.includes(currentUser.id);
 
   if(forceLike){
     spawnHeartBurst(id, point);
-    if(alreadyLikedInUI) return;
+    if(already) return; // el doble toque solo da like, nunca lo quita
   }
 
-  const willLike = forceLike ? true : !alreadyLikedInUI;
-  likeBtns.forEach(btn => {
-    btn.classList.toggle('liked', willLike);
-    btn.innerHTML = willLike ? ICONS.heartFilled : ICONS.heart;
-  });
+  // 1) Actualiza el arreglo local YA (esto es lo que hace que el contador cambie al instante)
+  const willLike = forceLike ? true : !already;
+  if(willLike) post.likedBy.push(currentUser.id);
+  else post.likedBy = post.likedBy.filter(uid => uid !== currentUser.id);
 
-  if(likeInFlight.has(id)) return;
-  likeInFlight.add(id);
+  // 2) Repinta solo esta tarjeta (icono + contador), sin tocar el resto del feed ni pedir nada a la red
+  rerenderCardFromCache(id);
+
+  // 3) Manda el cambio al servidor en segundo plano; si falla, revierte
   try{
     await DB.posts.toggleLike(id, currentUser.id);
-  }catch(err){ /* se corrige solo con el refresco de abajo */ }
-  likeInFlight.delete(id);
-  setTimeout(() => { updatePostInPlace(id); renderProfile(); }, forceLike ? 950 : 0);
+  }catch(err){
+    if(willLike) post.likedBy = post.likedBy.filter(uid => uid !== currentUser.id);
+    else post.likedBy.push(currentUser.id);
+    rerenderCardFromCache(id);
+  }
 }
+
 async function handleSave(id){
   if(!requireLogin('guardar publicaciones')) return;
-  await DB.saved.toggle(currentUser.id, id);
-  updatePostInPlace(id);
+  const post = getCachedPost(id);
+  if(!post) return;
+  post._savedLocal = !post._savedLocal;
+  rerenderCardFromCache(id);
+  try{ await DB.saved.toggle(currentUser.id, id); }
+  catch(err){ post._savedLocal = !post._savedLocal; rerenderCardFromCache(id); }
   renderProfile();
 }
+
+// ---------- COMENTAR: aparece al instante en la tarjeta, se guarda en segundo plano ----------
+async function postComment(id, text){
+  const post = getCachedPost(id);
+  if(!post) return;
+  const tempId = 'temp' + Date.now();
+  const tempComment = { id: tempId, authorId: currentUser.id, text, date: Date.now() };
+  post.comments = post.comments || [];
+  post.comments.push(tempComment);
+  rerenderCardFromCache(id);
+  try{
+    const saved = await DB.posts.addComment(id, { authorId: currentUser.id, text });
+    const idx = post.comments.findIndex(c => c.id === tempId);
+    if(idx !== -1) post.comments[idx] = { id: saved.id, authorId: saved.author_id, text: saved.text, date: new Date(saved.created_at).getTime() };
+  }catch(err){
+    post.comments = post.comments.filter(c => c.id !== tempId);
+  }
+  rerenderCardFromCache(id);
+  renderProfile();
+}
+
 async function handleDeletePost(id){
   openMenuId = null;
   if(!currentUser) return;
+  const backup = getCachedPost(id);
+  removeCachedPost(id);
+  renderFeedFromCache();
   try{ await DB.posts.remove(id, currentUser.id); }
-  catch(err){ alert(err.message); }
-  renderFeed();
+  catch(err){
+    alert(err.message);
+    if(backup) upsertCachedPost(backup);
+    renderFeedFromCache();
+  }
   renderProfile();
 }
 async function handleEditPost(id){
   openMenuId = null;
-  const posts = await DB.posts.list();
-  const post = posts.find(p => p.id === id);
+  const post = getCachedPost(id);
   if(!post || !currentUser || post.authorId !== currentUser.id) return;
   showView('inicio');
   openComposer();
@@ -1982,14 +2043,12 @@ async function handleEditPost(id){
   document.getElementById('composerSubmitBtn').textContent = 'Guardar cambios';
 }
 document.addEventListener('click', () => {
-  if(openMenuId){ const id = openMenuId; openMenuId = null; updatePostInPlace(id); }
+  if(openMenuId){ const id = openMenuId; openMenuId = null; rerenderCardFromCache(id); }
 });
 
 // ---------- VISTA DE COMENTARIOS ESTILO IG DE ESCRITORIO (imagen fija + comentarios deslizables) ----------
 async function openCommentsView(postId){
-  let posts = [];
-  try{ posts = await DB.posts.list(); }catch(err){ return; }
-  const post = posts.find(p => p.id === postId);
+  const post = getCachedPost(postId);
   if(!post) return;
   await resolveAuthorObjs([post]);
   const authorObj = usersCache[post.authorId];
@@ -2022,16 +2081,8 @@ async function openCommentsView(postId){
     const text = input.value.trim();
     if(!text) return;
     input.value = '';
-    await DB.posts.addComment(post.id, { authorId: currentUser.id, text });
-    let fresh = [];
-    try{ fresh = await DB.posts.list(); }catch(err){ /* ignore */ }
-    const freshPost = fresh.find(p => p.id === post.id);
-    if(freshPost){
-      post.comments = freshPost.comments;
-      await resolveAuthorObjs([post]);
-      renderCommentsList(post);
-    }
-    updatePostInPlace(post.id);
+    await postComment(post.id, text);
+    renderCommentsList(post);
   });
 }
 function renderCommentsList(post){
@@ -2046,7 +2097,7 @@ function renderCommentsList(post){
   });
 }
 
-// ---------- COMPOSER: publica o edita ----------
+// ---------- COMPOSER: publica o edita (optimista: aparece de inmediato en el feed) ----------
 document.getElementById('composerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   if(!requireLogin('publicar')) return;
@@ -2071,18 +2122,77 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
     const photos = [...already, ...uploaded];
 
     if(editId){
-      await DB.posts.update(editId, currentUser.id, { title, category, notes, photos });
+      const updated = await DB.posts.update(editId, currentUser.id, { title, category, notes, photos });
+      const prior = getCachedPost(editId);
+      if(prior){ updated.likedBy = prior.likedBy; updated.comments = prior.comments; updated._savedLocal = prior._savedLocal; }
+      upsertCachedPost(updated);
     } else {
-      await DB.posts.create({ authorId: currentUser.id, title, category, notes, photos });
+      const created = await DB.posts.create({ authorId: currentUser.id, title, category, notes, photos });
+      upsertCachedPost(created);
     }
     closeComposer();
-    renderFeed();
+    renderFeedFromCache(); // instantáneo: ya está en la caché, no vuelve a pedir nada
     renderProfile();
   }catch(err){
     alert('No se pudo publicar: ' + (err.message || err));
   }
   submitBtn.disabled = false;
 });
+
+// =====================================================================
+// TIEMPO REAL: cambios de otras personas (likes, comentarios, publicaciones
+// nuevas o borradas) se reflejan solas, sin recargar la página.
+// Requiere que las tablas posts / post_likes / post_comments tengan
+// activado Realtime en Supabase (Database → Replication), ver schema.sql.
+// =====================================================================
+function setupRealtime(){
+  sb.channel('enraiza-posts-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
+      if(payload.eventType === 'DELETE'){
+        removeCachedPost(payload.old.id);
+        renderFeedFromCache();
+        return;
+      }
+      if(payload.eventType === 'INSERT'){
+        // si ya lo tenemos en caché (lo acabamos de publicar nosotros mismos), no dupliques
+        if(getCachedPost(payload.new.id)) return;
+        const post = mapPostRow({ ...payload.new, post_likes: [], post_comments: [] });
+        upsertCachedPost(post);
+        resolveAuthorObjs([post]).then(() => renderFeedFromCache());
+        return;
+      }
+      if(payload.eventType === 'UPDATE'){
+        const existing = getCachedPost(payload.new.id);
+        if(!existing) return;
+        existing.title = payload.new.title;
+        existing.category = payload.new.category;
+        existing.notes = payload.new.notes;
+        existing.photos = payload.new.photos || [];
+        rerenderCardFromCache(existing.id);
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, (payload) => {
+      const postId = (payload.new && payload.new.post_id) || (payload.old && payload.old.post_id);
+      const post = getCachedPost(postId);
+      if(!post) return;
+      post.likedBy = post.likedBy || [];
+      if(payload.eventType === 'INSERT'){
+        if(!post.likedBy.includes(payload.new.user_id)) post.likedBy.push(payload.new.user_id);
+      } else if(payload.eventType === 'DELETE'){
+        post.likedBy = post.likedBy.filter(uid => uid !== payload.old.user_id);
+      }
+      rerenderCardFromCache(postId);
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
+      const post = getCachedPost(payload.new.post_id);
+      if(!post) return;
+      post.comments = post.comments || [];
+      if(post.comments.some(c => c.id === payload.new.id)) return; // ya lo teníamos (comentario propio)
+      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: new Date(payload.new.created_at).getTime() });
+      getUserCached(payload.new.author_id).then(() => rerenderCardFromCache(post.id));
+    })
+    .subscribe();
+}
 
 // ---------- HISTORIAS (agrupadas por persona, 24 horas, con barra de tiempo) ----------
 let storyGroups = []; // [{authorId, stories:[...]}]
@@ -2329,11 +2439,10 @@ function setupStorySwipeToClose(){
 
 // ---------- ACTIVIDAD ----------
 async function openActivityModal(){
-  const posts = await DB.posts.list();
-  await resolveAuthorObjs(posts);
+  if(!postsCacheReady) await loadPostsIntoCache();
   const myId = currentUser.id;
   const items = [];
-  posts.filter(p => p.authorId === myId).forEach(p => {
+  postsCache.filter(p => p.authorId === myId).forEach(p => {
     (p.comments || []).forEach(c => {
       if(c.authorId !== myId) items.push({ post: p.title, authorId: c.authorId, text: c.text, date: c.date });
     });
@@ -2407,13 +2516,15 @@ const BADGES = [
 
 async function computeStats(){
   if(!currentUser) return { logCount:0, ownPosts:0, ownPostList:[], likedCount:0, savedCount:0, ownComments:0 };
-  let entries = [], posts = [], savedIds = [];
+  let entries = [], savedIds = [];
+  if(!postsCacheReady){ try{ await loadPostsIntoCache(); }catch(err){ /* ignore */ } }
   try{
-    [entries, posts, savedIds] = await Promise.all([
-      DB.logbook.listForUser(currentUser.id), DB.posts.list(), DB.saved.listForUser(currentUser.id)
+    [entries, savedIds] = await Promise.all([
+      DB.logbook.listForUser(currentUser.id), DB.saved.listForUser(currentUser.id)
     ]);
   }catch(err){ /* deja stats en 0 si algo falla */ }
   const myId = currentUser.id;
+  const posts = postsCache;
   const ownPosts = posts.filter(p => p.authorId === myId);
   let likedCount = 0, ownComments = 0;
   posts.forEach(p => {
@@ -2454,7 +2565,7 @@ function renderAccountBlock(){
     usersCache[currentUser.id] = currentUser;
     applyProfileToUI();
     renderProfile();
-    renderFeed();
+    renderFeedFromCache();
   });
   document.getElementById('logoutBtn').addEventListener('click', logout);
 }
@@ -2478,7 +2589,7 @@ async function renderProfile(){
     profileGrid.innerHTML = stats.ownPostList.map(p => `
       <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
     `).join('');
-    profileGrid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto, stats.ownPostList));
+    profileGrid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
   }
   document.getElementById('badgeGrid').innerHTML = BADGES.map(b => {
     const earned = b.check(stats);
@@ -2506,8 +2617,9 @@ document.getElementById('logForm').addEventListener('submit', async (e) => {
   renderLog();
 
   if(shared){
-    await DB.posts.create({ authorId: currentUser.id, title, category, notes, photos: photo ? [photo] : [] });
-    renderFeed();
+    const created = await DB.posts.create({ authorId: currentUser.id, title, category, notes, photos: photo ? [photo] : [] });
+    upsertCachedPost(created);
+    renderFeedFromCache();
   }
   e.target.reset();
   renderProfile();
@@ -2611,9 +2723,10 @@ sb.auth.onAuthStateChange(async (event, session) => {
   const { data: { session } } = await sb.auth.getSession();
   if(session){ await loadCurrentUserFromSession(session); }
   applyProfileToUI();
-  await Promise.all([renderLog(), renderFeed(), renderStories()]);
+  await Promise.all([renderLog(), reloadFeed(), renderStories()]);
   renderProfile();
   renderSidePanels();
+  setupRealtime();
   authReady = true;
 
   // Restaurar la pantalla donde estaba antes de recargar (se olvida si cierra la pestaña)
