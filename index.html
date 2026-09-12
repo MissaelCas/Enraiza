@@ -448,6 +448,23 @@
   .mg-quiz-options button.correct{ border-color: var(--moss); background: #dfe9e0; }
   .mg-quiz-options button.wrong{ border-color:#a3392c; background:#f3dedb; }
   .mg-score{ font-size: 0.78rem; color: var(--ink-soft); margin-top:10px; text-align:center; }
+
+  /* ---------- VISTA PREVIA RÁPIDA (mantener presionada una imagen, estilo IG) ---------- */
+  .quick-preview-backdrop{
+    position:fixed; inset:0; background: rgba(0,0,0,0.55); display:none;
+    align-items:center; justify-content:center; z-index: 200; padding: 24px; pointer-events:none;
+  }
+  .quick-preview-backdrop.open{ display:flex; }
+  .quick-preview-box{
+    background: var(--white-ish); border-radius: 10px; max-width: 320px; width:100%;
+    overflow:hidden; box-shadow: 0 12px 34px rgba(0,0,0,0.45); animation: quickPreviewIn 0.15s ease;
+  }
+  @keyframes quickPreviewIn{ from{ transform: scale(0.85); opacity:0; } to{ transform: scale(1); opacity:1; } }
+  .quick-preview-head{ display:flex; align-items:center; gap:8px; padding: 10px 12px; }
+  .quick-preview-head span{ font-size: 0.85rem; font-weight:700; }
+  .quick-preview-box img{ width:100%; aspect-ratio: 1/1; object-fit:cover; background: var(--paper-alt); }
+  .quick-preview-caption{ padding: 10px 12px; font-size: 0.85rem; margin:0; }
+  .ig-post-header-link{ all:unset; cursor:pointer; display:flex; align-items:center; gap:10px; flex:1; min-width:0; box-sizing:border-box; }
 </style>
 </head>
 <body>
@@ -761,6 +778,11 @@
   </div>
 </div>
 
+<!-- VISTA PREVIA RÁPIDA AL MANTENER PRESIONADA UNA IMAGEN (estilo IG) -->
+<div class="quick-preview-backdrop" id="quickPreviewBackdrop">
+  <div class="quick-preview-box" id="quickPreviewBox"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // =====================================================================
@@ -1007,6 +1029,7 @@ function showView(name){
   if(target) target.classList.add('active');
   window.scrollTo({top:0, behavior:'instant'});
   if(name === 'perfil') renderProfile();
+  if(name === 'perfilVisita') renderUserProfileVisit();
 }
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', (e) => {
   e.preventDefault();
@@ -1287,11 +1310,9 @@ userSearchInput.addEventListener('input', () => {
       `).join('');
       searchResultsEl.querySelectorAll('[data-userid]').forEach(row => row.addEventListener('click', () => {
         usersCache[row.dataset.userid] = usersCache[row.dataset.userid] || { id: row.dataset.userid, name: row.dataset.username, avatarUrl: null };
-        activeAuthorFilter = { id: row.dataset.userid, name: row.dataset.username };
         searchResultsEl.style.display = 'none';
         userSearchInput.value = '';
-        showView('inicio');
-        renderFeed();
+        openUserProfile(row.dataset.userid, row.dataset.username);
       }));
     }
     searchResultsEl.style.display = 'block';
@@ -1313,6 +1334,198 @@ function renderSearchFilterBanner(){
     activeAuthorFilter = null;
     renderFeed();
   });
+}
+
+// ---------- PERFIL DE OTRA PERSONA (desde la búsqueda o desde una publicación) ----------
+let viewingUserId = null;
+function openUserProfile(userId, name){
+  if(!userId) return;
+  if(currentUser && userId === currentUser.id){ showView('perfil'); return; }
+  usersCache[userId] = usersCache[userId] || { id: userId, name: name || 'Alguien de la comunidad', avatarUrl: null };
+  viewingUserId = userId;
+  showView('perfilVisita');
+}
+async function renderUserProfileVisit(){
+  if(!viewingUserId) return;
+  const uid = viewingUserId;
+  document.getElementById('profileVisitName').textContent = usersCache[uid]?.name || 'Cargando…';
+  document.getElementById('profileVisitAvatar').innerHTML = avatarHTML(usersCache[uid]);
+  const freshUser = await getUserCached(uid);
+  if(freshUser && uid === viewingUserId){
+    usersCache[uid] = freshUser;
+    document.getElementById('profileVisitName').textContent = freshUser.name;
+    document.getElementById('profileVisitAvatar').innerHTML = avatarHTML(freshUser);
+  }
+  let posts = [];
+  try{ posts = await DB.posts.list(); }catch(err){ posts = []; }
+  if(uid !== viewingUserId) return; // el usuario ya cambió de perfil mientras cargaba
+  posts = posts.filter(p => p.authorId === uid);
+  const totalLikes = posts.reduce((sum, p) => sum + (p.likedBy || []).length, 0);
+  document.getElementById('profileVisitStats').innerHTML = `
+    <div><strong>${posts.length}</strong>publicaciones</div>
+    <div><strong>${totalLikes}</strong>me gusta recibidos</div>
+  `;
+  const grid = document.getElementById('profileVisitPostGrid');
+  if(!posts.length){
+    grid.innerHTML = '<p class="profile-empty-grid">Esta persona todavía no ha publicado nada.</p>';
+    return;
+  }
+  grid.innerHTML = posts.map(p => `
+    <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
+  `).join('');
+  grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto, posts));
+}
+
+// ---------- VISTA PREVIA RÁPIDA AL MANTENER PRESIONADA UNA IMAGEN (estilo IG) ----------
+function attachLongPress(imgEl, postId, postsRef){
+  let pressTimer = null;
+  let longPressed = false;
+  const start = () => {
+    longPressed = false;
+    pressTimer = setTimeout(() => {
+      longPressed = true;
+      showQuickPreview(postId, postsRef);
+    }, 350);
+  };
+  const cancel = () => {
+    clearTimeout(pressTimer);
+    if(longPressed) hideQuickPreview();
+  };
+  imgEl.addEventListener('pointerdown', start);
+  imgEl.addEventListener('pointerup', cancel);
+  imgEl.addEventListener('pointerleave', cancel);
+  imgEl.addEventListener('pointercancel', cancel);
+  imgEl.addEventListener('click', (e) => {
+    if(longPressed){ e.preventDefault(); e.stopPropagation(); longPressed = false; return; }
+    openPostModal(postId);
+  });
+}
+async function showQuickPreview(postId, postsRef){
+  let post = (postsRef || []).find(p => p.id === postId);
+  if(!post){
+    try{ const all = await DB.posts.list(); post = all.find(p => p.id === postId); }catch(err){ return; }
+  }
+  if(!post) return;
+  await resolveAuthorObjs([post]);
+  const authorObj = usersCache[post.authorId];
+  const img = (post.photos && post.photos[0]) || placeholderImage(post.id + post.title, post.category);
+  document.getElementById('quickPreviewBox').innerHTML = `
+    <div class="quick-preview-head">
+      <div class="avatar">${avatarHTML(authorObj)}</div>
+      <span>${escapeHtml(authorObj?.name || 'Alguien de la comunidad')}</span>
+    </div>
+    <img src="${img}" alt="${escapeHtml(post.title)}">
+    <p class="quick-preview-caption"><strong>${escapeHtml(post.title)}</strong></p>
+  `;
+  document.getElementById('quickPreviewBackdrop').classList.add('open');
+}
+function hideQuickPreview(){
+  document.getElementById('quickPreviewBackdrop').classList.remove('open');
+}
+
+// ---------- VER UNA PUBLICACIÓN EN VENTANA (desde el perfil de otra persona) ----------
+async function openPostModal(postId){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = '<p class="feed-empty">Cargando…</p>';
+  modalBackdrop.classList.add('open');
+  await renderPostModalContent(postId);
+}
+async function renderPostModalContent(postId){
+  let posts = [];
+  try{ posts = await DB.posts.list(); }
+  catch(err){ modalContent.innerHTML = '<p class="empty-note">No se pudo cargar la publicación.</p>'; return; }
+  const post = posts.find(p => p.id === postId);
+  if(!post){ modalContent.innerHTML = '<p class="empty-note">Esta publicación ya no existe.</p>'; return; }
+  await resolveAuthorObjs([post]);
+  const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
+  const authorObj = usersCache[post.authorId];
+  const authorName = authorObj?.name || 'Alguien de la comunidad';
+  const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
+  const saved = savedIds.includes(post.id);
+  modalContent.innerHTML = postCardHTML(post, authorName, authorObj, liked, saved);
+
+  modalContent.querySelectorAll('[data-comment-author]').forEach(el => {
+    const uid = el.dataset.commentAuthor;
+    el.querySelector('strong').textContent = usersCache[uid]?.name || 'Alguien';
+  });
+
+  const car = modalContent.querySelector('[data-carousel]');
+  if(car){
+    const track = car.querySelector('.ig-carousel-track');
+    const dots = car.querySelectorAll('.ig-carousel-dots span');
+    const countEl = car.querySelector('.ig-carousel-count');
+    const prevBtn = car.querySelector('[data-caract="prev"]');
+    const nextBtn = car.querySelector('[data-caract="next"]');
+    if(track && track.children.length > 1){
+      const total = track.children.length;
+      const syncUI = (idx) => {
+        dots.forEach((d,i) => d.classList.toggle('active', i===idx));
+        if(countEl) countEl.textContent = `${idx+1}/${total}`;
+        if(prevBtn) prevBtn.disabled = idx === 0;
+        if(nextBtn) nextBtn.disabled = idx === total - 1;
+      };
+      track.addEventListener('scroll', () => syncUI(Math.round(track.scrollLeft / track.clientWidth)));
+      if(prevBtn) prevBtn.addEventListener('click', () => { const idx = Math.max(0, Math.round(track.scrollLeft/track.clientWidth)-1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
+      if(nextBtn) nextBtn.addEventListener('click', () => { const idx = Math.min(total-1, Math.round(track.scrollLeft/track.clientWidth)+1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
+    }
+  }
+
+  modalContent.querySelectorAll('[data-like]').forEach(btn => btn.addEventListener('click', async () => {
+    if(!requireLogin('dar me gusta')) return;
+    await DB.posts.toggleLike(post.id, currentUser.id);
+    renderPostModalContent(postId);
+  }));
+  modalContent.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', async () => {
+    if(!requireLogin('guardar publicaciones')) return;
+    await DB.saved.toggle(currentUser.id, post.id);
+    renderPostModalContent(postId);
+  }));
+  modalContent.querySelectorAll('[data-focuscomment]').forEach(btn => btn.addEventListener('click', () => {
+    if(!requireLogin('comentar')) return;
+    const row = modalContent.querySelector(`.ig-comment-row[data-id="${post.id}"] input`);
+    if(row) row.focus();
+  }));
+  modalContent.querySelectorAll('[data-viewmore]').forEach(btn => btn.addEventListener('click', () => {
+    expandedComments.add(post.id);
+    renderPostModalContent(postId);
+  }));
+  modalContent.querySelectorAll('.ig-comment-row').forEach(f => {
+    const input = f.querySelector('input');
+    const submitBtn = f.querySelector('button');
+    input.addEventListener('input', () => submitBtn.classList.toggle('active', input.value.trim().length > 0));
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if(!requireLogin('comentar')) return;
+      const text = input.value.trim();
+      if(!text) return;
+      await DB.posts.addComment(post.id, { authorId: currentUser.id, text });
+      renderPostModalContent(postId);
+    });
+  });
+  modalContent.querySelectorAll('[data-menu]').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openMenuId = openMenuId === btn.dataset.menu ? null : btn.dataset.menu;
+    renderPostModalContent(postId);
+  }));
+  modalContent.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderPostModalContent(postId); }));
+  modalContent.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
+    openMenuId = null;
+    if(!currentUser) return;
+    try{ await DB.posts.remove(btn.dataset.del, currentUser.id); }catch(err){ alert(err.message); }
+    closeModal();
+    renderUserProfileVisit();
+    renderFeed();
+  }));
+  modalContent.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => {
+    closeModal();
+    handleEditPost(btn.dataset.edit);
+  }));
+  modalContent.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderPostModalContent(postId); }));
+  modalContent.querySelectorAll('[data-openprofile]').forEach(el => el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeModal();
+    openUserProfile(el.dataset.openprofile, usersCache[el.dataset.openprofile]?.name || 'Alguien de la comunidad');
+  }));
 }
 
 // ---------- MODAL DE AUTENTICACIÓN (Supabase Auth) ----------
@@ -1542,11 +1755,13 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
   return `
     <article class="ig-post" data-id="${post.id}">
       <div class="ig-post-header">
-        <div class="avatar">${avatarHTML(authorObj)}</div>
-        <div class="ig-post-meta">
-          <div class="uname">${escapeHtml(authorName)}${post.demo ? '<span class="ig-demo-tag">Ejemplo</span>' : ''}</div>
-          <div class="time">${fmtRelative(post.date)} · ${post.category}</div>
-        </div>
+        <button type="button" class="ig-post-header-link" data-openprofile="${post.authorId}">
+          <div class="avatar">${avatarHTML(authorObj)}</div>
+          <div class="ig-post-meta">
+            <div class="uname">${escapeHtml(authorName)}${post.demo ? '<span class="ig-demo-tag">Ejemplo</span>' : ''}</div>
+            <div class="time">${fmtRelative(post.date)} · ${post.category}</div>
+          </div>
+        </button>
         <button class="ig-menu-btn" data-menu="${post.id}">${ICONS.dots}</button>
         ${openMenuId === post.id ? `
           <div class="ig-dropdown">
@@ -1676,6 +1891,10 @@ async function renderFeed(){
   feedEntriesEl.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeletePost(btn.dataset.del)));
   feedEntriesEl.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => handleEditPost(btn.dataset.edit)));
   feedEntriesEl.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; renderFeed(); }));
+  feedEntriesEl.querySelectorAll('[data-openprofile]').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openUserProfile(btn.dataset.openprofile, usersCache[btn.dataset.openprofile]?.name || 'Alguien de la comunidad');
+  }));
 }
 
 async function handleLike(id, forceLike){
@@ -2172,13 +2391,7 @@ async function renderProfile(){
     profileGrid.innerHTML = stats.ownPostList.map(p => `
       <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
     `).join('');
-    profileGrid.querySelectorAll('[data-goto]').forEach(img => img.addEventListener('click', () => {
-      showView('inicio');
-      setTimeout(() => {
-        const target = feedEntriesEl.querySelector(`[data-id="${img.dataset.goto}"]`);
-        if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
-      }, 100);
-    }));
+    profileGrid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto, stats.ownPostList));
   }
   document.getElementById('badgeGrid').innerHTML = BADGES.map(b => {
     const earned = b.check(stats);
