@@ -315,7 +315,7 @@
   .ig-caption{ padding: 0 14px; font-size: 0.88rem; margin: 0 0 6px; white-space:pre-wrap; }
   .ig-caption .uname{ font-weight:700; margin-right: 6px; }
   .ig-comments-preview{ padding: 0 14px; display:flex; flex-direction:column; gap: 3px; margin-bottom: 6px; }
-  .comment-item{ font-size: 0.86rem; color: var(--ink-soft); }
+  .comment-item{ font-size: 0.86rem; color: var(--ink); line-height:1.4; }
   .comment-item strong{ color: var(--ink); }
   .ig-view-more{ background:none; border:none; padding: 0 14px; margin-bottom: 6px; color: var(--ink-soft); font-size: 0.82rem; cursor:pointer; text-align:left; }
   .ig-comment-row{ display:flex; align-items:center; gap: 8px; padding: 8px 14px 14px; border-top: 1px solid var(--line); min-width:0; }
@@ -324,22 +324,83 @@
   .ig-comment-row button{ background:none; border:none; color: var(--moss-dark); font-weight:700; font-size: 0.85rem; cursor:pointer; opacity:0.4; flex-shrink:0; }
   .ig-comment-row button.active{ opacity:1; }
 
-  /* Vista de comentarios estilo IG de escritorio (imagen fija + comentarios deslizables) */
-  .modal.modal-wide{ max-width: 920px; width:100%; padding:0; overflow:hidden; }
-  .modal-wide .modal-close{ color:#fff; background: rgba(0,0,0,0.45); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; top:10px; right:10px; }
-  .comments-view{ display:flex; flex-direction:column; max-height:85vh; }
-  @media (min-width:700px){ .comments-view{ flex-direction:row; height:80vh; max-height:80vh; } }
-  .comments-view-media{ flex:1; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; min-height:220px; }
+  /* Vista de comentarios estilo IG: PC = imagen fija a la izquierda (fondo transparente) + comentarios a la derecha que se scrollean solos. Móvil = hoja que sube desde abajo, encima de la imagen. */
+  .modal.modal-wide{ max-width: 920px; width:100%; padding:0; overflow:hidden; background:transparent; box-shadow:none; }
+  .modal-wide .modal-close{ color:#fff; background: rgba(35,48,29,0.55); border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; top:10px; right:10px; z-index:10; }
+
+  .comments-view{ position:relative; display:flex; flex-direction:column; max-height:85vh; }
+  @media (min-width:700px){
+    .comments-view{ flex-direction:row; height:80vh; max-height:80vh; background: var(--white-ish); border-radius:6px; overflow:hidden; }
+  }
+
+  /* Imagen: en PC ocupa la izquierda con fondo transparente (el paper de la página), fija, no se mueve */
+  .comments-view-media{
+    flex:1; display:flex; align-items:center; justify-content:center; overflow:hidden; min-height:0;
+    background: transparent;
+  }
   .comments-view-media img{ max-width:100%; max-height:100%; object-fit:contain; }
-  .comments-view-side{ display:flex; flex-direction:column; background:var(--white-ish); min-height:0; }
-  @media (min-width:700px){ .comments-view-side{ width:360px; flex-shrink:0; border-left:1px solid var(--line); } }
-  .comments-view-header{ display:flex; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  @media (min-width:700px){
+    .comments-view-media{ background: var(--paper-alt); height:100%; }
+  }
+
+  /* En móvil la imagen queda fija de fondo, ocupando toda la pantalla del modal */
+  @media (max-width:699px){
+    .comments-view{ height:100vh; max-height:100vh; }
+    .comments-view-media{
+      position:absolute; inset:0; background: var(--ink); z-index:1;
+    }
+    .comments-view-media img{ width:100%; height:100%; object-fit:contain; }
+  }
+
+  /* Panel de comentarios: en PC, columna fija a la derecha con su propio scroll */
+  .comments-view-side{
+    display:flex; flex-direction:column; background:var(--white-ish); min-height:0;
+  }
+  @media (min-width:700px){
+    .comments-view-side{ width:360px; flex-shrink:0; border-left:1px solid var(--line); height:100%; }
+  }
+
+  /* En móvil, el panel de comentarios es una hoja que sube por encima de la imagen, como IG */
+  @media (max-width:699px){
+    .comments-view-side{
+      position:absolute; left:0; right:0; bottom:0; z-index:2;
+      height:62%; max-height:62%;
+      border-radius:16px 16px 0 0;
+      box-shadow: 0 -6px 20px rgba(0,0,0,0.25);
+    }
+    .comments-sheet-handle{
+      display:flex; justify-content:center; padding:8px 0 2px; flex-shrink:0; cursor:grab;
+    }
+    .comments-sheet-handle span{ width:36px; height:4px; border-radius:3px; background: var(--line); }
+  }
+  .comments-sheet-handle{ display:none; }
+
+  .comments-view-header{ display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line); flex-shrink:0; }
   .comments-view-header strong{ font-size:0.9rem; }
   .comments-view-caption{ padding:12px 14px; border-bottom:1px solid var(--line); font-size:0.88rem; flex-shrink:0; }
-  .comments-view-list{ flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:10px; min-height:60px; }
+  .comments-view-list{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:12px 14px; display:flex; flex-direction:column; gap:14px; min-height:60px; }
   .comments-view-empty{ color:var(--ink-soft); font-style:italic; font-size:0.88rem; }
-  .comments-view-input-row{ display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0; }
+  .comments-view-input-row{ display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0; background:var(--white-ish); }
   .comments-view-input-row input{ flex:1; min-width:0; border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:0.88rem; font-family:var(--sans); }
+
+  /* Un comentario, con acciones (me gusta / responder / eliminar) y sus respuestas anidadas */
+  .comment-block{ display:flex; flex-direction:column; gap:2px; }
+  .comment-row{ display:flex; gap:10px; align-items:flex-start; }
+  .comment-row .avatar{ width:30px; height:30px; font-size:0.75rem; flex-shrink:0; }
+  .comment-body{ flex:1; min-width:0; }
+  .comment-meta-row{ display:flex; align-items:center; gap:12px; margin-top:3px; }
+  .comment-meta-row span, .comment-meta-row button{
+    font-size:0.74rem; color: var(--ink-soft); background:none; border:none; padding:0; cursor:pointer; font-weight:600;
+  }
+  .comment-meta-row button:hover{ color: var(--ink); }
+  .comment-like-btn{ display:flex; align-items:center; gap:4px; margin-left:auto; flex-shrink:0; }
+  .comment-like-btn svg{ width:14px; height:14px; }
+  .comment-like-btn.liked{ color:#c1473c; }
+  .comment-like-btn.liked svg{ fill:#c1473c; stroke:#c1473c; }
+  .comment-replies{ display:flex; flex-direction:column; gap:10px; margin:8px 0 0 40px; }
+  .comment-reply-form{ display:flex; gap:8px; margin:8px 0 0 40px; }
+  .comment-reply-form input{ flex:1; min-width:0; border:1px solid var(--line); border-radius:16px; padding:6px 12px; font-size:0.82rem; font-family:var(--sans); }
+  .comment-reply-form button{ background:none; border:none; color: var(--moss-dark); font-weight:700; font-size:0.8rem; cursor:pointer; }
 
   /* Visor de historias */
   body.story-open{ overflow:hidden; height:100%; position:fixed; width:100%; }
@@ -499,6 +560,22 @@
   .quick-preview-box img{ width:100%; aspect-ratio: 1/1; object-fit:cover; background: var(--paper-alt); }
   .quick-preview-caption{ padding: 10px 12px; font-size: 0.85rem; margin:0; }
   .ig-post-header-link{ all:unset; cursor:pointer; display:flex; align-items:center; gap:10px; flex:1; min-width:0; box-sizing:border-box; }
+
+  /* ---------- AVISO PEQUEÑO (compartir, etc.) ---------- */
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 6px;
+    font-size: 0.85rem; z-index: 300; opacity:0; pointer-events:none; transition: opacity 0.2s, transform 0.2s;
+    max-width: 90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+  .ig-icon.share-active{ opacity:1; cursor:pointer; }
+  .share-menu{
+    position:absolute; background: var(--white-ish); border:1px solid var(--line); border-radius:6px;
+    box-shadow: 0 6px 16px rgba(35,48,29,0.18); z-index: 40; overflow:hidden; min-width:200px;
+  }
+  .share-menu button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.85rem; cursor:pointer; color:var(--ink); }
+  .share-menu button:hover{ background: var(--paper-alt); }
 </style>
 </head>
 <body>
@@ -817,6 +894,9 @@
   <div class="quick-preview-box" id="quickPreviewBox"></div>
 </div>
 
+<!-- AVISO PEQUEÑO (toast) -->
+<div class="toast" id="toast"></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // =====================================================================
@@ -1123,6 +1203,15 @@ function fmtRelative(ts){
 }
 function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
 
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
 // ---------- SEGURIDAD BÁSICA: bloquear guardar/copiar imagen desde el navegador ----------
 document.addEventListener('contextmenu', (e) => {
   if(e.target.tagName === 'IMG' || e.target.closest('.ig-post-carousel') || e.target.closest('.profile-post-thumb') || e.target.closest('.story-view-img-wrap')){
@@ -1148,7 +1237,8 @@ async function uploadImageFile(file, folder){
 
 // =====================================================================
 // CAPA DE DATOS (DB.*) — contra Supabase real (Postgres + Auth + Storage)
-// Ver schema.sql para las tablas (incluye story_views).
+// Ver schema.sql para las tablas (incluye story_views y comment_likes,
+// más la columna parent_id en post_comments para respuestas).
 // =====================================================================
 const DB = {
   users: {
@@ -1178,9 +1268,14 @@ const DB = {
 
   posts: {
     async list(){
-      const { data, error } = await sb.from('posts').select('*, post_likes(user_id), post_comments(*)').order('created_at', { ascending:false });
+      const { data, error } = await sb.from('posts').select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))').order('created_at', { ascending:false });
       if(error) throw error;
       return (data||[]).map(mapPostRow);
+    },
+    async getOne(id){
+      const { data, error } = await sb.from('posts').select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))').eq('id', id).maybeSingle();
+      if(error) throw error;
+      return data ? mapPostRow(data) : null;
     },
     async create({ authorId, title, category, notes, photos }){
       const { data, error } = await sb.from('posts').insert({ author_id: authorId, title, category, notes, photos: photos||[] }).select().single();
@@ -1212,10 +1307,24 @@ const DB = {
       }
       return true;
     },
-    async addComment(id, { authorId, text }){
-      const { data, error } = await sb.from('post_comments').insert({ post_id: id, author_id: authorId, text }).select().single();
+    async addComment(id, { authorId, text, parentId }){
+      const { data, error } = await sb.from('post_comments').insert({ post_id: id, author_id: authorId, text, parent_id: parentId || null }).select().single();
       if(error) throw error;
       return data;
+    },
+    async removeComment(commentId, authorId){
+      const { error } = await sb.from('post_comments').delete().eq('id', commentId).eq('author_id', authorId);
+      if(error) throw error;
+      return true;
+    },
+    async toggleCommentLike(commentId, userId){
+      const { data: existing } = await sb.from('comment_likes').select('*').eq('comment_id', commentId).eq('user_id', userId).maybeSingle();
+      if(existing){
+        await sb.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId);
+      } else {
+        await sb.from('comment_likes').insert({ comment_id: commentId, user_id: userId });
+      }
+      return true;
     },
   },
 
@@ -1296,7 +1405,11 @@ function mapPostRow(row){
     notes: row.notes, photos: row.photos || [], date: new Date(row.created_at).getTime(),
     demo: !!row.is_demo,
     likedBy: (row.post_likes||[]).map(l => l.user_id),
-    comments: (row.post_comments||[]).map(c => ({ id:c.id, authorId:c.author_id, text:c.text, date:new Date(c.created_at).getTime() })).sort((a,b)=>a.date-b.date),
+    comments: (row.post_comments||[]).map(c => ({
+      id:c.id, authorId:c.author_id, text:c.text, date:new Date(c.created_at).getTime(),
+      parentId: c.parent_id || null,
+      likedBy: (c.comment_likes||[]).map(l => l.user_id),
+    })).sort((a,b)=>a.date-b.date),
   };
 }
 function mapStoryRow(row){
@@ -1478,7 +1591,7 @@ function hideQuickPreview(){
   document.getElementById('quickPreviewBackdrop').classList.remove('open');
 }
 
-// ---------- VER UNA PUBLICACIÓN EN VENTANA (desde el perfil de otra persona) ----------
+// ---------- VER UNA PUBLICACIÓN EN VENTANA (desde el perfil de otra persona o un enlace compartido) ----------
 async function openPostModal(postId){
   modalBox.className = 'modal';
   modalContent.innerHTML = '<p class="feed-empty">Cargando…</p>';
@@ -1487,15 +1600,19 @@ async function openPostModal(postId){
 }
 async function renderPostModalContent(postId){
   if(!postsCacheReady) await loadPostsIntoCache();
-  const post = getCachedPost(postId);
+  let post = getCachedPost(postId);
+  if(!post){
+    // puede venir de un enlace compartido antes de que el feed general lo tenga cacheado
+    try{ post = await DB.posts.getOne(postId); if(post) upsertCachedPost(post); }catch(err){ /* ignore */ }
+  }
   if(!post){ modalContent.innerHTML = '<p class="empty-note">Esta publicación ya no existe.</p>'; return; }
   await resolveAuthorObjs([post]);
   const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
+  post._savedLocal = savedIds.includes(post.id);
   const authorObj = usersCache[post.authorId];
   const authorName = authorObj?.name || 'Alguien de la comunidad';
   const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
-  const saved = savedIds.includes(post.id);
-  modalContent.innerHTML = postCardHTML(post, authorName, authorObj, liked, saved);
+  modalContent.innerHTML = postCardHTML(post, authorName, authorObj, liked, post._savedLocal);
   bindPostCard(modalContent.querySelector('.ig-post'));
 }
 
@@ -1696,7 +1813,7 @@ document.getElementById('btnActivity').addEventListener('click', () => {
 const feedEntriesEl = document.getElementById('feedEntries');
 const expandedComments = new Set();
 let openMenuId = null;
-const likeInFlight = new Set();
+let openShareId = null;
 
 function carouselHTML(post){
   const photos = (post.photos && post.photos.length) ? post.photos : [placeholderImage(post.id + post.title, post.category)];
@@ -1745,7 +1862,7 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
       <div class="ig-actions">
         <button class="ig-icon ${liked ? 'liked' : ''}" data-like="${post.id}" title="Me gusta">${liked ? ICONS.heartFilled : ICONS.heart}</button>
         <button class="ig-icon" data-focuscomment="${post.id}" title="Comentar">${ICONS.comment}</button>
-        <button class="ig-icon disabled" title="Compartir (próximamente)">${ICONS.share}</button>
+        <button class="ig-icon share-active" data-share="${post.id}" title="Compartir">${ICONS.share}</button>
         <span class="spacer"></span>
         <button class="ig-icon ${saved ? 'saved' : ''}" data-save="${post.id}" title="Guardar">${ICONS.bookmark}</button>
       </div>
@@ -1768,6 +1885,84 @@ async function resolveAuthorObjs(posts){
   const ids = new Set();
   posts.forEach(p => { ids.add(p.authorId); (p.comments||[]).forEach(c => ids.add(c.authorId)); });
   await Promise.all([...ids].map(id => getUserCached(id)));
+}
+
+// ---------- COMPARTIR PUBLICACIÓN (enlace directo + Web Share si está disponible) ----------
+function buildPostShareUrl(postId){
+  const url = new URL(window.location.href);
+  url.hash = '';
+  url.searchParams.set('post', postId);
+  return url.toString();
+}
+async function copyToClipboard(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  }catch(err){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      return true;
+    }catch(err2){ return false; }
+  }
+}
+async function handleShare(id, btn){
+  const post = getCachedPost(id);
+  const url = buildPostShareUrl(id);
+  const title = post ? post.title : 'Enraíza';
+  if(navigator.share){
+    try{
+      await navigator.share({ title: `Enraíza — ${title}`, text: '¡Mira esta publicación en Enraíza!', url });
+    }catch(err){ /* la persona canceló el share nativo, no hacemos nada más */ }
+    return;
+  }
+  // escritorio / navegadores sin Web Share API: mostramos un pequeño menú con opciones
+  document.querySelectorAll('.share-menu').forEach(m => m.remove());
+  const menu = document.createElement('div');
+  menu.className = 'share-menu';
+  menu.innerHTML = `
+    <button data-sharecopy="1">🔗 Copiar enlace</button>
+    <button data-sharewhatsapp="1">💬 Compartir por WhatsApp</button>
+  `;
+  document.body.appendChild(menu);
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+  menu.style.left = Math.max(8, rect.left - 60) + 'px';
+  const closeMenu = () => { menu.remove(); document.removeEventListener('click', outsideClick); };
+  const outsideClick = (e) => { if(!menu.contains(e.target) && e.target !== btn) closeMenu(); };
+  setTimeout(() => document.addEventListener('click', outsideClick), 0);
+  menu.querySelector('[data-sharecopy]').addEventListener('click', async () => {
+    const ok = await copyToClipboard(url);
+    showToast(ok ? 'Enlace copiado. ¡Ya lo puedes pegar donde quieras!' : 'No se pudo copiar el enlace.');
+    closeMenu();
+  });
+  menu.querySelector('[data-sharewhatsapp]').addEventListener('click', () => {
+    window.open('https://wa.me/?text=' + encodeURIComponent('¡Mira esta publicación en Enraíza! ' + url), '_blank', 'noopener');
+    closeMenu();
+  });
+}
+
+// ---------- ACTUALIZACIONES PUNTUALES (sin recrear la tarjeta ni recargar imágenes) ----------
+function likesLineText(count){
+  return count ? `A ${count} persona${count===1?'':'s'} le${count===1?'':'s'} gusta esto` : 'Sé la primera persona en darle me gusta';
+}
+function updateLikeUI(id, liked, count){
+  document.querySelectorAll(`.ig-post[data-id="${id}"]`).forEach(article => {
+    const btn = article.querySelector('[data-like]');
+    if(btn){ btn.classList.toggle('liked', liked); btn.innerHTML = liked ? ICONS.heartFilled : ICONS.heart; }
+    const line = article.querySelector(`[data-likesline="${id}"]`);
+    if(line) line.textContent = likesLineText(count);
+  });
+}
+function updateSaveUI(id, saved){
+  document.querySelectorAll(`.ig-post[data-id="${id}"] [data-save]`).forEach(btn => btn.classList.toggle('saved', saved));
 }
 
 // ---------- VINCULAR EVENTOS DE UNA SOLA TARJETA ----------
@@ -1804,6 +1999,7 @@ function bindPostCard(article){
 
   article.querySelectorAll('[data-like]').forEach(btn => btn.addEventListener('click', () => handleLike(id)));
   article.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', () => handleSave(id)));
+  article.querySelectorAll('[data-share]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); handleShare(id, btn); }));
   const track = article.querySelector('[data-doublelike]');
   if(track){
     let lastClickTime = 0;
@@ -1863,23 +2059,32 @@ function bindPostCard(article){
   }));
 }
 
-// ---------- RE-PINTAR UNA SOLA TARJETA A PARTIR DE LA CACHÉ LOCAL (instantáneo, sin red) ----------
+// ---------- RE-PINTAR UNA SOLA TARJETA A PARTIR DE LA CACHÉ LOCAL (solo para cambios estructurales: menú, comentarios, edición) ----------
+// Los likes y guardados NO pasan por aquí: usan updateLikeUI/updateSaveUI para no recrear ni recargar imágenes.
 function rerenderCardFromCache(postId){
   const post = getCachedPost(postId);
-  const article = feedEntriesEl.querySelector(`.ig-post[data-id="${postId}"]`);
-  if(!post){ if(article) article.remove(); return; }
-  const authorObj = usersCache[post.authorId];
-  const authorName = authorObj?.name || 'Alguien de la comunidad';
-  const liked = currentUser ? (post.likedBy||[]).includes(currentUser.id) : false;
-  const saved = currentUser ? !!post._savedLocal : false;
-  const html = postCardHTML(post, authorName, authorObj, liked, saved);
-  if(article){
+  const articles = document.querySelectorAll(`.ig-post[data-id="${postId}"]`);
+  if(!post){ articles.forEach(a => a.remove()); return; }
+  articles.forEach(article => {
+    const authorObj = usersCache[post.authorId];
+    const authorName = authorObj?.name || 'Alguien de la comunidad';
+    const liked = currentUser ? (post.likedBy||[]).includes(currentUser.id) : false;
+    const saved = currentUser ? !!post._savedLocal : false;
+    const html = postCardHTML(post, authorName, authorObj, liked, saved);
     const temp = document.createElement('div');
     temp.innerHTML = html.trim();
     const newArticle = temp.firstElementChild;
+    // conserva el carrusel de imágenes ya cargado para que no parpadee ni las vuelva a descargar
+    const oldCarousel = article.querySelector('.ig-post-carousel');
+    const newCarouselSlot = newArticle.querySelector('.ig-post-carousel');
+    let reusedCarousel = false;
+    if(oldCarousel && newCarouselSlot && oldCarousel.dataset.carousel === newCarouselSlot.dataset.carousel){
+      newCarouselSlot.replaceWith(oldCarousel);
+      reusedCarousel = true;
+    }
     article.replaceWith(newArticle);
-    bindPostCard(newArticle);
-  }
+    bindPostCard(newArticle, reusedCarousel);
+  });
   if(document.getElementById('commentsViewList') && modalBackdrop.classList.contains('open')){
     renderCommentsList(post);
   }
@@ -1951,7 +2156,7 @@ function spawnHeartBurst(id, point){
   });
 }
 
-// ---------- LIKE: 100% OPTIMISTA — se ve y se cuenta al instante, la red va detrás ----------
+// ---------- LIKE: 100% OPTIMISTA — actualización puntual del ícono/contador, sin tocar la imagen ni recrear la tarjeta ----------
 async function handleLike(id, forceLike, point){
   if(!requireLogin('dar me gusta')) return;
   const post = getCachedPost(id);
@@ -1964,21 +2169,19 @@ async function handleLike(id, forceLike, point){
     if(already) return; // el doble toque solo da like, nunca lo quita
   }
 
-  // 1) Actualiza el arreglo local YA (esto es lo que hace que el contador cambie al instante)
   const willLike = forceLike ? true : !already;
   if(willLike) post.likedBy.push(currentUser.id);
   else post.likedBy = post.likedBy.filter(uid => uid !== currentUser.id);
 
-  // 2) Repinta solo esta tarjeta (icono + contador), sin tocar el resto del feed ni pedir nada a la red
-  rerenderCardFromCache(id);
+  // Actualización puntual: solo el corazón y el contador cambian, la imagen ni se toca
+  updateLikeUI(id, willLike, post.likedBy.length);
 
-  // 3) Manda el cambio al servidor en segundo plano; si falla, revierte
   try{
     await DB.posts.toggleLike(id, currentUser.id);
   }catch(err){
     if(willLike) post.likedBy = post.likedBy.filter(uid => uid !== currentUser.id);
     else post.likedBy.push(currentUser.id);
-    rerenderCardFromCache(id);
+    updateLikeUI(id, post.likedBy.includes(currentUser.id), post.likedBy.length);
   }
 }
 
@@ -1987,25 +2190,25 @@ async function handleSave(id){
   const post = getCachedPost(id);
   if(!post) return;
   post._savedLocal = !post._savedLocal;
-  rerenderCardFromCache(id);
+  updateSaveUI(id, post._savedLocal);
   try{ await DB.saved.toggle(currentUser.id, id); }
-  catch(err){ post._savedLocal = !post._savedLocal; rerenderCardFromCache(id); }
+  catch(err){ post._savedLocal = !post._savedLocal; updateSaveUI(id, post._savedLocal); }
   renderProfile();
 }
 
 // ---------- COMENTAR: aparece al instante en la tarjeta, se guarda en segundo plano ----------
-async function postComment(id, text){
+async function postComment(id, text, parentId){
   const post = getCachedPost(id);
   if(!post) return;
   const tempId = 'temp' + Date.now();
-  const tempComment = { id: tempId, authorId: currentUser.id, text, date: Date.now() };
+  const tempComment = { id: tempId, authorId: currentUser.id, text, date: Date.now(), parentId: parentId || null, likedBy: [] };
   post.comments = post.comments || [];
   post.comments.push(tempComment);
   rerenderCardFromCache(id);
   try{
-    const saved = await DB.posts.addComment(id, { authorId: currentUser.id, text });
+    const saved = await DB.posts.addComment(id, { authorId: currentUser.id, text, parentId });
     const idx = post.comments.findIndex(c => c.id === tempId);
-    if(idx !== -1) post.comments[idx] = { id: saved.id, authorId: saved.author_id, text: saved.text, date: new Date(saved.created_at).getTime() };
+    if(idx !== -1) post.comments[idx] = { id: saved.id, authorId: saved.author_id, text: saved.text, date: new Date(saved.created_at).getTime(), parentId: saved.parent_id || null, likedBy: [] };
   }catch(err){
     post.comments = post.comments.filter(c => c.id !== tempId);
   }
@@ -2046,7 +2249,9 @@ document.addEventListener('click', () => {
   if(openMenuId){ const id = openMenuId; openMenuId = null; rerenderCardFromCache(id); }
 });
 
-// ---------- VISTA DE COMENTARIOS ESTILO IG DE ESCRITORIO (imagen fija + comentarios deslizables) ----------
+// ---------- VISTA DE COMENTARIOS ESTILO IG (PC: imagen fija + panel lateral con scroll propio · Móvil: hoja que sube sobre la imagen) ----------
+let replyingTo = null; // { postId, commentId } mientras se muestra el input de respuesta
+
 async function openCommentsView(postId){
   const post = getCachedPost(postId);
   if(!post) return;
@@ -2054,11 +2259,13 @@ async function openCommentsView(postId){
   const authorObj = usersCache[post.authorId];
   const authorName = authorObj?.name || 'Alguien de la comunidad';
   const img = (post.photos && post.photos[0]) || placeholderImage(post.id + post.title, post.category);
+  replyingTo = null;
   modalBox.className = 'modal modal-wide';
   modalContent.innerHTML = `
     <div class="comments-view">
       <div class="comments-view-media"><img src="${img}" alt=""></div>
       <div class="comments-view-side">
+        <div class="comments-sheet-handle"><span></span></div>
         <div class="comments-view-header">
           <div class="avatar">${avatarHTML(authorObj)}</div>
           <strong>${escapeHtml(authorName)}</strong>
@@ -2085,16 +2292,116 @@ async function openCommentsView(postId){
     renderCommentsList(post);
   });
 }
+
+function buildCommentTree(comments){
+  const roots = comments.filter(c => !c.parentId);
+  const childrenOf = (id) => comments.filter(c => c.parentId === id).sort((a,b)=>a.date-b.date);
+  return { roots, childrenOf };
+}
+
+function commentRowHTML(c){
+  const isMine = currentUser && c.authorId === currentUser.id;
+  const liked = currentUser ? (c.likedBy||[]).includes(currentUser.id) : false;
+  const likeCount = (c.likedBy||[]).length;
+  return `
+    <div class="comment-row" data-comment-id="${c.id}">
+      <div class="avatar" data-comment-avatar="${c.authorId}">?</div>
+      <div class="comment-body">
+        <p class="comment-item" data-comment-author="${c.authorId}"><strong>…</strong> ${escapeHtml(c.text)}</p>
+        <div class="comment-meta-row">
+          <span>${fmtRelative(c.date)}</span>
+          <button data-reply-comment="${c.id}">Responder</button>
+          ${isMine ? `<button data-del-comment="${c.id}">Eliminar</button>` : ''}
+          <button class="comment-like-btn ${liked ? 'liked' : ''}" data-like-comment="${c.id}">
+            <svg viewBox="0 0 24 24" fill="${liked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M12 20.5s-7.5-4.6-10-9.3C.4 8 1.8 4.6 5 3.8c2.2-.6 4.4.3 6 2.4 1.6-2.1 3.8-3 6-2.4 3.2.8 4.6 4.2 3 7.4-2.5 4.7-10 9.3-10 9.3Z"/></svg>
+            ${likeCount ? likeCount : ''}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderCommentsList(post){
   const listEl = document.getElementById('commentsViewList');
   if(!listEl) return;
   const comments = post.comments || [];
   if(!comments.length){ listEl.innerHTML = '<p class="comments-view-empty">Todavía no hay comentarios.</p>'; return; }
-  listEl.innerHTML = comments.map(c => `<div class="comment-item" data-comment-author="${c.authorId}"><strong>…</strong> ${escapeHtml(c.text)}</div>`).join('');
+  const { roots, childrenOf } = buildCommentTree(comments);
+  listEl.innerHTML = roots.map(c => {
+    const replies = childrenOf(c.id);
+    const replyFormOpen = replyingTo && replyingTo.commentId === c.id;
+    return `
+      <div class="comment-block">
+        ${commentRowHTML(c)}
+        ${replies.length ? `<div class="comment-replies">${replies.map(r => commentRowHTML(r)).join('')}</div>` : ''}
+        ${replyFormOpen ? `
+          <form class="comment-reply-form" data-reply-form="${c.id}">
+            <input type="text" placeholder="Responder…" autofocus required>
+            <button type="submit">Enviar</button>
+          </form>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  // nombres y avatares reales
   listEl.querySelectorAll('[data-comment-author]').forEach(el => {
     const uid = el.dataset.commentAuthor;
     el.querySelector('strong').textContent = (usersCache[uid]?.name || 'Alguien') + ':';
   });
+  listEl.querySelectorAll('[data-comment-avatar]').forEach(el => {
+    el.innerHTML = avatarHTML(usersCache[el.dataset.commentAvatar]);
+  });
+
+  // acciones
+  listEl.querySelectorAll('[data-like-comment]').forEach(btn => btn.addEventListener('click', () => handleCommentLike(post.id, btn.dataset.likeComment)));
+  listEl.querySelectorAll('[data-del-comment]').forEach(btn => btn.addEventListener('click', () => handleDeleteComment(post.id, btn.dataset.delComment)));
+  listEl.querySelectorAll('[data-reply-comment]').forEach(btn => btn.addEventListener('click', () => {
+    if(!requireLogin('responder')) return;
+    replyingTo = (replyingTo && replyingTo.commentId === btn.dataset.replyComment) ? null : { postId: post.id, commentId: btn.dataset.replyComment };
+    renderCommentsList(post);
+  }));
+  listEl.querySelectorAll('[data-reply-form]').forEach(form => form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = form.querySelector('input');
+    const text = input.value.trim();
+    if(!text) return;
+    replyingTo = null;
+    await postComment(post.id, text, form.dataset.replyForm);
+    renderCommentsList(post);
+  }));
+}
+
+async function handleCommentLike(postId, commentId){
+  if(!requireLogin('dar me gusta a un comentario')) return;
+  const post = getCachedPost(postId);
+  if(!post) return;
+  const c = (post.comments||[]).find(x => x.id === commentId);
+  if(!c) return;
+  c.likedBy = c.likedBy || [];
+  const already = c.likedBy.includes(currentUser.id);
+  if(already) c.likedBy = c.likedBy.filter(uid => uid !== currentUser.id);
+  else c.likedBy.push(currentUser.id);
+  renderCommentsList(post);
+  try{ await DB.posts.toggleCommentLike(commentId, currentUser.id); }
+  catch(err){
+    if(already) c.likedBy.push(currentUser.id);
+    else c.likedBy = c.likedBy.filter(uid => uid !== currentUser.id);
+    renderCommentsList(post);
+  }
+}
+
+async function handleDeleteComment(postId, commentId){
+  if(!currentUser) return;
+  const post = getCachedPost(postId);
+  if(!post) return;
+  const backup = post.comments;
+  // borra el comentario y cualquier respuesta suya
+  post.comments = post.comments.filter(c => c.id !== commentId && c.parentId !== commentId);
+  renderCommentsList(post);
+  rerenderCardFromCache(postId);
+  try{ await DB.posts.removeComment(commentId, currentUser.id); }
+  catch(err){ post.comments = backup; renderCommentsList(post); rerenderCardFromCache(postId); }
 }
 
 // ---------- COMPOSER: publica o edita (optimista: aparece de inmediato en el feed) ----------
@@ -2141,21 +2448,22 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 
 // =====================================================================
 // TIEMPO REAL: cambios de otras personas (likes, comentarios, publicaciones
-// nuevas o borradas) se reflejan solas, sin recargar la página.
-// Requiere que las tablas posts / post_likes / post_comments tengan
-// activado Realtime en Supabase (Database → Replication), ver schema.sql.
+// nuevas o borradas, likes a comentarios) se reflejan solos, sin recargar
+// la página. Requiere que las tablas relevantes tengan Realtime activado
+// en Supabase (ver schema.sql: alter publication...).
 // =====================================================================
 function setupRealtime(){
   sb.channel('enraiza-posts-realtime')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
       if(payload.eventType === 'DELETE'){
+        if(!payload.old || !payload.old.id) return;
+        if(!getCachedPost(payload.old.id)) return;
         removeCachedPost(payload.old.id);
         renderFeedFromCache();
         return;
       }
       if(payload.eventType === 'INSERT'){
-        // si ya lo tenemos en caché (lo acabamos de publicar nosotros mismos), no dupliques
-        if(getCachedPost(payload.new.id)) return;
+        if(getCachedPost(payload.new.id)) return; // ya lo teníamos (lo acabamos de publicar nosotros)
         const post = mapPostRow({ ...payload.new, post_likes: [], post_comments: [] });
         upsertCachedPost(post);
         resolveAuthorObjs([post]).then(() => renderFeedFromCache());
@@ -2167,7 +2475,7 @@ function setupRealtime(){
         existing.title = payload.new.title;
         existing.category = payload.new.category;
         existing.notes = payload.new.notes;
-        existing.photos = payload.new.photos || [];
+        if(Array.isArray(payload.new.photos)) existing.photos = payload.new.photos;
         rerenderCardFromCache(existing.id);
       }
     })
@@ -2176,20 +2484,59 @@ function setupRealtime(){
       const post = getCachedPost(postId);
       if(!post) return;
       post.likedBy = post.likedBy || [];
+      let changed = false;
       if(payload.eventType === 'INSERT'){
-        if(!post.likedBy.includes(payload.new.user_id)) post.likedBy.push(payload.new.user_id);
+        if(!post.likedBy.includes(payload.new.user_id)){ post.likedBy.push(payload.new.user_id); changed = true; }
       } else if(payload.eventType === 'DELETE'){
-        post.likedBy = post.likedBy.filter(uid => uid !== payload.old.user_id);
+        if(post.likedBy.includes(payload.old.user_id)){ post.likedBy = post.likedBy.filter(uid => uid !== payload.old.user_id); changed = true; }
       }
-      rerenderCardFromCache(postId);
+      // solo repinta si el estado realmente cambió (evita el "parpadeo" cuando es el eco de nuestra propia acción)
+      if(changed) updateLikeUI(postId, currentUser ? post.likedBy.includes(currentUser.id) : false, post.likedBy.length);
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
       const post = getCachedPost(payload.new.post_id);
       if(!post) return;
       post.comments = post.comments || [];
-      if(post.comments.some(c => c.id === payload.new.id)) return; // ya lo teníamos (comentario propio)
-      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: new Date(payload.new.created_at).getTime() });
-      getUserCached(payload.new.author_id).then(() => rerenderCardFromCache(post.id));
+      const newDate = new Date(payload.new.created_at).getTime();
+      const alreadyThere = post.comments.some(c =>
+        c.id === payload.new.id ||
+        (c.authorId === payload.new.author_id && c.text === payload.new.text && Math.abs(c.date - newDate) < 15000)
+      );
+      if(alreadyThere) return; // ya lo teníamos (comentario propio agregado de forma optimista)
+      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: newDate, parentId: payload.new.parent_id || null, likedBy: [] });
+      getUserCached(payload.new.author_id).then(() => {
+        rerenderCardFromCache(post.id);
+        if(document.getElementById('commentsViewList')) renderCommentsList(post);
+      });
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments' }, (payload) => {
+      if(!payload.old || !payload.old.id) return;
+      // busca en todos los posts cacheados, ya que no siempre viene post_id en el payload de delete
+      for(const post of postsCache){
+        const before = (post.comments||[]).length;
+        post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
+        if(post.comments.length !== before){
+          rerenderCardFromCache(post.id);
+          if(document.getElementById('commentsViewList')) renderCommentsList(post);
+          break;
+        }
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'comment_likes' }, (payload) => {
+      const commentId = (payload.new && payload.new.comment_id) || (payload.old && payload.old.comment_id);
+      if(!commentId) return;
+      for(const post of postsCache){
+        const c = (post.comments||[]).find(x => x.id === commentId);
+        if(!c) continue;
+        c.likedBy = c.likedBy || [];
+        if(payload.eventType === 'INSERT'){
+          if(!c.likedBy.includes(payload.new.user_id)) c.likedBy.push(payload.new.user_id);
+        } else if(payload.eventType === 'DELETE'){
+          c.likedBy = c.likedBy.filter(uid => uid !== payload.old.user_id);
+        }
+        if(document.getElementById('commentsViewList')) renderCommentsList(post);
+        break;
+      }
     })
     .subscribe();
 }
@@ -2735,6 +3082,12 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if(savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)){
     showView(savedView);
   }
+
+  // Abrir automáticamente una publicación compartida por enlace (?post=<id>)
+  try{
+    const sharedPostId = new URLSearchParams(window.location.search).get('post');
+    if(sharedPostId) openPostModal(sharedPostId);
+  }catch(err){ /* ignore */ }
 })();
 </script>
 </body>
