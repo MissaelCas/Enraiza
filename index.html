@@ -2482,10 +2482,16 @@ function openAuthModal(mode, actionLabel){
       } else {
         const name = document.getElementById('authName').value.trim();
         if(!name) throw new Error('Pon un nombre o apodo.');
+        const authRedirectUrl = window.location.hostname.includes('github.io')
+          ? 'https://missaelcas.github.io/Enraiza/confirmado.html'
+          : 'http://localhost:3000/confirmado.html';
         const { data, error } = await sb.auth.signUp({
           email,
           password,
-          options: { data: { name } }
+          options: {
+            data: { name },
+            emailRedirectTo: authRedirectUrl
+          }
         });
         if(error) throw error;
         if(data.session){
