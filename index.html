@@ -105,6 +105,7 @@
     align-items:center; justify-content:center; z-index: 100; padding: 20px;
   }
   .modal-backdrop.open{ display:flex; }
+  body.story-open #modalBackdrop{ background: rgba(0,0,0,0.92); padding:0; overflow:hidden; }
   .modal{
     background: var(--white-ish); max-width: 560px; width:100%; max-height: 85vh; overflow-y:auto;
     border-radius: 4px; padding: 28px; position:relative;
@@ -492,8 +493,20 @@
   .comment-reply-form input{ flex:1; min-width:0; border:1px solid var(--line); border-radius:16px; padding:6px 12px; font-size:0.82rem; font-family:var(--sans); }
   .comment-reply-form button{ background:none; border:none; color: var(--moss-dark); font-weight:700; font-size:0.8rem; cursor:pointer; }
 
+.story-nav-arrow{
+  position:absolute; top:50%; transform:translateY(-50%); width:38px; height:38px; border-radius:50%;
+  background: rgba(0,0,0,0.35); border:none; color:#fff; font-size:1.2rem; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s, background .15s; z-index:10;
+}
+.story-view:hover .story-nav-arrow{ opacity:1; }
+.story-nav-arrow:hover{ background: rgba(0,0,0,0.55); }
+.story-nav-arrow.story-nav-prev{ left:10px; }
+.story-nav-arrow.story-nav-next{ right:10px; }
+.story-nav-arrow[disabled]{ opacity:0 !important; pointer-events:none; }
+@media (hover:none), (pointer:coarse){ .story-nav-arrow{ display:none; } }
   body.story-open{ overflow:hidden; height:100%; position:fixed; width:100%; }
-  .story-view-backdrop{ background: rgba(0,0,0,0.9); padding:0; }
+  .story-view-backdrop{ background: rgba(0,0,0,0.9); padding:0; overflow:hidden; max-height:none; box-shadow:none; }
+  .story-view-backdrop .modal-close{ display:none; }
   .story-view{
     background:#000; border-radius: 10px; padding:0; max-width:420px; width:100%;
     position:relative; overflow:hidden; aspect-ratio: 9/16; max-height: 88vh;
@@ -521,8 +534,8 @@
   .story-tap-zone{ position:absolute; top:0; bottom:0; width:35%; z-index:4; background:none; border:none; cursor:pointer; }
   .story-tap-zone.left{ left:0; }
   .story-tap-zone.right{ right:0; }
-  .story-view-close{ position:absolute; top:14px; right:14px; z-index:6; background: rgba(0,0,0,0.4); color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:1rem; }
-  .story-owner-menu-btn{ position:absolute; top:14px; right:50px; z-index:6; background: rgba(0,0,0,0.4); color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:0.95rem; }
+  .story-view-close{ position:absolute; top:14px; right:14px; z-index:20; background: rgba(0,0,0,0.4); color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:1rem; }
+  .story-owner-menu-btn{ position:absolute; top:14px; right:50px; z-index:20; background: rgba(0,0,0,0.4); color:#fff; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:0.95rem; }
   .story-owner-dropdown{
     position:absolute; top:48px; right:14px; background: var(--white-ish); border-radius:6px; z-index:7;
     min-width:180px; box-shadow: 0 4px 14px rgba(0,0,0,0.3); overflow:hidden;
@@ -840,8 +853,8 @@
   .privacy-option strong{ display:block; font-size:0.88rem; margin-bottom:2px; }
   .privacy-option span{ font-size:0.74rem; color:var(--ink-soft); }
 
-  /* ---------- PANTALLA DE UN PROYECTO DE BITÁCORA COMPLETO ---------- */
-  .project-view-wrap{ max-width:640px; margin:0 auto; }
+  /* ---------- PANTALLA DE UN PROYECTO DE BITÁCORA COMPLETO (adaptada a móvil y a PC) ---------- */
+  .project-view-wrap{ max-width:900px; margin:0 auto; }
   .project-view-head{ margin-bottom:18px; }
   .project-view-cover{ width:100%; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:var(--paper-alt); margin-bottom:14px; }
   .project-view-cover img{ width:100%; height:100%; object-fit:cover; }
@@ -859,6 +872,20 @@
   .project-day-entry p{ margin:0 0 10px; font-size:0.92rem; color:var(--ink); white-space:pre-wrap; }
   .project-day-entry img{ border-radius:6px; max-height:340px; object-fit:cover; width:100%; }
   .project-social-bar{ border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:12px 0; margin:18px 0; display:flex; align-items:center; gap:16px; }
+
+  /* Escritorio ancho: portada a un lado, información al otro; entradas en dos columnas */
+  @media (min-width: 860px){
+    .project-view-head{ display:grid; grid-template-columns: 360px minmax(0,1fr); gap:26px; align-items:start; }
+    .project-view-cover{ aspect-ratio: 1/1; margin-bottom:0; position:sticky; top:90px; }
+    .project-entries-grid{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:16px; }
+    .project-entries-grid .project-day-entry{ margin-bottom:0; }
+  }
+  /* Móvil: todo apilado, portada panorámica arriba, entradas en una sola columna a lo ancho completo */
+  @media (max-width: 859px){
+    .project-view-wrap{ padding: 0 2px; }
+    .project-view-cover{ aspect-ratio: 4/3; }
+    .project-social-bar{ position:sticky; top:56px; background:var(--paper); z-index:5; }
+  }
 </style>
 </head>
 <body>
@@ -1199,7 +1226,7 @@
               </div>
               <button type="submit" class="btn btn-primary btn-small" id="settingsPasswordBtn">Verificar y actualizar contraseña</button>
             </form>
-            <p class="settings-privacy">La contraseña actual se usa únicamente para reautenticarte mediante Supabase Auth. No se guarda en Enraíza.</p>
+            <p class="settings-privacy">La contraseña actual se usa únicamente para confirmar que eres tú. No se guarda en Enraíza.</p>
           </div>
 
           <div class="security-card">
@@ -1210,7 +1237,7 @@
 
           <div class="security-card security-danger">
             <h4>Eliminar cuenta</h4>
-            <p>Esta acción es permanente. Antes de eliminarla, Enraíza pedirá tu contraseña actual, una confirmación exacta y una sesión recién reautenticada. Tus datos relacionados se eliminarán mediante el servidor; la clave secreta de administración nunca se expone al navegador.</p>
+            <p>Esta acción es permanente. Antes de eliminarla, Enraíza pedirá tu contraseña actual, una confirmación exacta y una sesión recién reautenticada. Tus datos relacionados se eliminarán mediante el servidor; tus datos se eliminan de forma segura desde nuestros servidores.</p>
             <button type="button" class="btn btn-danger btn-small" id="openDeleteAccountBtn">Eliminar mi cuenta</button>
           </div>
 
@@ -1666,6 +1693,34 @@ function showToast(msg){
   toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
+function setViewportZoomLocked(locked){
+  const meta = document.querySelector('meta[name="viewport"]');
+  if(!meta) return;
+  if(locked){
+    meta.dataset.prevContent = meta.getAttribute('content');
+    meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+  } else if(meta.dataset.prevContent){
+    meta.setAttribute('content', meta.dataset.prevContent);
+    delete meta.dataset.prevContent;
+  }
+}
+document.addEventListener('touchmove', (e) => {
+  if(document.body.classList.contains('story-open') && e.touches.length > 1) e.preventDefault();
+}, { passive:false });
+document.addEventListener('wheel', (e) => {
+  if(document.body.classList.contains('story-open') && e.ctrlKey) e.preventDefault();
+}, { passive:false });
+document.addEventListener('gesturestart', (e) => {
+  if(document.body.classList.contains('story-open')) e.preventDefault();
+});
+let lastStoryTapTime = 0;
+document.addEventListener('touchend', (e) => {
+  if(!document.body.classList.contains('story-open')) return;
+  const now = Date.now();
+  if(now - lastStoryTapTime < 350) e.preventDefault();
+  lastStoryTapTime = now;
+}, { passive:false });
+
 // ---------- SEGURIDAD BÁSICA: bloquear guardar/copiar imagen desde el navegador ----------
 document.addEventListener('contextmenu', (e) => {
   if(e.target.tagName === 'IMG' || e.target.closest('.ig-post-carousel') || e.target.closest('.profile-post-thumb') || e.target.closest('.story-view-img-wrap')){
@@ -2078,7 +2133,7 @@ async function renderUserProfileVisit(){
           <span class="profile-log-badge">📔 Bitácora</span>
         </div>
       `).join('') : '<p class="profile-empty-grid">Esta persona no tiene bitácoras públicas todavía.</p>';
-      logGrid.querySelectorAll('[data-openproject]').forEach(el => el.addEventListener('click', () => openProjectView(el.dataset.openproject)));
+      logGrid.querySelectorAll('[data-openproject]').forEach(el => attachLongPressProject(el, el.dataset.openproject));
     }catch(err){ logGrid.innerHTML = '<p class="profile-empty-grid">No se pudieron cargar las bitácoras públicas.</p>'; }
   }
 }
@@ -2106,6 +2161,48 @@ function attachLongPress(imgEl, postId){
     if(longPressed){ e.preventDefault(); e.stopPropagation(); longPressed = false; return; }
     openPostOrProject(postId);
   });
+}
+
+// ---------- VISTA PREVIA RÁPIDA PARA MINIATURAS DE BITÁCORA/PROYECTO (mismo gesto, contenido de proyecto) ----------
+function attachLongPressProject(tileEl, projectId){
+  let pressTimer = null;
+  let longPressed = false;
+  const start = () => {
+    longPressed = false;
+    pressTimer = setTimeout(() => {
+      longPressed = true;
+      showQuickPreviewProject(projectId);
+    }, 350);
+  };
+  const cancel = () => {
+    clearTimeout(pressTimer);
+    if(longPressed) hideQuickPreview();
+  };
+  tileEl.addEventListener('pointerdown', start);
+  tileEl.addEventListener('pointerup', cancel);
+  tileEl.addEventListener('pointerleave', cancel);
+  tileEl.addEventListener('pointercancel', cancel);
+  tileEl.addEventListener('click', (e) => {
+    if(longPressed){ e.preventDefault(); e.stopPropagation(); longPressed = false; return; }
+    openProjectView(projectId);
+  });
+}
+async function showQuickPreviewProject(projectId){
+  let project;
+  try{ project = await DB.projects.getOne(projectId); }catch(err){ return; }
+  if(!project) return;
+  await getUserCached(project.ownerId);
+  const ownerObj = usersCache[project.ownerId];
+  const img = project.coverPhoto || placeholderImage(project.id + project.title, project.category);
+  document.getElementById('quickPreviewBox').innerHTML = `
+    <div class="quick-preview-head">
+      <div class="avatar">${avatarHTML(ownerObj)}</div>
+      <span>${escapeHtml(ownerObj?.name || 'Alguien de la comunidad')}</span>
+    </div>
+    <img src="${escapeHtml(img)}" alt="${escapeHtml(project.title)}">
+    <p class="quick-preview-caption"><strong>${escapeHtml(project.title)}</strong> · ${project.shared ? '🌎 Bitácora pública' : '🔒 Bitácora privada'}</p>
+  `;
+  document.getElementById('quickPreviewBackdrop').classList.add('open');
 }
 // Si la publicación tiene un proyecto de bitácora enlazado, ir a la vista completa del proyecto en vez del post normal.
 async function openPostOrProject(postId){
@@ -2486,7 +2583,7 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
         ${openMenuId === post.id ? `
           <div class="ig-dropdown">
             ${isMine && !isProjectPost ? `<button data-edit="${post.id}">Editar publicación</button><button class="danger" data-del="${post.id}">Eliminar publicación</button>` : ''}
-            ${!isMine ? `<button data-report="${post.id}">Reportar (no envía nada aún)</button>` : ''}
+            ${!isMine ? `<button data-report="${post.id}">Reportar publicación</button>` : ''}
             <button data-closemenu="1">Cerrar</button>
           </div>` : ''}
       </div>
@@ -2853,13 +2950,15 @@ async function handleDeletePost(id){
   openMenuId = null;
   if(!currentUser) return;
   const backup = getCachedPost(id);
+  const onlyInModal = modalBackdrop.classList.contains('open') && modalContent.querySelector(`.ig-post[data-id="${id}"]`) && !feedEntriesEl.querySelector(`.ig-post[data-id="${id}"]`);
   removeCachedPost(id);
-  renderFeedFromCache();
+  rerenderCardFromCache(id);
+  if(onlyInModal) closeModal();
   try{ await DB.posts.remove(id, currentUser.id); }
   catch(err){
     alert(err.message);
     if(backup) upsertCachedPost(backup);
-    renderFeedFromCache();
+    rerenderCardFromCache(id);
   }
   renderProfile();
 }
@@ -3276,6 +3375,9 @@ function openAddStoryModal(){
   });
 }
 
+let storyRemainingMs = STORY_DURATION_MS;
+let storyTickStart = 0;
+
 function openStoryViewer(groupIndex){
   currentGroupIndex = groupIndex;
   const group = storyGroups[groupIndex];
@@ -3284,13 +3386,31 @@ function openStoryViewer(groupIndex){
   currentStoryIndex = firstUnseen >= 0 ? firstUnseen : 0;
   modalBox.className = 'modal story-view-backdrop';
   document.body.classList.add('story-open');
+  setViewportZoomLocked(true);
   renderStoryViewer();
   modalBackdrop.classList.add('open');
-  modalOnClose = () => { if(storyTimer) clearTimeout(storyTimer); };
+  modalOnClose = () => { if(storyTimer) clearTimeout(storyTimer); storyTimer = null; setViewportZoomLocked(false); };
+}
+
+function pauseStory(){
+  if(!storyTimer) return;
+  clearTimeout(storyTimer);
+  storyTimer = null;
+  storyRemainingMs -= (Date.now() - storyTickStart);
+  if(storyRemainingMs < 0) storyRemainingMs = 0;
+  document.querySelectorAll('.story-progress-fill.animating').forEach(el => el.classList.add('paused'));
+}
+function resumeStory(){
+  if(storyTimer) return;
+  if(storyRemainingMs <= 0){ advanceStory(); return; }
+  storyTickStart = Date.now();
+  storyTimer = setTimeout(() => advanceStory(), storyRemainingMs);
+  document.querySelectorAll('.story-progress-fill.animating').forEach(el => el.classList.remove('paused'));
 }
 
 function renderStoryViewer(){
   if(storyTimer) clearTimeout(storyTimer);
+  storyTimer = null;
   const group = storyGroups[currentGroupIndex];
   if(!group){ closeModal(); return; }
   const s = group.stories[currentStoryIndex];
@@ -3310,30 +3430,57 @@ function renderStoryViewer(){
             <div class="story-progress-fill ${i < currentStoryIndex ? 'filled' : ''} ${i === currentStoryIndex ? 'animating' : ''}" id="storyBar-${i}" style="animation-duration:${STORY_DURATION_MS}ms;"></div>
           </div>`).join('')}
       </div>
-      <button class="story-view-close" id="storyCloseBtn">&times;</button>
-      ${isMine ? `<button class="story-owner-menu-btn" id="storyOwnerMenuBtn">${ICONS.dots}</button>` : ''}
+      <button type="button" class="story-view-close" id="storyCloseBtn" aria-label="Cerrar">&times;</button>
+      ${isMine ? `<button type="button" class="story-owner-menu-btn" id="storyOwnerMenuBtn" aria-label="Más opciones">${ICONS.dots}</button>` : ''}
       <div class="story-view-head">
         <div class="avatar">${avatarHTML(authorObj)}</div>
         <span>${escapeHtml(name)}${s.demo ? ' · ejemplo' : ''} · ${fmtRelative(s.date)}</span>
       </div>
       <div class="story-view-img-wrap"><img src="${img}" alt=""></div>
       ${s.text ? `<p class="story-view-text">${escapeHtml(s.text)}</p>` : ''}
-      <button class="story-tap-zone left" id="storyPrevZone" aria-label="Historia anterior"></button>
-      <button class="story-tap-zone right" id="storyNextZone" aria-label="Siguiente historia"></button>
+      <button type="button" class="story-nav-arrow story-nav-prev" id="storyNavPrev" ${(currentGroupIndex===0 && currentStoryIndex===0) ? 'disabled' : ''} aria-label="Historia anterior">‹</button>
+      <button type="button" class="story-nav-arrow story-nav-next" id="storyNavNext" aria-label="Siguiente historia">›</button>
+      <button type="button" class="story-tap-zone left" id="storyPrevZone" aria-label="Historia anterior"></button>
+      <button type="button" class="story-tap-zone right" id="storyNextZone" aria-label="Siguiente historia"></button>
     </div>
   `;
+
+  const box = document.getElementById('storyViewBox');
   document.getElementById('storyCloseBtn').addEventListener('click', closeModal);
   document.getElementById('storyPrevZone').addEventListener('click', () => goPrevStory());
   document.getElementById('storyNextZone').addEventListener('click', () => advanceStory());
+  document.getElementById('storyNavPrev')?.addEventListener('click', () => goPrevStory());
+  document.getElementById('storyNavNext')?.addEventListener('click', () => advanceStory());
   if(isMine){
     document.getElementById('storyOwnerMenuBtn').addEventListener('click', (e) => {
       e.stopPropagation();
       openStoryOwnerMenu(s);
     });
   }
+
+  // Mantener presionado pausa (imagen y barra); soltar reanuda. Un toque corto sigue navegando normal.
+  let holdTimer = null;
+  let didHoldPause = false;
+  const isControlEl = (el) => !!el.closest('.story-view-close, .story-owner-menu-btn, .story-nav-arrow, .story-owner-dropdown, .story-viewers-list');
+  box.addEventListener('pointerdown', (e) => {
+    if(isControlEl(e.target)) return;
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(() => { pauseStory(); didHoldPause = true; }, 180);
+  });
+  const releaseHold = () => { clearTimeout(holdTimer); resumeStory(); };
+  box.addEventListener('pointerup', releaseHold);
+  box.addEventListener('pointerleave', releaseHold);
+  box.addEventListener('pointercancel', releaseHold);
+  box.addEventListener('click', (e) => {
+    if(didHoldPause){ e.preventDefault(); e.stopPropagation(); didHoldPause = false; }
+  }, true);
+
   setupStorySwipeToClose();
-  storyTimer = setTimeout(() => advanceStory(), STORY_DURATION_MS);
+  storyRemainingMs = STORY_DURATION_MS;
+  storyTickStart = Date.now();
+  storyTimer = setTimeout(() => advanceStory(), storyRemainingMs);
 }
+
 function goPrevStory(){
   if(currentStoryIndex > 0){ currentStoryIndex--; renderStoryViewer(); }
   else if(currentGroupIndex > 0){ currentGroupIndex--; currentStoryIndex = storyGroups[currentGroupIndex].stories.length - 1; renderStoryViewer(); }
@@ -3352,16 +3499,17 @@ function advanceStory(){
     renderStories();
   }
 }
+
 function openStoryOwnerMenu(story){
   const existing = document.querySelector('.story-owner-dropdown');
-  if(existing){ existing.remove(); return; }
-  if(storyTimer) clearTimeout(storyTimer);
+  if(existing){ existing.remove(); resumeStory(); return; }
+  pauseStory();
   const box = document.getElementById('storyViewBox');
   const dd = document.createElement('div');
   dd.className = 'story-owner-dropdown';
   dd.innerHTML = `
-    <button id="viewViewersBtn">Ver quién la vio</button>
-    <button class="danger" id="deleteStoryBtn">Eliminar historia</button>
+    <button type="button" id="viewViewersBtn">Ver quién la vio</button>
+    <button type="button" class="danger" id="deleteStoryBtn">Eliminar historia</button>
   `;
   box.appendChild(dd);
   document.getElementById('viewViewersBtn').addEventListener('click', async () => {
@@ -3378,10 +3526,10 @@ function openStoryOwnerMenu(story){
           <span>${escapeHtml(usersCache[v.viewer_id]?.name || 'Alguien')}</span>
         </div>
       `).join('')}
-      <button class="btn btn-outline btn-small" id="closeViewersBtn" style="margin-top:10px;">Cerrar</button>
+      <button type="button" class="btn btn-outline btn-small" id="closeViewersBtn" style="margin-top:10px;">Cerrar</button>
     `;
     box.appendChild(list);
-    document.getElementById('closeViewersBtn').addEventListener('click', () => { list.remove(); storyTimer = setTimeout(() => advanceStory(), STORY_DURATION_MS); });
+    document.getElementById('closeViewersBtn').addEventListener('click', () => { list.remove(); resumeStory(); });
   });
   document.getElementById('deleteStoryBtn').addEventListener('click', async () => {
     dd.remove();
@@ -3390,6 +3538,7 @@ function openStoryOwnerMenu(story){
     renderStories();
   });
 }
+
 function setupStorySwipeToClose(){
   const box = document.getElementById('storyViewBox');
   if(!box) return;
@@ -3447,6 +3596,8 @@ async function openActivityModal(){
 // - Al abrir un proyecto: el dueño puede agregar entradas (día, notas,
 //   foto); cualquier otra persona solo ve, comenta, da like y comparte
 //   (a través de la publicación enlazada, si el proyecto es público).
+// - Solo lo público se muestra fuera del perfil del dueño: perfiles de
+//   visita y el feed jamás listan proyectos privados ni sus entradas.
 // =====================================================================
 let selectedNewProjectRef = null; // referencia a PROJECTS o null (proyecto libre)
 function openNewProjectModal(prefill){
@@ -3513,26 +3664,32 @@ function openNewProjectModal(prefill){
       const coverPhoto = placeholderImage(title, category === 'agua' ? 'observacion' : (['planta','cultivo'].includes(category) ? 'planta' : 'proyecto'));
       const project = await DB.projects.create({ ownerId: currentUser.id, title, category, coverPhoto, shared });
       if(shared){
-        const created = await DB.posts.create({
-          authorId: currentUser.id, title, category,
-          notes: `Inicié un nuevo proyecto: ${title}`,
-          photos: [coverPhoto], projectId: project.id,
-        });
-        await DB.projects.setLinkedPost(project.id, created.id);
-        project.linkedPostId = created.id;
-        upsertCachedPost(created);
-        incrementStat('posts_created');
-        renderFeedFromCache();
+        await createLinkedPostForProject(project);
       }
       incrementStat('logbook_entries');
       closeModal();
-      showToast(shared ? '🌎 Proyecto público creado' : '🔒 Proyecto privado creado');
+      showToast(shared ? '🌎 Proyecto público creado — ya aparece en tu perfil y en el feed' : '🔒 Proyecto privado creado');
       openProjectView(project.id);
     }catch(err){
       alert('No se pudo crear la bitácora: ' + (err.message || err));
       btn.disabled = false;
     }
   });
+}
+
+// Genera la publicación "Inicié un nuevo proyecto: <título>" para que aparezca en el feed y sea visible/interactuable para todos.
+async function createLinkedPostForProject(project){
+  const created = await DB.posts.create({
+    authorId: currentUser.id, title: project.title, category: project.category,
+    notes: `Inicié un nuevo proyecto: ${project.title}`,
+    photos: [project.coverPhoto || placeholderImage(project.id+project.title, project.category)],
+    projectId: project.id,
+  });
+  await DB.projects.setLinkedPost(project.id, created.id);
+  project.linkedPostId = created.id;
+  upsertCachedPost(created);
+  renderFeedFromCache();
+  return created;
 }
 
 // ---------- LISTA DE MIS PROYECTOS (pantalla Bitácora) ----------
@@ -3560,7 +3717,7 @@ async function renderBitacoraProjectList(){
       <span class="profile-log-badge">${pr.shared ? '🌎' : '🔒'}</span>
     </div>
   `).join('');
-  grid.querySelectorAll('[data-openproject]').forEach(el => el.addEventListener('click', () => openProjectView(el.dataset.openproject)));
+  grid.querySelectorAll('[data-openproject]').forEach(el => attachLongPressProject(el, el.dataset.openproject));
 }
 
 // ---------- BITÁCORA EN EL PERFIL (miniaturas, como fotos normales) ----------
@@ -3587,10 +3744,10 @@ async function renderProfileLogs(){
       <span class="profile-log-badge">${pr.shared ? '🌎' : '🔒'}</span>
     </div>
   `).join('');
-  grid.querySelectorAll('[data-openproject]').forEach(el => el.addEventListener('click', () => openProjectView(el.dataset.openproject)));
+  grid.querySelectorAll('[data-openproject]').forEach(el => attachLongPressProject(el, el.dataset.openproject));
 }
 
-// ---------- PANTALLA COMPLETA DE UN PROYECTO DE BITÁCORA ----------
+// ---------- PANTALLA COMPLETA DE UN PROYECTO DE BITÁCORA (adaptada a móvil y PC) ----------
 let currentProjectView = null;
 async function openProjectView(projectId){
   currentProjectView = projectId;
@@ -3606,6 +3763,7 @@ async function renderProjectView(){
   catch(err){ wrap.innerHTML = '<p class="empty-note">No se pudo cargar este proyecto.</p>'; return; }
   if(!project){ wrap.innerHTML = '<p class="empty-note">Este proyecto ya no existe o es privado.</p>'; return; }
   const isOwner = currentUser && project.ownerId === currentUser.id;
+  // regla de privacidad: nadie más que el dueño puede ver un proyecto privado, ni modificar uno público
   if(!project.shared && !isOwner){ wrap.innerHTML = '<p class="empty-note">Este proyecto es privado.</p>'; return; }
 
   let entries = [];
@@ -3631,33 +3789,35 @@ async function renderProjectView(){
       <div class="project-view-cover">
         <img src="${escapeHtml(project.coverPhoto || placeholderImage(project.id+project.title, project.category))}" alt="${escapeHtml(project.title)}" onerror="this.src='${placeholderImage(project.id, project.category)}'">
       </div>
-      <div class="project-view-title-row">
-        <h2>${escapeHtml(project.title)}</h2>
-        <span class="project-visibility-pill ${project.shared ? 'public' : ''} ${isOwner ? 'owner-toggle' : ''}" id="projectVisibilityPill">
-          ${project.shared ? '🌎 Pública' : '🔒 Privada'}${isOwner ? ' · cambiar' : ''}
-        </span>
+      <div>
+        <div class="project-view-title-row">
+          <h2>${escapeHtml(project.title)}</h2>
+          <span class="project-visibility-pill ${project.shared ? 'public' : ''} ${isOwner ? 'owner-toggle' : ''}" id="projectVisibilityPill">
+            ${project.shared ? '🌎 Pública' : '🔒 Privada'}${isOwner ? ' · cambiar' : ''}
+          </span>
+        </div>
+        <p class="section-desc">Bitácora de <strong>${escapeHtml(ownerObj?.name || 'alguien de la comunidad')}</strong> · ${fmtDate(project.date)}</p>
+
+        ${isOwner ? `
+          <div class="project-owner-actions">
+            <button class="btn btn-primary btn-small" id="addProjectEntryBtn">＋ Agregar avance</button>
+          </div>
+        ` : ''}
+
+        ${linkedPost ? `
+          <div class="project-social-bar">
+            <button class="ig-icon ${liked?'liked':''}" data-projectlike="${linkedPost.id}">${liked?ICONS.heartFilled:ICONS.heart} ${likeCount||''}</button>
+            <button class="ig-icon" id="projectCommentBtn">${ICONS.comment}</button>
+            <button class="ig-icon share-active" id="projectShareBtn">${ICONS.share}</button>
+            <span class="spacer" style="flex:1;"></span>
+            <button class="ig-icon ${linkedPost._savedLocal?'saved':''}" id="projectSaveBtn">${ICONS.bookmark}</button>
+          </div>
+        ` : (isOwner ? '<p class="section-desc" style="margin-bottom:18px;">Este proyecto es privado, así que no tiene likes ni comentarios — hazlo público cuando quieras compartirlo.</p>' : '')}
       </div>
-      <p class="section-desc">Bitácora de <strong>${escapeHtml(ownerObj?.name || 'alguien de la comunidad')}</strong> · ${fmtDate(project.date)}</p>
     </div>
 
-    ${isOwner ? `
-      <div class="project-owner-actions">
-        <button class="btn btn-primary btn-small" id="addProjectEntryBtn">＋ Agregar avance</button>
-      </div>
-    ` : ''}
-
-    ${linkedPost ? `
-      <div class="project-social-bar">
-        <button class="ig-icon ${liked?'liked':''}" data-projectlike="${linkedPost.id}">${liked?ICONS.heartFilled:ICONS.heart} ${likeCount||''}</button>
-        <button class="ig-icon" id="projectCommentBtn">${ICONS.comment}</button>
-        <button class="ig-icon share-active" id="projectShareBtn">${ICONS.share}</button>
-        <span class="spacer" style="flex:1;"></span>
-        <button class="ig-icon ${linkedPost._savedLocal?'saved':''}" id="projectSaveBtn">${ICONS.bookmark}</button>
-      </div>
-    ` : (isOwner ? '<p class="section-desc" style="margin-bottom:18px;">Este proyecto es privado, así que no tiene likes ni comentarios — hazlo público cuando quieras compartirlo.</p>' : '')}
-
-    <div id="projectEntriesList">
-      ${entries.length ? entries.map(e => `
+    <div id="projectEntriesList" class="${entries.length > 1 ? 'project-entries-grid' : ''}">
+      ${entries.length ? entries.slice().reverse().map(e => `
         <div class="project-day-entry">
           <span class="log-date">${fmtDate(e.date)}${e.title ? ' · ' + escapeHtml(e.title) : ''}</span>
           ${e.notes ? `<p>${escapeHtml(e.notes)}</p>` : ''}
@@ -3691,19 +3851,12 @@ async function toggleProjectVisibility(project){
   const makePublic = !project.shared;
   try{
     if(makePublic && !project.linkedPostId){
-      const created = await DB.posts.create({
-        authorId: currentUser.id, title: project.title, category: project.category,
-        notes: `Inicié un nuevo proyecto: ${project.title}`,
-        photos: [project.coverPhoto || placeholderImage(project.id+project.title, project.category)],
-        projectId: project.id,
-      });
-      await DB.projects.setLinkedPost(project.id, created.id);
-      upsertCachedPost(created);
-      incrementStat('posts_created');
-      renderFeedFromCache();
+      await createLinkedPostForProject(project);
     } else if(!makePublic && project.linkedPostId){
       try{ await DB.posts.remove(project.linkedPostId, currentUser.id); removeCachedPost(project.linkedPostId); renderFeedFromCache(); }
       catch(err){ /* si ya no existe, seguimos */ }
+      await DB.projects.setLinkedPost(project.id, null);
+      project.linkedPostId = null;
     }
     await DB.projects.setShared(project.id, makePublic);
     showToast(makePublic ? '🌎 Ahora tu proyecto es público' : '🔒 Ahora tu proyecto es privado');
@@ -4358,13 +4511,19 @@ function isVerifiedOwner(user){
   const ownerId=window.ENRAIZA_OWNER_ID||'';
   return !!((ownerId&&user.id===ownerId) || (currentAuthEmail && currentAuthEmail === 'missael.cas.esc23@gmail.com'));
 }
+const START_THRESHOLDS = [1,2,3,5,10,20];
+function getBadgeTarget(b){
+  if(b.id.startsWith('start-')) return START_THRESHOLDS[Number(b.id.split('-')[1])-1] || null;
+  const m = b.id.match(/-(\d+)$/);
+  return m ? Number(m[1]) : null;
+}
 function getBadgeProgress(b){
   const c=userStats.counts||{}; const m=b.id.match(/^(post|log|like|comment|save|story)-(\d+)$/);
   if(m){const map={post:'posts_created',log:'logbook_entries',like:'likes_given',comment:'comments_written',save:'posts_saved',story:'stories_created'};return Math.min(Number(m[2]),c[map[m[1]]]||0)}
   if(b.id.startsWith('streak-')) return Math.min(Number(b.id.split('-')[1]),userStats.longest_streak||0);
-  if(b.id.startsWith('start-')){const total=(c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);return Math.min([1,2,3,5,10,20][Number(b.id.split('-')[1])-1]||0,total)} return 0;
+  if(b.id.startsWith('start-')){const total=(c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);return Math.min(getBadgeTarget(b)||0,total)} return 0;
 }
-function badgeCardHTML(b,earned){const p=getBadgeProgress(b),m=b.id.match(/-(\d+)$/),t=m?Number(m[1]):null;const txt=earned?'✓ Completado':(t?`${p}/${t} · faltan ${Math.max(0,t-p)}`:'Disponible');return `<article class="achievement-card ${earned?'earned':'locked'}"><div class="badge-icon">${b.icon}</div><div style="min-width:0;flex:1"><h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4><p>${b.desc}</p><div class="achievement-progress">${txt}</div></div>${earned?'<span class="achievement-mark">✓</span>':''}</article>`;}
+function badgeCardHTML(b,earned){const p=getBadgeProgress(b),t=getBadgeTarget(b);const txt=earned?'✓ Completado':(t?`${p}/${t} · faltan ${Math.max(0,t-p)}`:'Disponible');return `<article class="achievement-card ${earned?'earned':'locked'}"><div class="badge-icon">${b.icon}</div><div style="min-width:0;flex:1"><h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4><p>${b.desc}</p><div class="achievement-progress">${txt}</div></div>${earned?'<span class="achievement-mark">✓</span>':''}</article>`;}
 function renderAchievementsPage(){
   const score=document.getElementById('achievementsPageScore'),content=document.getElementById('achievementsPageContent');
   if(!currentUser){score.innerHTML='';content.innerHTML='<div class="auth-gate"><p>Inicia sesión para ver tus logros.</p><button class="btn btn-primary btn-small" onclick="openAuthModal(\'login\')">Iniciar sesión</button></div>';return;}
