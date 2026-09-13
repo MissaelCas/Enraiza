@@ -569,6 +569,36 @@
   .settings-block label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:6px; }
   .settings-block input{ padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px; font-size:0.92rem; width:100%; max-width:320px; margin-bottom: 14px; }
   .settings-privacy{ font-size: 0.82rem; color: var(--ink-soft); border-left: 3px solid var(--clay); padding-left: 12px; margin: 14px 0; }
+
+  /* ---------- SEGURIDAD REFORZADA ---------- */
+  .security-grid{display:grid;gap:12px;padding:16px}
+  .security-card{border:1px solid var(--line);border-radius:12px;background:var(--paper);padding:14px}
+  .security-card h4{font-family:var(--serif);margin:0 0 5px;font-size:.98rem}
+  .security-card p{margin:0 0 11px;color:var(--ink-soft);font-size:.76rem;line-height:1.45}
+  .security-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .security-field{min-width:0}
+  .security-field.full{grid-column:1/-1}
+  .security-field label{display:block;font-size:.75rem;color:var(--ink-soft);margin-bottom:4px}
+  .security-field input{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:7px;background:var(--white-ish);font:inherit}
+  .security-hint{font-size:.68rem;color:var(--ink-soft);margin-top:5px}
+  .security-status{font-size:.72rem;font-weight:700;color:var(--moss-dark);margin-top:8px}
+  .security-danger{border-color:#b56a5d}
+  .security-danger h4{color:#8f392d}
+  .security-danger .btn-danger{background:#9f3d31;color:#fff;border:1px solid #8e3329}
+  .security-danger .btn-danger:hover{background:#7f2e25}
+  .security-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .otp-row{display:grid;grid-template-columns:1fr auto;gap:8px}
+  .security-code{letter-spacing:.25em;text-align:center;font-weight:800}
+  .security-modal-note{font-size:.76rem;color:var(--ink-soft);line-height:1.45}
+  .password-strength{height:5px;border-radius:999px;background:var(--paper-alt);overflow:hidden;margin:6px 0}
+  .password-strength span{display:block;height:100%;width:0;background:var(--moss);transition:.2s}
+  .mfa-qr{max-width:220px;margin:10px auto;border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px}
+  .danger-confirm{font-weight:800;letter-spacing:.04em}
+  @media(max-width:650px){
+    .security-form-grid{grid-template-columns:1fr}
+    .security-field.full{grid-column:auto}
+    .otp-row{grid-template-columns:1fr}
+  }
   .settings-page{max-width:760px;margin:0 auto}
   .settings-group{border:1px solid var(--line);border-radius:12px;background:var(--white-ish);overflow:hidden;margin-bottom:14px}
   .settings-group h3{font-family:var(--serif);font-size:1rem;margin:0;padding:14px 16px;border-bottom:1px solid var(--line)}
@@ -1024,15 +1054,49 @@
       </div>
       <div class="settings-group" data-settings-panel="seguridad">
         <h3>Seguridad</h3>
-        <div style="padding:16px;">
-          <form id="settingsSecurityForm">
-            <label for="settingsEmail">Correo de la cuenta</label>
-            <input type="email" id="settingsEmail" readonly style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 14px;">
-            <label for="settingsNewPassword">Nueva contraseña</label>
-            <input type="password" id="settingsNewPassword" minlength="6" placeholder="Mínimo 6 caracteres" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;">
-            <button type="submit" class="btn btn-primary btn-small">Actualizar contraseña</button>
-          </form>
-          <p class="settings-privacy">Tu contraseña nunca se guarda en esta página. El cambio se procesa mediante Supabase Auth.</p>
+        <div class="security-grid">
+
+          <div class="security-card">
+            <h4>Cambiar contraseña</h4>
+            <p>Enraíza no permitirá cambiarla solamente por tener una sesión abierta. Debes demostrar que controlas la cuenta con la contraseña actual y confirmar la nueva.</p>
+            <form id="settingsSecurityForm">
+              <div class="security-form-grid">
+                <div class="security-field full">
+                  <label for="settingsEmail">Correo de la cuenta</label>
+                  <input type="email" id="settingsEmail" readonly autocomplete="username">
+                </div>
+                <div class="security-field">
+                  <label for="settingsCurrentPassword">Contraseña actual</label>
+                  <input type="password" id="settingsCurrentPassword" autocomplete="current-password" required>
+                </div>
+                <div class="security-field">
+                  <label for="settingsNewPassword">Nueva contraseña</label>
+                  <input type="password" id="settingsNewPassword" minlength="10" autocomplete="new-password" required>
+                  <div class="password-strength"><span id="passwordStrengthBar"></span></div>
+                  <div class="security-hint">Usa 10+ caracteres, mayúscula, minúscula, número y símbolo.</div>
+                </div>
+                <div class="security-field full">
+                  <label for="settingsConfirmPassword">Repite la nueva contraseña</label>
+                  <input type="password" id="settingsConfirmPassword" minlength="10" autocomplete="new-password" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-small" id="settingsPasswordBtn">Verificar y actualizar contraseña</button>
+            </form>
+            <p class="settings-privacy">La contraseña actual se usa únicamente para reautenticarte mediante Supabase Auth. No se guarda en Enraíza.</p>
+          </div>
+
+          <div class="security-card">
+            <h4>2FA con aplicación autenticadora</h4>
+            <p>Recomendado para acciones sensibles. No depende de SMS: usa TOTP con Google Authenticator, Microsoft Authenticator, 1Password u otra app compatible.</p>
+            <div id="mfaSecurityContent"></div>
+          </div>
+
+          <div class="security-card security-danger">
+            <h4>Eliminar cuenta</h4>
+            <p>Esta acción es permanente. Antes de eliminarla, Enraíza pedirá tu contraseña actual, una confirmación exacta y una sesión recién reautenticada. Tus datos relacionados se eliminarán mediante el servidor; la clave secreta de administración nunca se expone al navegador.</p>
+            <button type="button" class="btn btn-danger btn-small" id="openDeleteAccountBtn">Eliminar mi cuenta</button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -1118,6 +1182,14 @@
 <!-- VISTA PREVIA RÁPIDA AL MANTENER PRESIONADA UNA IMAGEN (estilo IG) -->
 <div class="quick-preview-backdrop" id="quickPreviewBackdrop">
   <div class="quick-preview-box" id="quickPreviewBox"></div>
+</div>
+
+<!-- SEGURIDAD: MODAL DE ELIMINACIÓN -->
+<div class="modal-backdrop" id="securityActionBackdrop" aria-hidden="true">
+  <div class="modal" style="max-width:460px;">
+    <button class="modal-close" id="securityActionClose" aria-label="Cerrar">&times;</button>
+    <div id="securityActionContent"></div>
+  </div>
 </div>
 
 <!-- AVISO PEQUEÑO (toast) -->
@@ -1910,24 +1982,26 @@ authBackdrop.addEventListener('click', (e) => { if(e.target === authBackdrop) cl
 function openAuthModal(mode, actionLabel){
   const isLogin = mode !== 'register';
   authContent.innerHTML = `
-    ${actionLabel ? `<p class="section-desc" style="margin-bottom:14px;">Necesitas una cuenta para ${actionLabel}.</p>` : ''}
+    ${actionLabel ? `<p class="section-desc" style="margin-bottom:14px;">Necesitas una cuenta para ${escapeHtml(actionLabel)}.</p>` : ''}
     <h3>${isLogin ? 'Inicia sesión' : 'Crea tu cuenta'}</h3>
     <form class="auth-form" id="authForm">
       ${!isLogin ? `
         <div>
           <label for="authName">Nombre o apodo</label>
-          <input type="text" id="authName" required>
+          <input type="text" id="authName" maxlength="80" autocomplete="name" required>
         </div>` : ''}
       <div>
         <label for="authEmail">Correo</label>
-        <input type="email" id="authEmail" required>
+        <input type="email" id="authEmail" autocomplete="username" required>
       </div>
       <div>
         <label for="authPassword">Contraseña</label>
-        <input type="password" id="authPassword" minlength="6" required>
+        <input type="password" id="authPassword" minlength="10" autocomplete="${isLogin ? 'current-password' : 'new-password'}" required>
       </div>
+      ${!isLogin ? `<div class="security-hint">Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.</div>` : ''}
       <p class="auth-error" id="authError" style="display:none;"></p>
       <button type="submit" class="btn btn-primary btn-small" id="authSubmitBtn">${isLogin ? 'Entrar' : 'Crear cuenta'}</button>
+      ${isLogin ? `<button type="button" class="btn-text" id="forgotPasswordBtn">¿Olvidaste tu contraseña?</button>` : ''}
       <p class="auth-switch">
         ${isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
         <button type="button" id="authSwitchBtn">${isLogin ? 'Regístrate' : 'Inicia sesión'}</button>
@@ -1935,7 +2009,12 @@ function openAuthModal(mode, actionLabel){
     </form>
   `;
   authBackdrop.classList.add('open');
+
   document.getElementById('authSwitchBtn').addEventListener('click', () => openAuthModal(isLogin ? 'register' : 'login', actionLabel));
+  if(isLogin){
+    document.getElementById('forgotPasswordBtn').addEventListener('click', openRecoveryModal);
+  }
+
   document.getElementById('authForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('authError');
@@ -1943,6 +2022,13 @@ function openAuthModal(mode, actionLabel){
     errorEl.style.display = 'none';
     const email = document.getElementById('authEmail').value.trim().toLowerCase();
     const password = document.getElementById('authPassword').value;
+
+    if(!isLogin && !isStrongPassword(password)){
+      errorEl.textContent = 'La contraseña debe tener al menos 10 caracteres, mayúscula, minúscula, número y símbolo.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
     submitBtn.disabled = true;
     try{
       if(isLogin){
@@ -1952,7 +2038,11 @@ function openAuthModal(mode, actionLabel){
       } else {
         const name = document.getElementById('authName').value.trim();
         if(!name) throw new Error('Pon un nombre o apodo.');
-        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { name } } });
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: { data: { name } }
+        });
         if(error) throw error;
         if(data.session){
           await loadCurrentUserFromSession(data.session);
@@ -1968,15 +2058,67 @@ function openAuthModal(mode, actionLabel){
     }catch(err){
       errorEl.textContent = translateAuthError(err.message);
       errorEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
     }
-    submitBtn.disabled = false;
   });
 }
+
+function isStrongPassword(password){
+  return typeof password === 'string'
+    && password.length >= 10
+    && /[A-Z]/.test(password)
+    && /[a-z]/.test(password)
+    && /\d/.test(password)
+    && /[^A-Za-z0-9]/.test(password);
+}
+
+function openRecoveryModal(){
+  authContent.innerHTML = `
+    <h3>Recuperar acceso</h3>
+    <p class="section-desc">Te enviaremos un enlace de recuperación al correo confirmado de la cuenta.</p>
+    <form class="auth-form" id="recoveryForm">
+      <div>
+        <label for="recoveryEmail">Correo</label>
+        <input type="email" id="recoveryEmail" autocomplete="email" required>
+      </div>
+      <p class="auth-error" id="recoveryError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" id="recoveryBtn">Enviar recuperación</button>
+      <button type="button" class="btn-text" id="recoveryBackBtn">Volver a iniciar sesión</button>
+    </form>
+  `;
+  document.getElementById('recoveryBackBtn').addEventListener('click', () => openAuthModal('login'));
+  document.getElementById('recoveryForm').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById('recoveryEmail').value.trim().toLowerCase();
+    const errorEl = document.getElementById('recoveryError');
+    const btn = document.getElementById('recoveryBtn');
+    errorEl.style.display='none';
+    btn.disabled=true;
+    try{
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+      if(error) throw error;
+      errorEl.style.display='block';
+      errorEl.style.color='var(--moss-dark)';
+      errorEl.textContent='Si el correo pertenece a una cuenta, recibirás instrucciones para recuperar el acceso.';
+    }catch(err){
+      errorEl.style.display='block';
+      errorEl.style.color='#a3392c';
+      errorEl.textContent=translateAuthError(err.message);
+    }finally{
+      btn.disabled=false;
+    }
+  });
+}
+
 function translateAuthError(msg){
   if(!msg) return 'Algo salió mal, intenta de nuevo.';
   if(/invalid login credentials/i.test(msg)) return 'Correo o contraseña incorrectos.';
   if(/already registered|already exists/i.test(msg)) return 'Ya existe una cuenta con ese correo.';
-  if(/password/i.test(msg) && /least/i.test(msg)) return 'La contraseña debe tener al menos 6 caracteres.';
+  if(/password/i.test(msg) && /least|characters|strong/i.test(msg)) return 'La contraseña no cumple los requisitos de seguridad.';
+  if(/phone|sms|provider|message/i.test(msg)) return 'No se pudo enviar el SMS. Revisa que el proveedor SMS esté configurado en Supabase y que el número use formato internacional (+52...).';
+  if(/rate limit|too many requests|too many/i.test(msg)) return 'Demasiados intentos. Espera un momento antes de volver a solicitar el código.';
   return msg;
 }
 
@@ -3413,22 +3555,248 @@ async function initSettingsSecurity(){
   const form=document.getElementById('settingsSecurityForm');
   const email=document.getElementById('settingsEmail');
   if(email) email.value=currentAuthEmail || '';
+
+  const currentInput=document.getElementById('settingsCurrentPassword');
+  const newInput=document.getElementById('settingsNewPassword');
+  const confirmInput=document.getElementById('settingsConfirmPassword');
+  const strengthBar=document.getElementById('passwordStrengthBar');
+
+  const updateStrength=()=>{
+    if(!strengthBar || !newInput) return;
+    const p=newInput.value;
+    let score=0;
+    if(p.length>=10) score++;
+    if(/[A-Z]/.test(p)) score++;
+    if(/[a-z]/.test(p)) score++;
+    if(/\d/.test(p)) score++;
+    if(/[^A-Za-z0-9]/.test(p)) score++;
+    strengthBar.style.width=`${Math.min(100,score*20)}%`;
+  };
+  if(newInput && !newInput.dataset.bound){
+    newInput.dataset.bound='1';
+    newInput.addEventListener('input',updateStrength);
+  }
+
   if(form && !form.dataset.bound){
     form.dataset.bound='1';
     form.addEventListener('submit',async(e)=>{
       e.preventDefault();
       if(!requireLogin('cambiar tu contraseña')) return;
-      const input=document.getElementById('settingsNewPassword');
-      const password=input.value.trim();
-      if(password.length<6){showToast('La contraseña debe tener al menos 6 caracteres.');return;}
+
+      const currentPassword=(currentInput?.value||'');
+      const password=(newInput?.value||'');
+      const confirm=(confirmInput?.value||'');
+
+      if(!currentPassword){ showToast('Escribe tu contraseña actual.'); return; }
+      if(!isStrongPassword(password)){
+        showToast('La nueva contraseña debe tener 10+ caracteres, mayúscula, minúscula, número y símbolo.');
+        return;
+      }
+      if(password!==confirm){ showToast('Las nuevas contraseñas no coinciden.'); return; }
+      if(password===currentPassword){ showToast('La nueva contraseña debe ser diferente.'); return; }
+
+      const btn=document.getElementById('settingsPasswordBtn');
+      if(btn) btn.disabled=true;
+
       try{
-        const {error}=await sb.auth.updateUser({password});
+        // Reautenticación explícita: una sesión abierta por sí sola no basta.
+        const { data, error: signInError } = await sb.auth.signInWithPassword({
+          email: currentAuthEmail,
+          password: currentPassword
+        });
+        if(signInError) throw signInError;
+        if(!data?.session) throw new Error('No se pudo crear una sesión reciente.');
+
+        const { error } = await sb.auth.updateUser({ password });
         if(error) throw error;
-        input.value='';
-        showToast('Contraseña actualizada');
-      }catch(err){alert('No se pudo actualizar la contraseña: '+(err.message||err));}
+
+        if(currentInput) currentInput.value='';
+        if(newInput) newInput.value='';
+        if(confirmInput) confirmInput.value='';
+        updateStrength();
+        showToast('Contraseña actualizada después de verificar tu identidad.');
+      }catch(err){
+        alert('No se pudo actualizar la contraseña: '+translateAuthError(err.message||String(err)));
+      }finally{
+        if(btn) btn.disabled=false;
+      }
     });
   }
+
+  // Verificación por teléfono/SMS desactivada temporalmente.
+  await initMfaSecurity();
+  initDeleteAccountSecurity();
+}
+
+async function initMfaSecurity(){
+  const el=document.getElementById('mfaSecurityContent');
+  if(!el) return;
+
+  try{
+    const { data: factors, error }=await sb.auth.mfa.listFactors();
+    if(error) throw error;
+    const verified=(factors?.totp||[]).filter(f=>f.status==='verified');
+
+    if(verified.length){
+      el.innerHTML=`
+        <div class="security-status">✓ 2FA activo con ${verified.length} aplicación(es) autenticadora(s).</div>
+        <div class="security-inline" style="margin-top:10px;">
+          ${verified.map(f=>`<button type="button" class="btn btn-outline btn-small" data-unenroll-mfa="${escapeHtml(f.id)}">Quitar ${escapeHtml(f.friendly_name||'dispositivo')}</button>`).join('')}
+        </div>
+      `;
+      el.querySelectorAll('[data-unenroll-mfa]').forEach(btn=>{
+        btn.addEventListener('click',()=>unenrollMfaFactor(btn.dataset.unenrollMfa));
+      });
+    }else{
+      el.innerHTML=`<button type="button" class="btn btn-primary btn-small" id="startMfaBtn">Configurar 2FA</button>
+        <div class="security-hint" style="margin-top:8px;">La configuración mostrará un QR. Después tendrás que introducir el código de la aplicación para activarla.</div>`;
+      document.getElementById('startMfaBtn').addEventListener('click',startMfaEnrollment);
+    }
+  }catch(err){
+    el.innerHTML=`<div class="security-hint">No se pudo consultar el estado de 2FA: ${escapeHtml(err.message||String(err))}</div>`;
+  }
+}
+
+async function startMfaEnrollment(){
+  const el=document.getElementById('mfaSecurityContent');
+  try{
+    const { data, error }=await sb.auth.mfa.enroll({
+      factorType:'totp',
+      friendlyName:'Enraíza'
+    });
+    if(error) throw error;
+
+    const qr=data?.totp?.qr_code;
+    const secret=data?.totp?.secret;
+    el.innerHTML=`
+      ${qr ? `<img class="mfa-qr" src="${qr}" alt="Código QR para configurar 2FA">` : ''}
+      <p class="security-modal-note">Escanea el QR con tu aplicación autenticadora. Si no puedes escanearlo, usa la clave manual.</p>
+      <div class="security-hint" style="word-break:break-all;"><strong>Clave:</strong> ${escapeHtml(secret||'No disponible')}</div>
+      <div class="security-field" style="margin-top:10px;">
+        <label for="mfaSetupCode">Código de 6 dígitos</label>
+        <input id="mfaSetupCode" class="security-code" inputmode="numeric" maxlength="6" placeholder="123456">
+      </div>
+      <button type="button" class="btn btn-primary btn-small" id="verifyMfaSetupBtn" style="margin-top:10px;">Activar 2FA</button>
+      <button type="button" class="btn-text" id="cancelMfaSetupBtn" style="margin-left:8px;">Cancelar</button>
+    `;
+
+    document.getElementById('cancelMfaSetupBtn').addEventListener('click',initMfaSecurity);
+    document.getElementById('verifyMfaSetupBtn').addEventListener('click',async()=>{
+      try{
+        const code=(document.getElementById('mfaSetupCode').value||'').replace(/\D/g,'');
+        if(code.length!==6){ showToast('El código debe tener 6 dígitos.'); return; }
+        const challenge=await sb.auth.mfa.challenge({factorId:data.id});
+        if(challenge.error) throw challenge.error;
+        const verified=await sb.auth.mfa.verify({factorId:data.id,challengeId:challenge.data.id,code});
+        if(verified.error) throw verified.error;
+        showToast('2FA activado. Tus acciones sensibles quedan mejor protegidas.');
+        await initMfaSecurity();
+      }catch(err){
+        showToast('No se pudo activar 2FA: '+(err.message||String(err)));
+      }
+    });
+  }catch(err){
+    el.innerHTML=`<div class="security-hint">No se pudo configurar 2FA: ${escapeHtml(err.message||String(err))}</div>`;
+  }
+}
+
+async function unenrollMfaFactor(factorId){
+  if(!confirm('¿Quitar este segundo factor? Después podrás volver a configurarlo.')) return;
+  try{
+    const { error }=await sb.auth.mfa.unenroll({factorId});
+    if(error) throw error;
+    showToast('2FA eliminado para ese dispositivo.');
+    await initMfaSecurity();
+  }catch(err){
+    alert('No se pudo quitar 2FA: '+(err.message||String(err)));
+  }
+}
+
+function initDeleteAccountSecurity(){
+  const openBtn=document.getElementById('openDeleteAccountBtn');
+  const backdrop=document.getElementById('securityActionBackdrop');
+  const closeBtn=document.getElementById('securityActionClose');
+  const content=document.getElementById('securityActionContent');
+  if(!openBtn || !backdrop || !closeBtn || !content) return;
+
+  const close=()=>{
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden','true');
+  };
+  closeBtn.onclick=close;
+  backdrop.onclick=e=>{ if(e.target===backdrop) close(); };
+
+  openBtn.onclick=()=>{
+    if(!requireLogin('eliminar tu cuenta')) return;
+    content.innerHTML=`
+      <h3>Confirmar eliminación</h3>
+      <p class="security-modal-note">Primero verifica tu contraseña actual. Después escribe exactamente <strong>ELIMINAR MI CUENTA</strong>. Esta acción no se puede deshacer.</p>
+      <form id="deleteAccountForm" class="auth-form">
+        <div>
+          <label for="deleteCurrentPassword">Contraseña actual</label>
+          <input type="password" id="deleteCurrentPassword" autocomplete="current-password" required>
+        </div>
+        <div>
+          <label for="deletePhrase">Confirmación</label>
+          <input class="danger-confirm" id="deletePhrase" autocomplete="off" placeholder="ELIMINAR MI CUENTA" required>
+        </div>
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:.78rem;color:var(--ink-soft);">
+          <input type="checkbox" id="deleteFinalCheck" required style="margin-top:3px;">
+          <span>Entiendo que perderé publicaciones, historias, bitácora, estadísticas y demás datos de esta cuenta.</span>
+        </label>
+        <p class="auth-error" id="deleteError" style="display:none;"></p>
+        <button type="submit" class="btn btn-danger btn-small" id="deleteSubmitBtn">Verificar y eliminar definitivamente</button>
+      </form>
+    `;
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden','false');
+
+    document.getElementById('deleteAccountForm').addEventListener('submit',async(e)=>{
+      e.preventDefault();
+      const password=document.getElementById('deleteCurrentPassword').value;
+      const phrase=document.getElementById('deletePhrase').value.trim();
+      const errorEl=document.getElementById('deleteError');
+      const btn=document.getElementById('deleteSubmitBtn');
+      errorEl.style.display='none';
+
+      if(phrase!=='ELIMINAR MI CUENTA'){
+        errorEl.textContent='La confirmación no coincide.';
+        errorEl.style.display='block';
+        return;
+      }
+
+      btn.disabled=true;
+      try{
+        // La contraseña actual crea una sesión recién autenticada.
+        const {data,error}=await sb.auth.signInWithPassword({
+          email:currentAuthEmail,
+          password
+        });
+        if(error) throw error;
+        if(!data?.session) throw new Error('No se pudo reautenticar la cuenta.');
+
+        // La Edge Function vuelve a validar el JWT y su auth_time.
+        const {data:fnData,error:fnError}=await sb.functions.invoke('delete-account',{
+          body:{confirmation:'ELIMINAR MI CUENTA'}
+        });
+        if(fnError) throw fnError;
+        if(fnData?.error) throw new Error(fnData.error);
+
+        close();
+        currentUser=null;
+        currentAuthEmail='';
+        await sb.auth.signOut();
+        await refreshAppAfterAuthChange();
+        showView('inicio');
+        showToast('Tu cuenta fue eliminada.');
+      }catch(err){
+        errorEl.textContent=err.message||'No se pudo eliminar la cuenta.';
+        errorEl.style.display='block';
+      }finally{
+        btn.disabled=false;
+      }
+    });
+  };
 }
 
 function initSettingsNavigation(){
