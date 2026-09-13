@@ -221,11 +221,16 @@
   draw();
   document.getElementById('bestVal').textContent = best;
 
+  function startGame(){
+    if(!running && !gameOverFlag){ running = true; loop(); }
+  }
   window.addEventListener('keydown', (e) => {
-    if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); if(!running && !gameOverFlag){ loop(); } jump(); }
+    if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); startGame(); jump(); }
   });
-  canvas.addEventListener('pointerdown', () => { if(!running && !gameOverFlag){ loop(); } jump(); });
-  document.getElementById('overlay').addEventListener('pointerdown', () => { if(!running && !gameOverFlag){ resetGame(); loop(); } else { jump(); } });
+  canvas.addEventListener('pointerdown', () => { startGame(); jump(); });
+  document.getElementById('overlay').addEventListener('pointerdown', () => {
+    if(gameOverFlag){ resetGame(); loop(); } else { startGame(); jump(); }
+  });
 
   running = false; // esperamos el primer toque/tecla para arrancar el loop
 </script>
