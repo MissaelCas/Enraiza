@@ -3084,10 +3084,15 @@ function setupFeedInfiniteScroll(posts){
 // ---------- RECARGAR TODO DESDE CERO (solo al iniciar, iniciar/cerrar sesión, o si algo falla) ----------
 async function reloadFeed(){
   feedEntriesEl.innerHTML = '<p class="feed-empty">Cargando publicaciones…</p>';
+  const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('Tardó demasiado en responder (revisa tu conexión o la consola)')), ms));
   try{
-    await loadPostsIntoCache();
+    await Promise.race([loadPostsIntoCache(), timeout(10000)]);
   }catch(err){
-    feedEntriesEl.innerHTML = `<p class="feed-empty">No se pudo cargar el feed (${escapeHtml(err.message||'error')}).</p>`;
+    feedEntriesEl.innerHTML = `
+      <p class="feed-empty">No se pudo cargar el feed: ${escapeHtml(err.message||'error')}.</p>
+      <button type="button" class="btn btn-outline btn-small" id="retryFeedBtn" style="margin-top:8px;">Reintentar</button>
+    `;
+    document.getElementById('retryFeedBtn')?.addEventListener('click', reloadFeed);
     return;
   }
   renderFeedFromCache();
@@ -4870,6 +4875,12 @@ function renderSidePanels(){
   right.innerHTML = `<div class="side-panel-inner">${renderQuizGame()}</div>`;
   bindWaterGame(left);
   bindQuizGame(right);
+}
+
+if('serviceWorker' in navigator && !['localhost','127.0.0.1'].includes(location.hostname)){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* si falla, la app sigue funcionando normal */ });
+  });
 }
 
 // ---------- ARRANQUE ----------
