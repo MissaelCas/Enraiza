@@ -759,6 +759,9 @@
   .auth-form{ display:flex; flex-direction:column; gap:12px; }
   .auth-form label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:4px; }
   .auth-form input{ width:100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px; font-family: var(--sans); font-size:0.92rem; }
+  .checkbox-row{ display:flex; align-items:flex-start; gap:10px; font-size:0.82rem; line-height:1.5; color:var(--ink-soft); margin-top:2px; }
+  .checkbox-row input{ width:16px; height:16px; margin:2px 0 0; flex:0 0 16px; accent-color: var(--moss); }
+  .checkbox-row a{ color: var(--moss-dark); text-decoration: underline; }
   .auth-error{ font-size: 0.85rem; color: #a3392c; margin: 0; }
   .auth-switch{ font-size: 0.85rem; color: var(--ink-soft); margin-top: 4px; }
   .auth-switch button{ background:none; border:none; color: var(--moss-dark); text-decoration:underline; cursor:pointer; padding:0; font-size:inherit; }
@@ -1398,9 +1401,9 @@
   <div class="wrap">
     <p>Enraíza — un cuaderno vivo para ir sumando proyectos sostenibles. Iremos agregando más ideas, plantas y artículos con el tiempo.</p>
     <p style="margin-top:8px; font-size:0.8rem;">
-      <a href="#" id="footerPrivacyLink">Aviso de privacidad</a> ·
-      <a href="#" id="footerTermsLink">Términos de uso</a> ·
-      <a href="#" id="footerCookiesLink">Cookies</a>
+      <a href="legal/privacidad.html" target="_blank" rel="noopener noreferrer">Aviso de privacidad</a> ·
+      <a href="legal/terminos.html" target="_blank" rel="noopener noreferrer">Términos de uso</a> ·
+      <a href="legal/cookies.html" target="_blank" rel="noopener noreferrer">Cookies</a>
     </p>
   </div>
 </footer>
@@ -1779,7 +1782,7 @@ function initCookieConsent(){
     try{ localStorage.setItem('enraiza:cookie_consent', 'essential'); }catch(err){}
     banner.classList.remove('show');
   });
-  document.getElementById('cookiePolicyLink')?.addEventListener('click', (e) => { e.preventDefault(); openLegalModal('cookies'); });
+  document.getElementById('cookiePolicyLink')?.addEventListener('click', (e) => { e.preventDefault(); window.open('legal/cookies.html', '_blank', 'noopener,noreferrer'); });
 }
 function openLegalModal(kind){
   modalBox.className = 'modal';
@@ -1801,9 +1804,6 @@ function openLegalModal(kind){
   modalBackdrop.classList.add('open');
 }
 
-document.getElementById('footerPrivacyLink')?.addEventListener('click', (e)=>{ e.preventDefault(); openLegalModal('privacy'); });
-document.getElementById('footerTermsLink')?.addEventListener('click', (e)=>{ e.preventDefault(); openLegalModal('terms'); });
-document.getElementById('footerCookiesLink')?.addEventListener('click', (e)=>{ e.preventDefault(); openLegalModal('cookies'); });
 initCookieConsent();
 
 function setViewportZoomLocked(locked){
@@ -2414,10 +2414,10 @@ function openAuthModal(mode, actionLabel){
         <input type="password" id="authPassword" minlength="10" autocomplete="${isLogin ? 'current-password' : 'new-password'}" required>
       </div>
       ${!isLogin ? `
-        <div class="security-hint">Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.</div>
+        <div class="security-hint" id="passwordHint" hidden>Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.</div>
         <label class="checkbox-row" for="termsAccepted">
           <input type="checkbox" id="termsAccepted" required>
-          <span>Acepto los <strong>Términos de uso</strong> y la <strong>Política de privacidad</strong>.</span>
+          <span>He leído y acepto los <a href="legal/terminos.html" target="_blank" rel="noopener noreferrer">Términos de uso</a> y la <a href="legal/privacidad.html" target="_blank" rel="noopener noreferrer">Política de privacidad</a>.</span>
         </label>
       ` : ''}
       <p class="auth-error" id="authError" style="display:none;"></p>
@@ -2440,7 +2440,11 @@ function openAuthModal(mode, actionLabel){
     e.preventDefault();
     const errorEl = document.getElementById('authError');
     const submitBtn = document.getElementById('authSubmitBtn');
+    const passwordInput = document.getElementById('authPassword');
+    const passwordHint = document.getElementById('passwordHint');
     errorEl.style.display = 'none';
+    if(passwordInput) passwordInput.setCustomValidity('');
+    if(passwordHint) passwordHint.hidden = true;
     const email = document.getElementById('authEmail').value.trim().toLowerCase();
     const password = document.getElementById('authPassword').value;
 
@@ -2454,8 +2458,16 @@ function openAuthModal(mode, actionLabel){
     }
 
     if(!isLogin && !isStrongPassword(password)){
-      errorEl.textContent = 'La contraseña debe tener al menos 10 caracteres, mayúscula, minúscula, número y símbolo.';
+      errorEl.textContent = 'Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.';
       errorEl.style.display = 'block';
+      if(passwordHint){
+        passwordHint.hidden = false;
+        passwordHint.textContent = 'Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.';
+      }
+      if(passwordInput){
+        passwordInput.setCustomValidity('La contraseña es demasiado débil.');
+        passwordInput.reportValidity();
+      }
       return;
     }
 
