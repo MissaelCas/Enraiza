@@ -647,13 +647,57 @@
   .profile-empty-grid{ color: var(--ink-soft); font-style: italic; font-size: 0.88rem; padding: 20px 0; }
   .profile-log-head{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
-    margin:12px 0 10px;
+    margin:14px 0 10px;
   }
   .profile-log-head strong{display:block;font-family:var(--serif);font-size:.98rem}
   .profile-log-head small{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}
-  .profile-log-grid{
-    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:6px;
+  .profile-log-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:6px}
+  .profile-log-projects{display:grid;gap:16px;margin-top:14px}
+  .profile-project-card{
+    border:1px solid var(--line);border-radius:14px;background:var(--paper);
+    overflow:hidden;box-shadow:0 5px 18px rgba(35,48,29,.06)
   }
+  .profile-project-cover{
+    position:relative;height:180px;background:var(--paper-alt);overflow:hidden
+  }
+  .profile-project-cover img{width:100%;height:100%;object-fit:cover;display:block}
+  .profile-project-cover-placeholder{
+    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    font-size:3rem;background:linear-gradient(135deg,var(--paper-alt),var(--paper))
+  }
+  .profile-project-private{
+    position:absolute;top:10px;right:10px;border-radius:999px;padding:5px 9px;
+    background:rgba(255,255,255,.92);font-size:.68rem;font-weight:800
+  }
+  .profile-project-body{padding:13px 14px 14px}
+  .profile-project-title{
+    margin:0;font-family:var(--serif);font-size:1.1rem;color:var(--ink)
+  }
+  .profile-project-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
+  .profile-project-meta span{
+    border-radius:999px;background:var(--paper-alt);padding:4px 8px;
+    font-size:.65rem;color:var(--ink-soft)
+  }
+  .profile-day-strip{display:flex;gap:7px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}
+  .profile-day-strip::-webkit-scrollbar{display:none}
+  .profile-day{
+    flex:0 0 72px;border:1px solid var(--line);border-radius:10px;background:var(--paper);
+    padding:7px 5px;text-align:center;cursor:pointer
+  }
+  .profile-day:hover{border-color:var(--moss);transform:translateY(-1px)}
+  .profile-day strong{display:block;font-size:.7rem}
+  .profile-day small{display:block;margin-top:3px;color:var(--ink-soft);font-size:.6rem}
+  .profile-project-action{
+    width:100%;margin-top:10px;border:0;background:transparent;color:var(--moss-dark);
+    font-weight:800;font-size:.74rem;text-align:left;padding:4px 0;cursor:pointer
+  }
+  .profile-log-empty{
+    border:1px dashed var(--line);border-radius:14px;padding:28px 18px;text-align:center;
+    color:var(--ink-soft);background:var(--paper)
+  }
+  .profile-log-empty strong{display:block;color:var(--ink);font-family:var(--serif);font-size:1rem;margin-bottom:5px}
+  .profile-log-empty button{margin-top:12px}
+
   .profile-log-card{
     aspect-ratio:1/1;position:relative;overflow:hidden;cursor:pointer;
     background:var(--paper-alt);border:0;padding:0;text-align:left;
@@ -1069,7 +1113,7 @@
         <div>
           <label for="logProject">Proyecto</label>
           <select id="logProject" required></select>
-          <small class="log-form-hint">Elige el proyecto que estás siguiendo. Cada día quedará dentro de ese proyecto.</small>
+          <small class="log-form-hint">Elige el proyecto que estás siguiendo. Cada bitácora representa un proyecto diferente. Después podrás registrar Día 1, Día 2, Día 3…</small>
         </div>
         <div class="log-day-row">
           <div>
@@ -1308,9 +1352,10 @@
             <strong>Mis proyectos</strong>
             <small>Cada tarjeta corresponde a un día de un proyecto.</small>
           </div>
-          <button type="button" class="btn btn-primary btn-small" id="profileAddLogBtn">＋ Añadir día</button>
+          <button type="button" class="btn btn-primary btn-small" id="profileAddLogBtn">＋ Nueva bitácora</button>
         </div>
         <div class="profile-log-grid" id="profileLogGrid"></div>
+        <div class="profile-log-projects" id="profileLogProjects"></div>
       </div>
     </div>
   </section>
@@ -2424,10 +2469,15 @@ function populateLogProjectSelect(){
 populateLogProjectSelect();
 
 document.getElementById('profileAddLogBtn')?.addEventListener('click', () => {
-  if(!requireLogin('añadir un día a tu bitácora')) return;
+  if(!requireLogin('crear una nueva bitácora')) return;
   showView('bitacora');
   const form=document.getElementById('logForm');
   if(form) form.scrollIntoView({behavior:'smooth', block:'start'});
+  const project=document.getElementById('logProject');
+  if(project) project.value='';
+  const day=document.getElementById('logDay'); if(day) day.value='1';
+  const title=document.getElementById('logTitle'); if(title) title.value='';
+  const notes=document.getElementById('logNotes'); if(notes) notes.value='';
   document.getElementById('logProject')?.focus();
 });
 
@@ -4113,45 +4163,96 @@ function parseLogEntry(e){
 
 async function renderProfileLogs(){
   const grid=document.getElementById('profileLogGrid');
+  const projectsWrap=document.getElementById('profileLogProjects');
   const countLabel=document.getElementById('profileLogCountLabel');
-  if(!grid) return;
+  if(!projectsWrap) return;
+
   if(!currentUser){
-    grid.innerHTML='<p class="profile-empty-grid">Inicia sesión para ver tu bitácora.</p>';
+    projectsWrap.innerHTML='<div class="profile-log-empty"><strong>Tu bitácora vive aquí</strong>Inicia sesión para crear y guardar tus proyectos.</div>';
+    if(grid) grid.innerHTML='';
     if(countLabel) countLabel.textContent='';
     return;
   }
+
   let entries=[];
   try{ entries=await DB.logbook.listForUser(currentUser.id); }
-  catch(err){ grid.innerHTML='<p class="profile-empty-grid">No se pudo cargar la bitácora.</p>'; return; }
-
-  if(countLabel) countLabel.textContent=entries.length ? ` ${entries.length}` : '';
-  if(!entries.length){
-    grid.innerHTML='<p class="profile-empty-grid">Aún no hay días registrados. Añade el primero con “＋ Añadir día”.</p>';
+  catch(err){
+    projectsWrap.innerHTML='<div class="profile-log-empty"><strong>No pudimos cargar tus bitácoras</strong>Inténtalo de nuevo en un momento.</div>';
     return;
   }
 
-  grid.innerHTML=entries.map(e=>{
+  if(countLabel) countLabel.textContent=entries.length ? ` ${entries.length}` : '';
+
+  // Group by project. New entries carry "Proyecto · Día N · Título".
+  const groups=new Map();
+  entries.forEach(e=>{
     const p=parseLogEntry(e);
-    const img=e.photo ? `<img src="${escapeHtml(e.photo)}" alt="" onerror="this.style.display='none'">` :
-      `<div class="profile-log-placeholder">📔</div>`;
-    return `<button type="button" class="profile-log-card" data-log-id="${e.id}">
-      ${img}
-      ${p.day ? `<span class="profile-log-badge">Día ${p.day}</span>` : ''}
-      <span class="profile-log-overlay">
-        <strong>${escapeHtml(p.projectName)}</strong>
-        <span>${escapeHtml(p.title)}</span>
-      </span>
-    </button>`;
+    const key=p.projectName || 'Proyecto sin nombre';
+    if(!groups.has(key)) groups.set(key,[]);
+    groups.get(key).push({...e,_parsed:p});
+  });
+
+  if(!groups.size){
+    projectsWrap.innerHTML=`<div class="profile-log-empty">
+      <strong>Empieza tu primera bitácora 🌱</strong>
+      Cada bitácora será un proyecto diferente y dentro de ella podrás guardar Día 1, Día 2, Día 3…
+      <br><button type="button" class="btn btn-primary btn-small" id="profileEmptyNewLog">＋ Nueva bitácora</button>
+    </div>`;
+    document.getElementById('profileEmptyNewLog')?.addEventListener('click',()=>document.getElementById('profileAddLogBtn')?.click());
+    return;
+  }
+
+  projectsWrap.innerHTML=[...groups.entries()].map(([projectName, days])=>{
+    days.sort((a,b)=>(a._parsed.day||999999)-(b._parsed.day||999999));
+    const first=days[0];
+    const cover=first.photo
+      ? `<img src="${escapeHtml(first.photo)}" alt="" onerror="this.style.display='none'">`
+      : `<div class="profile-project-cover-placeholder">🌱</div>`;
+    const isPublic=days.some(d=>d.shared);
+    const daysHtml=days.map(d=>`
+      <button type="button" class="profile-day" data-log-id="${escapeHtml(String(d.id))}">
+        <strong>${d._parsed.day ? `Día ${d._parsed.day}` : 'Registro'}</strong>
+        <small>${escapeHtml(d._parsed.title)}</small>
+      </button>`).join('');
+    return `<article class="profile-project-card">
+      <div class="profile-project-cover">
+        ${cover}
+        <span class="profile-project-private">${isPublic?'🌎 Público':'🔒 Privado'}</span>
+      </div>
+      <div class="profile-project-body">
+        <h3 class="profile-project-title">${escapeHtml(projectName)}</h3>
+        <div class="profile-project-meta">
+          <span>📔 ${days.length} ${days.length===1?'día':'días'}</span>
+          <span>${isPublic?'Visible para todos':'Solo tú'}</span>
+        </div>
+        <div class="profile-day-strip">${daysHtml}</div>
+        <button type="button" class="profile-project-action" data-new-day-project="${escapeHtml(projectName)}">＋ Registrar siguiente día</button>
+      </div>
+    </article>`;
   }).join('');
 
-  grid.querySelectorAll('[data-log-id]').forEach(card=>{
-    card.addEventListener('click',()=>{
-      const entry=entries.find(x=>String(x.id)===String(card.dataset.logId));
+  projectsWrap.querySelectorAll('[data-log-id]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const entry=entries.find(x=>String(x.id)===String(btn.dataset.logId));
       if(entry) openProfileLogModal(entry);
     });
   });
-}
 
+  projectsWrap.querySelectorAll('[data-new-day-project]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const projectName=btn.dataset.newDayProject;
+      const select=document.getElementById('logProject');
+      const project=PROJECTS.find(p=>p.title===projectName);
+      if(select && project) select.value=project.id;
+      const days=groups.get(projectName)||[];
+      const maxDay=Math.max(0,...days.map(d=>d._parsed.day||0));
+      document.getElementById('logDay').value=String(maxDay+1);
+      document.getElementById('logTitle').value='';
+      showView('bitacora');
+      document.getElementById('logTitle')?.focus();
+    });
+  });
+}
 function openProfileLogModal(entry){
   const p=parseLogEntry(entry);
   modalBox.className='modal';
@@ -4357,3 +4458,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
 </script>
 </body>
 </html>
+Enraiza_mejorado_v3.html
+HTML
+Alcanzaste tu límite de análisis de datos. Actualiza a ChatGPT Go o vuelve a intentarlo mañana después de este horario: 10:37 p.m..
+Mejorar el plan a Go
