@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sin conexión — Enraíza</title>
+<style>
+  :root{
+    --paper:#EFE9D8; --paper-alt:#E5DFC6; --ink:#23301D; --ink-soft:#4A5A42;
+    --moss:#3F6B4A; --moss-dark:#2C4E35; --clay:#C1793C; --clay-dark:#9C5F2C; --line:#B8AE93;
+    --serif: Georgia, serif; --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;
+    -webkit-user-select:none; user-select:none; overscroll-behavior:none;
+  }
+  .logo{ font-family:var(--serif); font-size:1.6rem; font-weight:700; color:var(--moss-dark); margin-bottom:4px; }
+  .logo span{ color:var(--clay-dark); }
+  .status{ color:var(--ink-soft); font-size:0.88rem; margin:0 0 16px; }
+  .status.online{ color:var(--moss-dark); font-weight:700; }
+  #gameWrap{
+    position:relative; width:100%; max-width:640px; border:1px solid var(--line); border-radius:10px;
+    background:var(--paper-alt); overflow:hidden; touch-action:none;
+  }
+  canvas{ display:block; width:100%; height:auto; }
+  #scoreRow{
+    display:flex; justify-content:space-between; padding:8px 14px; font-size:0.8rem; color:var(--ink-soft);
+    border-top:1px solid var(--line); background:var(--paper);
+  }
+  #scoreRow strong{ color:var(--ink); font-family:var(--serif); }
+  .hint{ margin:14px 0 0; font-size:0.8rem; color:var(--ink-soft); max-width:420px; }
+  .btn{
+    margin-top:14px; padding:10px 20px; border-radius:999px; border:1.5px solid var(--moss);
+    background:var(--moss); color:var(--paper); font-weight:700; font-size:0.88rem; cursor:pointer;
+  }
+  .btn:active{ background:var(--moss-dark); }
+  #overlay{
+    position:absolute; inset:0; background:rgba(35,48,29,0.55); color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    font-family:var(--serif); text-align:center; padding:16px;
+  }
+  #overlay.hidden{ display:none; }
+  #overlay p{ margin:0; font-size:0.85rem; font-family:var(--sans); opacity:0.9; }
+</style>
+</head>
+<body>
+  <div class="logo">Enra<span>í</span>za</div>
+  <p class="status" id="statusText">Sin conexión a internet</p>
+
+  <div id="gameWrap">
+    <div id="overlay">
+      <strong id="overlayTitle">🌱 Toca o presiona espacio para saltar</strong>
+      <p id="overlaySub">Esquiva las piedras y los bichos mientras esperamos la señal.</p>
+    </div>
+    <canvas id="gameCanvas" width="640" height="220"></canvas>
+    <div id="scoreRow">
+      <span>Puntaje: <strong id="scoreVal">0</strong></span>
+      <span>Récord: <strong id="bestVal">0</strong></span>
+    </div>
+  </div>
+
+  <p class="hint">Enraíza se reconectará sola en cuanto vuelva tu internet.</p>
+  <button class="btn" id="retryBtn">Reintentar ahora</button>
+
+<script>
+  // ---------- Detección de conexión ----------
+  const statusText = document.getElementById('statusText');
+  function updateStatus(){
+    if(navigator.onLine){
+      statusText.textContent = '¡Conexión recuperada! Volviendo a Enraíza…';
+      statusText.classList.add('online');
+      setTimeout(() => { window.location.href = './'; }, 700);
+    }
+  }
+  window.addEventListener('online', updateStatus);
+  document.getElementById('retryBtn').addEventListener('click', () => { window.location.href = './'; });
+  updateStatus();
+
+  // ---------- Minijuego: la semillita saltarina ----------
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const GROUND_Y = H - 34;
+
+  const COLORS = { moss:'#3F6B4A', mossDark:'#2C4E35', clay:'#C1793C', clayDark:'#9C5F2C', line:'#B8AE93', paperAlt:'#E5DFC6', ink:'#23301D' };
+
+  let player, obstacles, speed, gravity, score, best, running, gameOverFlag, spawnTimer, raf;
+  const BEST_KEY = 'enraiza:offline_highscore';
+
+  function loadBest(){ try{ return parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; }catch(e){ return 0; } }
+  function saveBest(v){ try{ localStorage.setItem(BEST_KEY, String(v)); }catch(e){} }
+
+  function resetGame(){
+    player = { x:50, y:GROUND_Y-28, w:26, h:28, vy:0, onGround:true };
+    obstacles = [];
+    speed = 4.2;
+    gravity = 0.85;
+    score = 0;
+    running = true;
+    gameOverFlag = false;
+    spawnTimer = 0;
+    document.getElementById('overlay').classList.add('hidden');
+  }
+
+  function jump(){
+    if(gameOverFlag){ resetGame(); loop(); return; }
+    if(player.onGround){ player.vy = -13.5; player.onGround = false; }
+  }
+
+  function spawnObstacle(){
+    const isBug = Math.random() < 0.4;
+    const h = isBug ? 16 : 22 + Math.random()*14;
+    const w = isBug ? 20 : 16 + Math.random()*10;
+    obstacles.push({ x: W + 10, y: GROUND_Y - h, w, h, type: isBug ? 'bug' : 'rock' });
+  }
+
+  function rectsOverlap(a,b){
+    return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+  }
+
+  function update(){
+    if(!running) return;
+    player.vy += gravity;
+    player.y += player.vy;
+    if(player.y >= GROUND_Y - player.h){ player.y = GROUND_Y - player.h; player.vy = 0; player.onGround = true; }
+
+    spawnTimer--;
+    if(spawnTimer <= 0){
+      spawnObstacle();
+      spawnTimer = Math.max(35, 70 - Math.floor(score/8)) + Math.random()*30;
+    }
+
+    obstacles.forEach(o => o.x -= speed);
+    obstacles = obstacles.filter(o => o.x + o.w > -5);
+
+    for(const o of obstacles){
+      if(rectsOverlap(player, o)){ endGame(); return; }
+    }
+
+    score += 0.12;
+    speed = Math.min(11, 4.2 + score/120);
+  }
+
+  function endGame(){
+    running = false;
+    gameOverFlag = true;
+    const finalScore = Math.floor(score);
+    if(finalScore > best){ best = finalScore; saveBest(best); }
+    document.getElementById('overlayTitle').textContent = `🌧️ Puntaje: ${finalScore}`;
+    document.getElementById('overlaySub').textContent = 'Toca o presiona espacio para volver a intentar.';
+    document.getElementById('overlay').classList.remove('hidden');
+  }
+
+  function drawGround(){
+    ctx.strokeStyle = COLORS.line;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y+1);
+    ctx.lineTo(W, GROUND_Y+1);
+    ctx.stroke();
+  }
+
+  function drawPlayer(){
+    const x = player.x, y = player.y, w = player.w, h = player.h;
+    // maceta
+    ctx.fillStyle = COLORS.clay;
+    ctx.beginPath();
+    ctx.moveTo(x, y+h-14); ctx.lineTo(x+w, y+h-14); ctx.lineTo(x+w-4, y+h); ctx.lineTo(x+4, y+h);
+    ctx.closePath(); ctx.fill();
+    // tallo
+    ctx.strokeStyle = COLORS.moss;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x+w/2, y+h-14);
+    ctx.lineTo(x+w/2, y+6);
+    ctx.stroke();
+    // hojas
+    ctx.fillStyle = COLORS.moss;
+    ctx.beginPath(); ctx.ellipse(x+w/2-7, y+6, 8, 5, -0.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+w/2+7, y+10, 8, 5, 0.5, 0, Math.PI*2); ctx.fill();
+  }
+
+  function drawObstacles(){
+    obstacles.forEach(o => {
+      if(o.type === 'rock'){
+        ctx.fillStyle = COLORS.ink;
+        ctx.beginPath();
+        ctx.moveTo(o.x, o.y+o.h);
+        ctx.lineTo(o.x+o.w*0.2, o.y);
+        ctx.lineTo(o.x+o.w*0.8, o.y+o.h*0.2);
+        ctx.lineTo(o.x+o.w, o.y+o.h);
+        ctx.closePath(); ctx.fill();
+      } else {
+        ctx.fillStyle = COLORS.clayDark;
+        ctx.beginPath();
+        ctx.ellipse(o.x+o.w/2, o.y+o.h/2, o.w/2, o.h/2, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    drawGround();
+    drawObstacles();
+    drawPlayer();
+    document.getElementById('scoreVal').textContent = Math.floor(score);
+    document.getElementById('bestVal').textContent = best;
+  }
+
+  function loop(){
+    update();
+    draw();
+    if(running) raf = requestAnimationFrame(loop);
+  }
+
+  best = loadBest();
+  resetGame();
+  draw();
+  document.getElementById('bestVal').textContent = best;
+
+  window.addEventListener('keydown', (e) => {
+    if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); if(!running && !gameOverFlag){ loop(); } jump(); }
+  });
+  canvas.addEventListener('pointerdown', () => { if(!running && !gameOverFlag){ loop(); } jump(); });
+  document.getElementById('overlay').addEventListener('pointerdown', () => { if(!running && !gameOverFlag){ resetGame(); loop(); } else { jump(); } });
+
+  running = false; // esperamos el primer toque/tecla para arrancar el loop
+</script>
+</body>
+</html>
