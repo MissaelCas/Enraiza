@@ -106,15 +106,15 @@
       h: rand(16, 28),
       speed: rand(0.3, 0.8) + i * 0.05
     }));
-    speed = 5.2;
+    speed = 4.3;
     gravity = 0.82;
     score = 0;
     running = false;
     gameOverFlag = false;
-    spawnTimer = 40;
-    document.getElementById('overlayTitle').textContent = '🌱 Toca o presiona espacio para saltar';
-    document.getElementById('overlaySub').textContent = 'Esquiva las piedras, bichos y pájaros mientras esperamos la señal.';
-    document.getElementById('overlay').classList.add('hidden');
+    spawnTimer = 75;
+    document.getElementById('overlayTitle').textContent = '⏱️ Presiona espacio para comenzar';
+    document.getElementById('overlaySub').textContent = 'Empieza lento, luego cada vez llega más lejos y más rápido.';
+    document.getElementById('overlay').classList.remove('hidden');
     draw();
   }
 
@@ -127,9 +127,9 @@
   function spawnObstacle(){
     const roll = Math.random();
     let type = 'rock';
-    if(roll < 0.25) type = 'bug';
-    else if(roll < 0.5) type = 'bird';
-    else if(roll < 0.75) type = 'cactus';
+    if(roll < 0.18) type = 'bug';
+    else if(roll < 0.38) type = 'bird';
+    else if(roll < 0.7) type = 'cactus';
     else type = 'rock';
 
     if(type === 'bird'){
@@ -150,7 +150,7 @@
       return;
     }
 
-    const h = type === 'cactus' ? rand(24, 42) : rand(18, 28);
+    const h = type === 'cactus' ? rand(26, 44) : rand(18, 30);
     const w = type === 'cactus' ? rand(14, 18) : rand(12, 18);
     obstacles.push({ type, x: W + 20, y: GROUND_Y - h, w, h, phase: rand(0, Math.PI * 2) });
   }
@@ -166,7 +166,7 @@
     if(player.y >= GROUND_Y - player.h){ player.y = GROUND_Y - player.h; player.vy = 0; player.onGround = true; }
 
     clouds.forEach(c => {
-      c.x -= c.speed * (0.8 + speed / 8);
+      c.x -= c.speed * (0.85 + speed / 9);
       if(c.x + c.w < -10){
         c.x = W + 10;
         c.y = rand(18, 82);
@@ -178,23 +178,23 @@
     spawnTimer--;
     if(spawnTimer <= 0){
       spawnObstacle();
-      const base = Math.max(26, 85 - Math.floor(score / 8));
-      spawnTimer = rand(base * 0.75, base + 18);
+      const base = Math.max(22, 68 - Math.floor(score / 7));
+      spawnTimer = rand(base * 0.62, base + 10);
     }
 
     obstacles.forEach(o => {
       o.x -= speed;
-      if(o.type === 'bird') o.y += Math.sin((score * 0.35) + o.phase) * 0.7;
-      if(o.type === 'bug') o.y = GROUND_Y - (Math.sin((score * 0.4) + o.phase) * 4 + 18);
+      if(o.type === 'bird') o.y += Math.sin((score * 0.45) + o.phase) * 0.9;
+      if(o.type === 'bug') o.y = GROUND_Y - (Math.sin((score * 0.5) + o.phase) * 5 + 18);
     });
-    obstacles = obstacles.filter(o => o.x + o.w > -10);
+    obstacles = obstacles.filter(o => o.x + o.w > -12);
 
     for(const o of obstacles){
       if(rectsOverlap(player, o)){ endGame(); return; }
     }
 
-    score += 0.32 + speed * 0.03;
-    speed = Math.min(14, 5.2 + score / 24);
+    score += 0.28 + speed * 0.04;
+    speed = Math.min(18, 4.3 + score / 18);
   }
 
   function endGame(){
@@ -328,18 +328,26 @@
   document.getElementById('bestVal').textContent = best;
 
   function startGame(){
-    if(!running && !gameOverFlag){ running = true; loop(); }
+    if(running) return;
+    if(gameOverFlag){ resetGame(); }
+    running = true;
+    document.getElementById('overlay').classList.add('hidden');
+    requestAnimationFrame(loop);
   }
 
   window.addEventListener('keydown', (e) => {
     if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); startGame(); jump(); }
   });
+
   canvas.addEventListener('pointerdown', () => { startGame(); jump(); });
   document.getElementById('overlay').addEventListener('pointerdown', () => {
     if(gameOverFlag){ resetGame(); startGame(); } else { startGame(); jump(); }
   });
 
-  startGame();
+  document.getElementById('restartBtn').addEventListener('click', () => {
+    resetGame();
+    startGame();
+  });
 </script>
 </body>
 </html>
