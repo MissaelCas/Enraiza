@@ -21,14 +21,19 @@
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
   *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html{ scroll-behavior: smooth; }
+  html{ scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
   html, body{ overflow-x: hidden; width: 100%; }
+  html::-webkit-scrollbar{ width: 10px; }
+  html::-webkit-scrollbar-track{ background: transparent; }
+  html::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 999px; border: 2px solid var(--paper); }
+  html::-webkit-scrollbar-thumb:hover{ background: var(--sage); }
   body{
     margin:0;
     background: var(--paper);
     color: var(--ink);
     font-family: var(--sans);
     line-height: 1.55;
+    padding-top: 78px;
   }
   a{ color: var(--moss-dark); }
   img,svg{
@@ -41,7 +46,7 @@
   .wrap{ max-width: 1080px; margin:0 auto; padding: 0 24px; }
 
   header.nav{
-    position: sticky; top:0; z-index: 50;
+    position: fixed; top:0; left:0; right:0; z-index: 120;
     background: rgba(239,233,216,0.92);
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
@@ -102,7 +107,7 @@
 
   .modal-backdrop{
     position: fixed; inset:0; background: rgba(35,48,29,0.55); display:none;
-    align-items:center; justify-content:center; z-index: 100; padding: 20px;
+    align-items:center; justify-content:center; z-index: 500; padding: 20px;
   }
   .modal-backdrop.open{ display:flex; }
   body.story-open #modalBackdrop{ background: rgba(0,0,0,0.92); padding:0; overflow:hidden; }
@@ -741,7 +746,7 @@
   @media(max-width:600px){.setting-row{align-items:flex-start}.settings-page{width:100%}}
   @media(max-width:700px){
     header.nav .nav-inner{padding:10px 12px;gap:8px}.search-wrap{max-width:none}.ig-icons{gap:10px}.ig-icon-btn svg{width:22px;height:22px}.ig-icon-btn .avatar{width:27px;height:27px}
-    .profile-ig-head.profile-main-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;align-items:start;margin:0 0 14px}.profile-main-head .avatar-big{width:78px;height:78px}.profile-header-actions{position:absolute;right:0;top:0}.profile-main-head{position:relative}.profile-ig-right{min-width:0;padding-right:42px}.profile-stats-row{gap:16px;justify-content:space-between}.profile-settings-entry{margin-top:16px;padding:13px}.settings-layout{display:block}.settings-nav{display:none}.settings-mobile-back{display:flex;align-items:center;gap:8px;border:0;background:none;padding:0 0 14px;color:var(--ink-soft);font:inherit;cursor:pointer}.settings-mobile-title{display:block;font-family:var(--serif);font-size:1.35rem;margin:0 0 14px}.settings-content .settings-group.active{display:block}.settings-group{border-radius:10px}.setting-row{min-height:62px;padding:14px}.settings-block input{max-width:none}.settings-page{width:100%;max-width:none}.settings-page .section-head{display:none}
+    .profile-ig-head.profile-main-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;align-items:start;margin:0 0 14px}.profile-main-head .avatar-big{width:78px;height:78px}.profile-header-actions{position:absolute;right:0;top:0}.profile-main-head{position:relative}.profile-ig-right{min-width:0;padding-right:42px}.profile-stats-row{gap:16px;justify-content:space-between}.profile-settings-entry{margin-top:16px;padding:13px}.settings-layout{display:block}.settings-nav{position:static;top:auto}.settings-mobile-back{display:none;align-items:center;gap:8px;border:0;background:none;padding:0 0 14px;color:var(--ink-soft);font:inherit;cursor:pointer}.settings-mobile-title{display:block;font-family:var(--serif);font-size:1.35rem;margin:0 0 14px}.settings-content .settings-group.active{display:block}.settings-group{border-radius:10px}.setting-row{min-height:62px;padding:14px}.settings-block input{max-width:none}.settings-page{width:100%;max-width:none}.settings-page .section-head{display:none}
   }
   @media(min-width:701px){.settings-mobile-back{display:none}}
 
@@ -761,7 +766,17 @@
   .auth-gate .btn{ margin-top: 12px; }
   .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
 
-  .search-wrap{ position:relative; flex:1; max-width:260px; min-width:0; }
+  .search-wrap{
+    position: relative; flex: 1 1 220px; min-width: 0; max-width: 260px;
+    margin: 0 12px; z-index: 130;
+  }
+  @media (max-width: 640px){
+    .search-wrap{ flex-basis: 120px; max-width: 150px; margin: 0 6px; }
+    .search-input{ padding: 8px 10px; font-size: 0.8rem; }
+  }
+  @media (max-width: 460px){
+    .search-wrap{ display: none; }
+  }
   .search-input{
     width:100%; padding:8px 12px; border:1px solid var(--line); border-radius:999px;
     font-size:0.85rem; background: var(--white-ish); font-family: var(--sans); box-sizing:border-box;
@@ -783,14 +798,16 @@
   .inicio-layout{ display:block; min-width:0; }
   .side-panel{ display:none; }
   @media (min-width: 1180px){
-    .inicio-layout{ display:grid; grid-template-columns: 240px minmax(0,470px) 240px; gap: 28px; align-items:start; justify-content:center; }
-    .side-panel{
-      display:block; align-self:stretch; min-width:0;
-    }
+    .inicio-layout{ display:grid; grid-template-columns: 240px minmax(0,470px) 240px; gap: 28px; align-items:start; justify-content:center; position:relative; }
+    .side-panel{ display:block; visibility:hidden; }
     .side-panel-inner{
-      position:sticky; top:84px; max-height: calc(100vh - 104px); overflow-y:auto;
-      -ms-overflow-style:none; scrollbar-width:thin;
+      position:fixed; top:84px; width:240px; max-height: calc(100vh - 104px); overflow-y:auto;
+      visibility:visible; z-index: 10;
+      -ms-overflow-style:none; scrollbar-width:none;
     }
+    .side-panel-inner::-webkit-scrollbar{ display:none; }
+    #sidePanelLeft .side-panel-inner{ left: max(24px, calc(50% - 540px)); }
+    #sidePanelRight .side-panel-inner{ right: max(24px, calc(50% - 540px)); }
   }
   .minigame-card{ border: 1px solid var(--line); border-radius: 6px; background: var(--white-ish); padding: 16px; margin-bottom: 20px; }
   .minigame-card h4{ font-family: var(--serif); font-size: 0.98rem; margin: 0 0 4px; }
@@ -831,6 +848,15 @@
     max-width: 90vw; text-align:center;
   }
   .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+  .cookie-banner{
+    position:fixed; left:0; right:0; bottom:0; z-index:250;
+    background: var(--ink); color: var(--paper); padding:14px 18px;
+    display:none; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.25); font-size:0.85rem;
+  }
+  .cookie-banner.show{ display:flex; }
+  .cookie-banner a{ color: var(--paper); text-decoration:underline; }
+  .cookie-banner .btn-outline{ border-color: var(--paper); color: var(--paper); }
   .ig-icon.share-active{ opacity:1; cursor:pointer; }
   .share-menu{
     position:absolute; background: var(--white-ish); border:1px solid var(--line); border-radius:6px;
@@ -896,6 +922,28 @@
 </head>
 <body>
 
+  <!-- ============ PANTALLA DE CARGA ============ -->
+<div id="appLoadingScreen" style="
+  position:fixed; inset:0; z-index:9999; background:#EFE9D8;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+  transition: opacity 0.3s ease;
+">
+  <div style="font-family: Georgia, serif; font-size:1.6rem; font-weight:700; color:#2C4E35;">
+    Enra<span style="color:#9C5F2C;">í</span>za
+  </div>
+  <div style="
+    width:34px; height:34px; border-radius:50%;
+    border:3px solid #B8AE93; border-top-color:#3F6B4A;
+    animation: appLoadSpin 0.8s linear infinite;
+  "></div>
+  <p style="color:#4A5A42; font-size:0.85rem; margin:0;">Cargando tu comunidad…</p>
+</div>
+<style>
+  @keyframes appLoadSpin{ to{ transform: rotate(360deg); } }
+  #appLoadingScreen.hide{ opacity:0; pointer-events:none; }
+</style>
+<!-- ============ FIN PANTALLA DE CARGA ============ -->
+
 <header class="nav">
   <div class="nav-inner">
     <a href="#" class="logo" data-view="inicio">Enra<span>í</span>za</a>
@@ -915,6 +963,10 @@
         <span class="ig-dot" id="activityDot" style="display:none;"></span>
       </button>
 
+      <div id="authButtonsWrap" style="display:none; align-items:center; gap:8px;">
+        <button type="button" class="btn btn-outline btn-small" id="topbarLoginBtn">Iniciar sesión</button>
+        <button type="button" class="btn btn-primary btn-small" id="topbarRegisterBtn">Registrarse</button>
+      </div>
       <button class="ig-icon-btn" id="btnGoProfile" title="Perfil" aria-label="Perfil">
         <div class="avatar" id="topbarAvatar">?</div>
       </button>
@@ -1345,6 +1397,11 @@
 <footer>
   <div class="wrap">
     <p>Enraíza — un cuaderno vivo para ir sumando proyectos sostenibles. Iremos agregando más ideas, plantas y artículos con el tiempo.</p>
+    <p style="margin-top:8px; font-size:0.8rem;">
+      <a href="#" id="footerPrivacyLink">Aviso de privacidad</a> ·
+      <a href="#" id="footerTermsLink">Términos de uso</a> ·
+      <a href="#" id="footerCookiesLink">Cookies</a>
+    </p>
   </div>
 </footer>
 
@@ -1375,6 +1432,15 @@
     <button class="modal-close" id="securityActionClose" aria-label="Cerrar">&times;</button>
     <div id="securityActionContent"></div>
   </div>
+</div>
+
+<!-- AVISO DE COOKIES -->
+<div class="cookie-banner" id="cookieBanner">
+  <span>Usamos cookies esenciales para que tu sesión funcione, y guardamos algunas preferencias (como tu pantalla actual). <a href="#" id="cookiePolicyLink">Leer más</a>.</span>
+  <span style="display:flex; gap:8px;">
+    <button type="button" class="btn btn-outline btn-small" id="cookieRejectBtn">Solo esenciales</button>
+    <button type="button" class="btn btn-primary btn-small" id="cookieAcceptBtn">Aceptar todo</button>
+  </span>
 </div>
 
 <!-- AVISO PEQUEÑO (toast) -->
@@ -1632,7 +1698,7 @@ function showView(name){
   if(name === 'perfil') renderProfile();
   if(name === 'logros') renderAchievementsPage();
   if(name === 'misiones') renderMissionsPage();
-  if(name === 'configuracion') renderSettingsPage();
+  if(name === 'configuracion'){ renderSettingsPage(); if(window.settingsResetToMenu) window.settingsResetToMenu(); }
   if(name === 'perfilVisita') renderUserProfileVisit();
   if(name === 'bitacora') renderBitacoraProjectList();
 }
@@ -1698,6 +1764,47 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
+
+function initCookieConsent(){
+  const banner = document.getElementById('cookieBanner');
+  if(!banner) return;
+  let consent = null;
+  try{ consent = localStorage.getItem('enraiza:cookie_consent'); }catch(err){}
+  if(!consent) banner.classList.add('show');
+  document.getElementById('cookieAcceptBtn')?.addEventListener('click', () => {
+    try{ localStorage.setItem('enraiza:cookie_consent', 'all'); }catch(err){}
+    banner.classList.remove('show');
+  });
+  document.getElementById('cookieRejectBtn')?.addEventListener('click', () => {
+    try{ localStorage.setItem('enraiza:cookie_consent', 'essential'); }catch(err){}
+    banner.classList.remove('show');
+  });
+  document.getElementById('cookiePolicyLink')?.addEventListener('click', (e) => { e.preventDefault(); openLegalModal('cookies'); });
+}
+function openLegalModal(kind){
+  modalBox.className = 'modal';
+  const content = {
+    privacy: { title:'Aviso de privacidad', body:`
+      <p class="section-desc">Enraíza guarda lo mínimo necesario para que la comunidad funcione: tu nombre o apodo, tu correo, tu foto de perfil si subes una, y lo que publicas.</p>
+      <p class="section-desc">Tus publicaciones y bitácoras públicas son visibles para cualquiera. Tu bitácora privada, tu correo y tu contraseña nunca se muestran a otras personas.</p>
+      <p class="section-desc">Puedes pedir la eliminación de tu cuenta y tus datos desde Configuración → Seguridad.</p>` },
+    terms: { title:'Términos de uso', body:`
+      <p class="section-desc">Al usar Enraíza aceptas tratar a la comunidad con respeto: nada de spam, acoso ni contenido dañino.</p>
+      <p class="section-desc">El contenido que publiques sigue siendo tuyo; al compartirlo aceptas que otras personas puedan verlo, comentarlo y darle "me gusta".</p>` },
+    cookies: { title:'Cookies y almacenamiento local', body:`
+      <p class="section-desc"><strong>Esenciales:</strong> mantienen tu sesión iniciada y recuerdan qué historias ya viste.</p>
+      <p class="section-desc"><strong>Preferencias:</strong> recuerdan ajustes como la privacidad por defecto de tu bitácora y en qué pantalla te quedaste.</p>
+      <p class="section-desc">Enraíza no usa cookies de publicidad ni comparte esto con terceros.</p>` },
+  }[kind];
+  if(!content) return;
+  modalContent.innerHTML = `<h3>${content.title}</h3>${content.body}`;
+  modalBackdrop.classList.add('open');
+}
+
+document.getElementById('footerPrivacyLink')?.addEventListener('click', (e)=>{ e.preventDefault(); openLegalModal('privacy'); });
+document.getElementById('footerTermsLink')?.addEventListener('click', (e)=>{ e.preventDefault(); openLegalModal('terms'); });
+document.getElementById('footerCookiesLink')?.addEventListener('click', (e)=>{ e.preventDefault(); openLegalModal('cookies'); });
+initCookieConsent();
 
 function setViewportZoomLocked(locked){
   const meta = document.querySelector('meta[name="viewport"]');
@@ -2465,7 +2572,33 @@ function applyProfileToUI(){
     ? `¿Qué quieres compartir hoy, ${currentUser.name}?`
     : 'Inicia sesión para compartir un proyecto o planta';
   document.getElementById('profileDisplayName').textContent = currentUser ? currentUser.name : 'Invitado';
+  updateAuthButtonsUI();
 }
+
+function updateAuthButtonsUI(){
+  const wrap = document.getElementById('authButtonsWrap');
+  const profileBtn = document.getElementById('btnGoProfile');
+  const newPostBtn = document.getElementById('btnNewPost');
+  const activityBtn = document.getElementById('btnActivity');
+  const searchWrap = document.querySelector('.search-wrap');
+  if(!wrap || !profileBtn) return;
+  if(currentUser){
+    wrap.style.display = 'none';
+    profileBtn.style.display = '';
+    if(newPostBtn) newPostBtn.style.display = '';
+    if(activityBtn) activityBtn.style.display = '';
+    if(searchWrap) searchWrap.style.display = '';
+  } else {
+    wrap.style.display = 'flex';
+    profileBtn.style.display = 'none';
+    // Sin sesión no tiene sentido publicar, ver actividad ni buscar personas
+    if(newPostBtn) newPostBtn.style.display = 'none';
+    if(activityBtn) activityBtn.style.display = 'none';
+    if(searchWrap) searchWrap.style.display = 'none';
+  }
+}
+document.getElementById('topbarLoginBtn').addEventListener('click', () => openAuthModal('login'));
+document.getElementById('topbarRegisterBtn').addEventListener('click', () => openAuthModal('register'));
 
 // ---------- CREATE BAR / COMPOSER ----------
 const composerForm = document.getElementById('composerForm');
@@ -2897,13 +3030,13 @@ async function loadPostsIntoCache(){
   return postsCache;
 }
 
-// ---------- RENDER DEL FEED DIRECTO DESDE LA CACHÉ (sin pedir nada a la red) ----------
-// *** ESTA FUNCIÓN ESTABA ROTA: calculaba "posts" pero nunca los pintaba
-// en pantalla, así que el feed se quedaba para siempre en "Cargando
-// publicaciones…". Ya vuelve a construir el HTML y a enlazar cada tarjeta. ***
+const FEED_PAGE_SIZE = 12;
+let feedRenderedCount = 0;
+let feedSentinelObserver = null;
+
 function renderFeedFromCache(){
   renderSearchFilterBanner();
-  let posts = postsCache; // ya viene ordenado por recommend_feed() al cargarse
+  let posts = postsCache;
   if(activeAuthorFilter){
     posts = posts.filter(p => p.authorId === activeAuthorFilter.id).sort((a,b) => b.date - a.date);
   }
@@ -2913,14 +3046,39 @@ function renderFeedFromCache(){
       : '<p class="feed-empty">Todavía no hay publicaciones. Inicia sesión y cuenta un proyecto o una planta arriba.</p>';
     return;
   }
-  feedEntriesEl.innerHTML = posts.map(post => {
+  feedRenderedCount = Math.min(FEED_PAGE_SIZE, posts.length);
+  paintFeedBatch(posts, feedRenderedCount);
+  setupFeedInfiniteScroll(posts);
+}
+
+function paintFeedBatch(posts, count){
+  const slice = posts.slice(0, count);
+  feedEntriesEl.innerHTML = slice.map(post => {
     const authorObj = usersCache[post.authorId];
     const authorName = authorObj?.name || 'Alguien de la comunidad';
     const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
     const saved = currentUser ? !!post._savedLocal : false;
     return postCardHTML(post, authorName, authorObj, liked, saved);
-  }).join('');
+  }).join('') + (count < posts.length
+    ? '<div id="feedSentinel" style="height:1px;"></div>'
+    : '<p class="feed-empty" style="text-align:center;padding:18px 0;">Ya viste todo por ahora 🌱</p>');
   feedEntriesEl.querySelectorAll('.ig-post').forEach(article => bindPostCard(article));
+}
+
+function setupFeedInfiniteScroll(posts){
+  if(feedSentinelObserver) feedSentinelObserver.disconnect();
+  const sentinel = document.getElementById('feedSentinel');
+  if(!sentinel) return;
+  feedSentinelObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting && feedRenderedCount < posts.length){
+        feedRenderedCount = Math.min(feedRenderedCount + FEED_PAGE_SIZE, posts.length);
+        paintFeedBatch(posts, feedRenderedCount);
+        setupFeedInfiniteScroll(posts);
+      }
+    });
+  }, { rootMargin: '400px' });
+  feedSentinelObserver.observe(sentinel);
 }
 
 // ---------- RECARGAR TODO DESDE CERO (solo al iniciar, iniciar/cerrar sesión, o si algo falla) ----------
@@ -4530,10 +4688,52 @@ function initDeleteAccountSecurity(){
 function initSettingsNavigation(){
   const buttons=[...document.querySelectorAll('[data-settings-section]')];
   const panels=[...document.querySelectorAll('[data-settings-panel]')];
-  const select=(key)=>{buttons.forEach(b=>b.classList.toggle('active',b.dataset.settingsSection===key));panels.forEach(p=>p.classList.toggle('active',p.dataset.settingsPanel===key));};
-  buttons.forEach(b=>{if(!b.dataset.bound){b.dataset.bound='1';b.addEventListener('click',()=>select(b.dataset.settingsSection));}});
-  const back=document.getElementById('settingsMobileBack');
-  if(back && !back.dataset.bound){back.dataset.bound='1';back.addEventListener('click',()=>showView('perfil'));}
+  const nav = document.querySelector('.settings-nav');
+  const content = document.querySelector('.settings-content');
+  const back = document.getElementById('settingsMobileBack');
+  const isMobile = () => window.matchMedia('(max-width:700px)').matches;
+
+  const showPanel=(key)=>{
+    buttons.forEach(b=>b.classList.toggle('active',b.dataset.settingsSection===key));
+    panels.forEach(p=>p.classList.toggle('active',p.dataset.settingsPanel===key));
+    if(isMobile() && nav && content){
+      nav.style.display = 'none';
+      content.style.display = 'block';
+      if(back) back.style.display = 'flex';
+    }
+  };
+  const showMenu=()=>{
+    if(!isMobile()) return;
+    if(nav) nav.style.display = '';
+    if(content) content.style.display = 'none';
+    if(back) back.style.display = 'none';
+  };
+
+  buttons.forEach(b=>{
+    if(!b.dataset.bound){
+      b.dataset.bound='1';
+      b.addEventListener('click',()=>showPanel(b.dataset.settingsSection));
+    }
+  });
+  if(back && !back.dataset.bound){
+    back.dataset.bound='1';
+    back.addEventListener('click', () => { isMobile() ? showMenu() : showView('perfil'); });
+  }
+  window.settingsResetToMenu = showMenu; // para llamarlo cada vez que se abre Configuración
+  showMenu();
+
+  if(!window.settingsResizeBound){
+    window.settingsResizeBound = true;
+    window.addEventListener('resize', () => {
+      if(!isMobile()){
+        if(nav) nav.style.display = '';
+        if(content) content.style.display = '';
+        if(back) back.style.display = '';
+      } else {
+        showMenu();
+      }
+    });
+  }
 }
 initSettingsNavigation();
 
@@ -4690,6 +4890,17 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
+// ---------- KEEP-ALIVE: evita que Supabase pause el proyecto por inactividad ----------
+// Hace una consulta mínima cada 6 horas mientras la pestaña siga abierta.
+// Esto ayuda, pero NO es suficiente si nadie visita la página en varios días seguidos:
+// para eso hace falta el ping externo del paso 2 (fuera de este archivo).
+async function pingKeepAlive(){
+  try{ await sb.from('profiles').select('id').limit(1); }
+  catch(err){ /* silencioso: si falla, no debe romper nada visible */ }
+}
+setInterval(pingKeepAlive, 6 * 60 * 60 * 1000); // cada 6 horas
+pingKeepAlive(); // uno al cargar, además del que ya hace loadPostsIntoCache()
+
 (async () => {
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -4718,8 +4929,16 @@ sb.auth.onAuthStateChange(async (event, session) => {
       const sharedPostId = new URLSearchParams(window.location.search).get('post');
       if(sharedPostId) openPostModal(sharedPostId);
     }catch(err){ /* ignore */ }
+    const loadingScreen = document.getElementById('appLoadingScreen');
+    if(loadingScreen){
+      loadingScreen.classList.add('hide');
+      setTimeout(() => loadingScreen.remove(), 350);
+    }
+    if(!currentUser){ openAuthModal('login'); }
   } catch(err) {
     console.error('Error al iniciar Enraíza:', err);
+    const loadingScreen = document.getElementById('appLoadingScreen');
+    if(loadingScreen) loadingScreen.remove();
   }
 })();
 
