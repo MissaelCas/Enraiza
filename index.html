@@ -1271,9 +1271,9 @@
         <nav class="settings-nav" aria-label="Secciones de configuración">
           <button type="button" class="active" data-settings-section="perfil">Perfil</button>
           <button type="button" data-settings-section="privacidad">Privacidad</button>
-          <button type="button" data-settings-section="comunidad">Comunidad</button>
-          <button type="button" data-settings-section="sesion">Sesión</button>
           <button type="button" data-settings-section="seguridad">Seguridad</button>
+          <button type="button" data-settings-section="sesion">Cuenta</button>
+          <button type="button" data-settings-section="comunidad">Comunidad</button>
         </nav>
         <div class="settings-content">
       <div class="section-head">
@@ -2425,10 +2425,17 @@ function getProfilePrivacy(user){
 function canViewFollowSection(ownerUser, viewerUserId, section){
   if(!ownerUser) return false;
   const privacy = getProfilePrivacy(ownerUser);
-  if(ownerUser.id === viewerUserId){
-    return section === 'followers' ? privacy.showFollowers : privacy.showFollowing;
+  const isSelf = ownerUser.id === viewerUserId;
+  const visibilityKey = section === 'followers' ? 'showFollowers' : 'showFollowing';
+  const allowedKey = section === 'followers' ? 'allowFollowersToOthers' : 'allowFollowingToOthers';
+
+  if(isSelf){
+    return privacy[visibilityKey] !== false;
   }
-  return section === 'followers' ? privacy.allowFollowersToOthers : privacy.allowFollowingToOthers;
+
+  const ownerAllowsVisibility = privacy[visibilityKey] !== false;
+  const othersAllowed = privacy[allowedKey] !== false;
+  return ownerAllowsVisibility && othersAllowed;
 }
 function getRecentSearches(){
   try{
@@ -4010,10 +4017,14 @@ async function renderStories(){
     if(!byAuthor[s.authorId]) byAuthor[s.authorId] = [];
     byAuthor[s.authorId].push(s);
   });
+  const meId = currentUser?.id;
   storyGroups = Object.keys(byAuthor).map(authorId => ({
     authorId,
     stories: byAuthor[authorId].sort((a,b) => a.date - b.date),
   })).sort((a,b) => {
+    const aIsMine = a.authorId === meId ? 0 : 1;
+    const bIsMine = b.authorId === meId ? 0 : 1;
+    if(aIsMine !== bIsMine) return aIsMine - bIsMine;
     const lastA = a.stories[a.stories.length-1].date;
     const lastB = b.stories[b.stories.length-1].date;
     return lastB - lastA;
