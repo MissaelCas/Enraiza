@@ -182,6 +182,87 @@
   .badges-summary strong{ display:block; font-size:1.15rem; color:var(--ink); font-family:var(--serif); }
   .badge-section-title{ font-family: var(--serif); font-size: 0.95rem; margin: 18px 0 8px; color: var(--ink-soft); }
 
+  .badge-featured-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin: 0 0 10px; }
+  .badge-featured-head p{ margin:0; font-size:.8rem; color:var(--ink-soft); }
+  .badge-featured-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .badge-mini{
+    border:1px solid var(--line); border-radius:10px; padding:12px; background:var(--white-ish);
+    display:flex; gap:10px; align-items:center; min-width:0;
+  }
+  .badge-mini.earned{ border-color:var(--moss); background:var(--paper-alt); }
+  .badge-mini .badge-icon{ font-size:1.35rem; flex-shrink:0; }
+  .badge-mini h4{ margin:0 0 2px; font-family:var(--serif); font-size:.9rem; }
+  .badge-mini p{ margin:0; font-size:.72rem; color:var(--ink-soft); line-height:1.35; }
+  .badge-mini .badge-points{ margin-top:4px; display:inline-block; }
+  .badge-progress{ font-size:.68rem; color:var(--moss-dark); font-weight:700; margin-top:4px; }
+  .badge-all-wrap{ margin-top:14px; }
+  .badge-all-wrap[hidden]{ display:none; }
+  .badge-toggle{
+    width:100%; border:1px solid var(--line); background:transparent; border-radius:999px;
+    padding:9px 14px; color:var(--moss-dark); font-weight:700; cursor:pointer;
+  }
+  .badge-toggle:hover{ background:var(--paper-alt); }
+  .badge-full-list{ margin-top:12px; }
+  @media(max-width:560px){ .badge-featured-grid{ grid-template-columns:1fr; } }
+
+  /* ---- Misiones y puntos: motivación discreta, centrada en acciones ---- */
+  .growth-card{
+    margin: 18px 0 22px; border:1px solid var(--line); border-radius:12px;
+    background:var(--white-ish); overflow:hidden;
+  }
+  .growth-top{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:16px 18px; border-bottom:1px solid var(--line);
+  }
+  .growth-top h3{ font-family:var(--serif); margin:0 0 2px; font-size:1.12rem; }
+  .growth-top p{ margin:0; color:var(--ink-soft); font-size:.78rem; }
+  .points-pill{
+    flex-shrink:0; text-align:right; padding:8px 11px; border-radius:999px;
+    background:var(--paper-alt); border:1px solid var(--line);
+  }
+  .points-pill strong{ display:block; font-family:var(--serif); font-size:1.05rem; line-height:1; }
+  .points-pill span{ display:block; margin-top:2px; color:var(--ink-soft); font-size:.65rem; }
+  .mission-list{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:12px; }
+  .mission-card{
+    border:1px solid var(--line); border-radius:10px; padding:12px; background:transparent;
+    display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
+  }
+  .mission-card.done{ border-color:var(--moss); background:var(--paper-alt); }
+  .mission-icon{ width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:var(--paper-alt); font-size:1.05rem; }
+  .mission-card.done .mission-icon{ background:var(--moss); }
+  .mission-card h4{ margin:0; font-family:var(--serif); font-size:.88rem; }
+  .mission-card p{ margin:2px 0 0; color:var(--ink-soft); font-size:.7rem; line-height:1.35; }
+  .mission-progress{ margin-top:7px; height:5px; border-radius:999px; background:var(--paper-alt); overflow:hidden; }
+  .mission-progress span{ display:block; height:100%; width:0; background:var(--moss); border-radius:999px; }
+  .mission-reward{ font-size:.68rem; font-weight:800; color:var(--moss-dark); white-space:nowrap; }
+  .mission-card.done .mission-reward{ color:var(--moss-dark); }
+  .mission-foot{ padding:0 14px 14px; color:var(--ink-soft); font-size:.72rem; }
+  .mission-foot strong{ color:var(--ink); }
+  .badge-completed-block{
+    margin-bottom:14px; padding:12px; border:1px solid var(--moss); border-radius:12px; background:var(--paper-alt);
+  }
+  .badge-completed-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:9px; }
+  .badge-completed-head strong{ font-family:var(--serif); font-size:.98rem; }
+  .badge-completed-head span{ font-size:.7rem; color:var(--ink-soft); }
+  .badge-earned-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:9px; }
+  .badge-earned-card{
+    display:flex; gap:9px; align-items:center; padding:10px; border-radius:9px;
+    background:var(--white-ish); border:1px solid rgba(63,107,74,.35);
+  }
+  .badge-earned-card .badge-icon{ font-size:1.25rem; }
+  .badge-earned-card h4{ margin:0; font-family:var(--serif); font-size:.84rem; }
+  .badge-earned-card p{ margin:1px 0 0; font-size:.68rem; color:var(--ink-soft); }
+  .badge-earned-mark{ margin-left:auto; font-size:.78rem; font-weight:800; color:var(--moss-dark); }
+  .badge-locked-section{ margin-top:8px; }
+  .badge-locked-note{ margin:0 0 9px; color:var(--ink-soft); font-size:.74rem; }
+
+  @media(max-width:700px){ .mission-list{ grid-template-columns:1fr; } }
+  @media(max-width:560px){
+    .badge-featured-grid{ grid-template-columns:1fr; }
+    .growth-top{ align-items:flex-start; }
+    .points-pill{ padding:7px 9px; }
+  }
+
   .avatar{
     width: 38px; height:38px; border-radius: 50%; background: var(--moss);
     color: var(--white-ish); display:flex; align-items:center; justify-content:center;
@@ -1262,7 +1343,8 @@ async function uploadImageFile(file, folder){
 // =====================================================================
 // CAPA DE DATOS (DB.*) — contra Supabase real (Postgres + Auth + Storage)
 // Ver schema.sql para las tablas (incluye story_views, comment_likes,
-// user_stats y user_badges).
+// user_stats y user_badges). Las misiones guardan su progreso/estado dentro
+// del jsonb counts, así que no requieren otra tabla.
 // =====================================================================
 const DB = {
   users: {
@@ -2906,45 +2988,94 @@ let userStats = { counts: {}, current_streak: 0, longest_streak: 0 };
 let earnedBadgeIds = new Set();
 
 const BADGES = [
-  // ---- Publicar en la comunidad ----
-  { id:'post-1', cat:'Publicaciones', icon:'📣', name:'Comparte y crece', points:10, desc:'Comparte tu primera publicación con la comunidad.', check:(s)=> (s.counts.posts_created||0) >= 1 },
-  { id:'post-5', cat:'Publicaciones', icon:'📝', name:'Voz constante', points:25, desc:'Publica 5 veces en total.', check:(s)=> (s.counts.posts_created||0) >= 5 },
-  { id:'post-15', cat:'Publicaciones', icon:'🌿', name:'Narrador de la huerta', points:50, desc:'Publica 15 veces en total.', check:(s)=> (s.counts.posts_created||0) >= 15 },
-  { id:'post-30', cat:'Publicaciones', icon:'👑', name:'Cronista de Enraíza', points:100, desc:'Publica 30 veces en total.', check:(s)=> (s.counts.posts_created||0) >= 30 },
+  // ---- Primeros pasos ----
+  { id:'start-1', cat:'Primeros pasos', icon:'🌱', name:'Primera semilla', points:10, desc:'Crea tu primera acción en Enraíza.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 1 },
+  { id:'start-2', cat:'Primeros pasos', icon:'👣', name:'Ya arrancaste', points:10, desc:'Registra 2 acciones que hayas realizado.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 2 },
+  { id:'start-3', cat:'Primeros pasos', icon:'🪴', name:'Manos a la tierra', points:15, desc:'Completa 3 acciones en total.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 3 },
+  { id:'start-4', cat:'Primeros pasos', icon:'🌿', name:'Pequeño gran cambio', points:20, desc:'Completa 5 acciones en total.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 5 },
+  { id:'start-5', cat:'Primeros pasos', icon:'🌳', name:'Ya echaste raíz', points:35, desc:'Completa 10 acciones en total.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 10 },
+  { id:'start-6', cat:'Primeros pasos', icon:'🌎', name:'Cambio en marcha', points:60, desc:'Completa 20 acciones en total.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 20 },
 
-  // ---- Bitácora privada ----
-  { id:'log-1', cat:'Bitácora', icon:'🌱', name:'Primera raíz', points:10, desc:'Guarda tu primera entrada en la bitácora.', check:(s)=> (s.counts.logbook_entries||0) >= 1 },
-  { id:'log-5', cat:'Bitácora', icon:'📒', name:'Buena racha', points:20, desc:'Guarda 5 entradas en tu bitácora, en total.', check:(s)=> (s.counts.logbook_entries||0) >= 5 },
-  { id:'log-15', cat:'Bitácora', icon:'📔', name:'Diario fiel', points:40, desc:'Guarda 15 entradas en tu bitácora, en total.', check:(s)=> (s.counts.logbook_entries||0) >= 15 },
-  { id:'log-50', cat:'Bitácora', icon:'📚', name:'Archivo viviente', points:90, desc:'Guarda 50 entradas en tu bitácora, en total.', check:(s)=> (s.counts.logbook_entries||0) >= 50 },
+  // ---- Publicaciones ----
+  { id:'post-1', cat:'Publicaciones', icon:'📣', name:'Primera voz', points:10, desc:'Comparte tu primera publicación con la comunidad.', check:(s)=> (s.counts.posts_created||0) >= 1 },
+  { id:'post-3', cat:'Publicaciones', icon:'🌱', name:'Semillero de ideas', points:15, desc:'Publica 3 veces.', check:(s)=> (s.counts.posts_created||0) >= 3 },
+  { id:'post-5', cat:'Publicaciones', icon:'📝', name:'Voz constante', points:25, desc:'Publica 5 veces.', check:(s)=> (s.counts.posts_created||0) >= 5 },
+  { id:'post-10', cat:'Publicaciones', icon:'🌿', name:'Cuaderno abierto', points:35, desc:'Publica 10 veces.', check:(s)=> (s.counts.posts_created||0) >= 10 },
+  { id:'post-15', cat:'Publicaciones', icon:'🌳', name:'Narrador de la huerta', points:50, desc:'Publica 15 veces.', check:(s)=> (s.counts.posts_created||0) >= 15 },
+  { id:'post-30', cat:'Publicaciones', icon:'👑', name:'Cronista de Enraíza', points:100, desc:'Publica 30 veces.', check:(s)=> (s.counts.posts_created||0) >= 30 },
 
-  // ---- Dar apoyo (likes) ----
-  { id:'like-5', cat:'Apoyo a la comunidad', icon:'💚', name:'Apoyo mutuo', points:10, desc:'Da "me gusta" 5 veces, en total.', check:(s)=> (s.counts.likes_given||0) >= 5 },
-  { id:'like-20', cat:'Apoyo a la comunidad', icon:'💚', name:'Corazón verde', points:25, desc:'Da "me gusta" 20 veces, en total.', check:(s)=> (s.counts.likes_given||0) >= 20 },
-  { id:'like-50', cat:'Apoyo a la comunidad', icon:'🌻', name:'Animador de la comunidad', points:50, desc:'Da "me gusta" 50 veces, en total.', check:(s)=> (s.counts.likes_given||0) >= 50 },
-  { id:'like-150', cat:'Apoyo a la comunidad', icon:'💫', name:'Alma solidaria', points:100, desc:'Da "me gusta" 150 veces, en total.', check:(s)=> (s.counts.likes_given||0) >= 150 },
+  // ---- Bitácora ----
+  { id:'log-1', cat:'Bitácora', icon:'📔', name:'Primera raíz', points:10, desc:'Guarda tu primera entrada en la bitácora.', check:(s)=> (s.counts.logbook_entries||0) >= 1 },
+  { id:'log-3', cat:'Bitácora', icon:'✍️', name:'Manos que anotan', points:15, desc:'Guarda 3 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 3 },
+  { id:'log-5', cat:'Bitácora', icon:'📒', name:'Buena racha', points:20, desc:'Guarda 5 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 5 },
+  { id:'log-10', cat:'Bitácora', icon:'🗃️', name:'Coleccionista de cambios', points:30, desc:'Guarda 10 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 10 },
+  { id:'log-15', cat:'Bitácora', icon:'📚', name:'Diario fiel', points:40, desc:'Guarda 15 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 15 },
+  { id:'log-50', cat:'Bitácora', icon:'🏛️', name:'Archivo viviente', points:90, desc:'Guarda 50 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 50 },
 
-  // ---- Comentar ----
-  { id:'comment-3', cat:'Conversación', icon:'💬', name:'Voz activa', points:10, desc:'Deja 3 comentarios en publicaciones de otras personas.', check:(s)=> (s.counts.comments_written||0) >= 3 },
-  { id:'comment-15', cat:'Conversación', icon:'🗣️', name:'Conversador', points:25, desc:'Deja 15 comentarios, en total.', check:(s)=> (s.counts.comments_written||0) >= 15 },
-  { id:'comment-50', cat:'Conversación', icon:'🌳', name:'Mentor de la comunidad', points:60, desc:'Deja 50 comentarios, en total.', check:(s)=> (s.counts.comments_written||0) >= 50 },
+  // ---- Apoyo a la comunidad ----
+  { id:'like-1', cat:'Apoyo a la comunidad', icon:'💚', name:'Primer abrazo verde', points:5, desc:'Da tu primer "me gusta" a otra persona.', check:(s)=> (s.counts.likes_given||0) >= 1 },
+  { id:'like-5', cat:'Apoyo a la comunidad', icon:'💚', name:'Apoyo mutuo', points:10, desc:'Da "me gusta" 5 veces.', check:(s)=> (s.counts.likes_given||0) >= 5 },
+  { id:'like-20', cat:'Apoyo a la comunidad', icon:'🌻', name:'Sol para otros', points:25, desc:'Da "me gusta" 20 veces.', check:(s)=> (s.counts.likes_given||0) >= 20 },
+  { id:'like-50', cat:'Apoyo a la comunidad', icon:'🤝', name:'Red que sostiene', points:50, desc:'Da "me gusta" 50 veces.', check:(s)=> (s.counts.likes_given||0) >= 50 },
+  { id:'like-100', cat:'Apoyo a la comunidad', icon:'💫', name:'Impulsor verde', points:75, desc:'Da "me gusta" 100 veces.', check:(s)=> (s.counts.likes_given||0) >= 100 },
+  { id:'like-150', cat:'Apoyo a la comunidad', icon:'🌟', name:'Alma solidaria', points:100, desc:'Da "me gusta" 150 veces.', check:(s)=> (s.counts.likes_given||0) >= 150 },
 
-  // ---- Guardar publicaciones ----
-  { id:'save-3', cat:'Guardados', icon:'🔖', name:'Guardador de ideas', points:10, desc:'Guarda 3 publicaciones para leer después.', check:(s)=> (s.counts.posts_saved||0) >= 3 },
-  { id:'save-15', cat:'Guardados', icon:'🗂️', name:'Bibliotecario personal', points:30, desc:'Guarda 15 publicaciones, en total.', check:(s)=> (s.counts.posts_saved||0) >= 15 },
+  // ---- Conversación ----
+  { id:'comment-1', cat:'Conversación', icon:'💬', name:'Rompe el silencio', points:5, desc:'Deja tu primer comentario.', check:(s)=> (s.counts.comments_written||0) >= 1 },
+  { id:'comment-3', cat:'Conversación', icon:'🗣️', name:'Voz activa', points:10, desc:'Deja 3 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 3 },
+  { id:'comment-5', cat:'Conversación', icon:'🌱', name:'Pregunta y aprende', points:15, desc:'Deja 5 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 5 },
+  { id:'comment-10', cat:'Conversación', icon:'🌿', name:'Puente de ideas', points:25, desc:'Deja 10 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 10 },
+  { id:'comment-25', cat:'Conversación', icon:'🌳', name:'Guía del semillero', points:40, desc:'Deja 25 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 25 },
+  { id:'comment-50', cat:'Conversación', icon:'🌲', name:'Mentor de la comunidad', points:60, desc:'Deja 50 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 50 },
+
+  // ---- Guardados ----
+  { id:'save-1', cat:'Guardados', icon:'🔖', name:'Esto me sirve', points:5, desc:'Guarda tu primera publicación.', check:(s)=> (s.counts.posts_saved||0) >= 1 },
+  { id:'save-3', cat:'Guardados', icon:'💡', name:'Cazador de ideas', points:10, desc:'Guarda 3 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 3 },
+  { id:'save-5', cat:'Guardados', icon:'🧠', name:'Memoria verde', points:15, desc:'Guarda 5 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 5 },
+  { id:'save-10', cat:'Guardados', icon:'🗂️', name:'Colección útil', points:25, desc:'Guarda 10 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 10 },
+  { id:'save-15', cat:'Guardados', icon:'📚', name:'Bibliotecario personal', points:30, desc:'Guarda 15 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 15 },
+  { id:'save-30', cat:'Guardados', icon:'🏷️', name:'Mapa de recursos', points:55, desc:'Guarda 30 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 30 },
 
   // ---- Historias ----
-  { id:'story-1', cat:'Historias', icon:'⏱️', name:'Primera historia', points:10, desc:'Publica tu primera historia de 24 horas.', check:(s)=> (s.counts.stories_created||0) >= 1 },
-  { id:'story-10', cat:'Historias', icon:'📸', name:'Narrador diario', points:30, desc:'Publica 10 historias, en total.', check:(s)=> (s.counts.stories_created||0) >= 10 },
-  { id:'story-30', cat:'Historias', icon:'🎞️', name:'Historiador de Enraíza', points:60, desc:'Publica 30 historias, en total.', check:(s)=> (s.counts.stories_created||0) >= 30 },
+  { id:'story-1', cat:'Historias', icon:'⏱️', name:'Primera huella', points:10, desc:'Publica tu primera historia de 24 horas.', check:(s)=> (s.counts.stories_created||0) >= 1 },
+  { id:'story-3', cat:'Historias', icon:'📸', name:'Momento verde', points:15, desc:'Publica 3 historias.', check:(s)=> (s.counts.stories_created||0) >= 3 },
+  { id:'story-5', cat:'Historias', icon:'🌿', name:'Diario en movimiento', points:20, desc:'Publica 5 historias.', check:(s)=> (s.counts.stories_created||0) >= 5 },
+  { id:'story-10', cat:'Historias', icon:'🎞️', name:'Narrador diario', points:30, desc:'Publica 10 historias.', check:(s)=> (s.counts.stories_created||0) >= 10 },
+  { id:'story-20', cat:'Historias', icon:'🌱', name:'Historias que germinan', points:45, desc:'Publica 20 historias.', check:(s)=> (s.counts.stories_created||0) >= 20 },
+  { id:'story-30', cat:'Historias', icon:'🎬', name:'Historiador de Enraíza', points:60, desc:'Publica 30 historias.', check:(s)=> (s.counts.stories_created||0) >= 30 },
 
-  // ---- Racha de días seguidos entrando ----
-  { id:'streak-3', cat:'Constancia diaria', icon:'🔥', name:'Constancia inicial', points:15, desc:'Entra 3 días seguidos.', check:(s)=> (s.longest_streak||0) >= 3 },
-  { id:'streak-7', cat:'Constancia diaria', icon:'🔥', name:'Semana completa', points:35, desc:'Entra 7 días seguidos.', check:(s)=> (s.longest_streak||0) >= 7 },
-  { id:'streak-30', cat:'Constancia diaria', icon:'🔥', name:'Mes entero', points:100, desc:'Entra 30 días seguidos.', check:(s)=> (s.longest_streak||0) >= 30 },
-  { id:'streak-100', cat:'Constancia diaria', icon:'🌟', name:'Raíz profunda', points:250, desc:'Entra 100 días seguidos. El logro más difícil de todos.', check:(s)=> (s.longest_streak||0) >= 100 },
+  // ---- Constancia ----
+  { id:'streak-3', cat:'Constancia diaria', icon:'🔥', name:'Chispa inicial', points:15, desc:'Entra 3 días seguidos.', check:(s)=> (s.longest_streak||0) >= 3 },
+  { id:'streak-5', cat:'Constancia diaria', icon:'🔥', name:'Cinco días con raíz', points:25, desc:'Entra 5 días seguidos.', check:(s)=> (s.longest_streak||0) >= 5 },
+  { id:'streak-7', cat:'Constancia diaria', icon:'🔥', name:'Semana encendida', points:35, desc:'Entra 7 días seguidos.', check:(s)=> (s.longest_streak||0) >= 7 },
+  { id:'streak-14', cat:'Constancia diaria', icon:'🔥', name:'Quincena verde', points:60, desc:'Entra 14 días seguidos.', check:(s)=> (s.longest_streak||0) >= 14 },
+  { id:'streak-30', cat:'Constancia diaria', icon:'🌳', name:'Mes con raíces', points:100, desc:'Entra 30 días seguidos.', check:(s)=> (s.longest_streak||0) >= 30 },
+  { id:'streak-100', cat:'Constancia diaria', icon:'🌟', name:'Raíz profunda', points:250, desc:'Entra 100 días seguidos.', check:(s)=> (s.longest_streak||0) >= 100 },
 ];
 const BADGE_CATEGORIES = [...new Set(BADGES.map(b => b.cat))];
+
+function getISOWeekKey(date = new Date()){
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const year = d.getFullYear();
+  const yearStart = new Date(year,0,1);
+  const week = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${year}-W${String(week).padStart(2,'0')}`;
+}
+function weeklyKey(field){ return `week_${getISOWeekKey()}_${field}`; }
+function missionClaimKey(id){ return `mission_${getISOWeekKey()}_${id}`; }
+
+const MISSIONS = [
+  { id:'post', icon:'🌱', title:'Comparte una acción', desc:'Publica algo que hiciste, aprendiste o estás intentando.', field:'posts_created', target:1, points:45 },
+  { id:'comment', icon:'💬', title:'Haz comunidad', desc:'Deja 3 comentarios que aporten una idea o consejo.', field:'comments_written', target:3, points:30 },
+  { id:'like', icon:'💚', title:'Deja huella', desc:'Apoya 5 publicaciones de otras personas.', field:'likes_given', target:5, points:20 },
+  { id:'save', icon:'🔖', title:'Guarda una idea', desc:'Guarda 2 publicaciones para volver a ellas.', field:'posts_saved', target:2, points:20 },
+  { id:'log', icon:'📔', title:'Documenta tu avance', desc:'Registra 2 cambios, pruebas o aprendizajes en tu bitácora.', field:'logbook_entries', target:2, points:35 },
+  { id:'story', icon:'📸', title:'Muéstralo en movimiento', desc:'Comparte 2 historias durante la semana.', field:'stories_created', target:2, points:30 },
+  { id:'streak', icon:'🔥', title:'Vuelve a echar raíz', desc:'Entra a Enraíza 3 días seguidos.', field:'current_streak', target:3, points:35, streak:true },
+];
 
 async function loadUserStatsAndBadges(){
   if(!currentUser){ userStats = { counts:{}, current_streak:0, longest_streak:0 }; earnedBadgeIds = new Set(); return; }
@@ -2962,30 +3093,71 @@ async function recordDailyLogin(){
     userStats.longest_streak = r.longest_streak;
   }catch(err){ /* ignore */ }
   checkAndAwardBadges();
+  checkAndAwardMissions();
+}
+
+async function addPoints(amount){
+  if(!currentUser || !amount) return;
+  userStats.counts.points_total = (userStats.counts.points_total || 0) + amount;
+  try{ await DB.stats.increment('points_total', amount); }
+  catch(err){ /* se resincroniza al volver a cargar */ }
 }
 
 async function incrementStat(field, amount){
   if(!currentUser) return;
   amount = amount || 1;
-  userStats.counts[field] = (userStats.counts[field] || 0) + amount; // optimista, se ve al instante
+  userStats.counts[field] = (userStats.counts[field] || 0) + amount;
+  const wk = weeklyKey(field);
+  userStats.counts[wk] = (userStats.counts[wk] || 0) + amount;
   checkAndAwardBadges();
-  try{ await DB.stats.increment(field, amount); }
-  catch(err){ /* si falla, se resincroniza sola la próxima vez que se carguen los stats */ }
+  checkAndAwardMissions();
+  try{
+    await Promise.all([
+      DB.stats.increment(field, amount),
+      DB.stats.increment(wk, amount)
+    ]);
+  }catch(err){ /* se resincroniza sola la próxima vez */ }
 }
 
 async function awardBadge(badge){
   if(earnedBadgeIds.has(badge.id)) return;
   earnedBadgeIds.add(badge.id);
-  showToast(`🏅 ¡Nuevo logro! ${badge.name} (+${badge.points} pts)`);
+  await addPoints(badge.points);
+  showToast(`🏅 ${badge.name} · +${badge.points} pts`);
   if(document.getElementById('perfil').classList.contains('active')) renderProfile();
   try{ await DB.badges.award(currentUser.id, badge.id); }
-  catch(err){ /* si falla el guardado remoto, queda local por ahora; se reintenta si vuelve a cumplirse */ }
+  catch(err){ /* si ya existía, no pasa nada */ }
 }
 
 function checkAndAwardBadges(){
   if(!currentUser) return;
   BADGES.forEach(b => {
     if(!earnedBadgeIds.has(b.id) && b.check(userStats)) awardBadge(b);
+  });
+}
+
+function getMissionProgress(mission){
+  if(mission.streak) return Math.min(mission.target, userStats.current_streak || 0);
+  return Math.min(mission.target, userStats.counts[weeklyKey(mission.field)] || 0);
+}
+
+function checkAndAwardMissions(){
+  if(!currentUser) return;
+  MISSIONS.forEach(async mission => {
+    const progress = getMissionProgress(mission);
+    const claimKey = missionClaimKey(mission.id);
+    if(progress >= mission.target && !(userStats.counts[claimKey] || 0)){
+      userStats.counts[claimKey] = 1;
+      userStats.counts.points_total = (userStats.counts.points_total || 0) + mission.points;
+      showToast(`🎯 Misión cumplida: ${mission.title} · +${mission.points} pts`);
+      if(document.getElementById('perfil').classList.contains('active')) renderProfile();
+      try{
+        await Promise.all([
+          DB.stats.increment(claimKey, 1),
+          DB.stats.increment('points_total', mission.points)
+        ]);
+      }catch(err){ /* se mantiene visible y se reintentará al volver a cargar */ }
+    }
   });
 }
 
@@ -3069,31 +3241,175 @@ async function renderProfile(){
     profileGrid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
   }
 
-  // ---- Logros: se pintan a partir de earnedBadgeIds (persistente), no de lo que hay ahora mismo ----
-  const totalPoints = BADGES.reduce((sum,b) => sum + (earnedBadgeIds.has(b.id) ? b.points : 0), 0);
-  const earnedCount = BADGES.filter(b => earnedBadgeIds.has(b.id)).length;
+  // ---- Crecimiento: puntos + misiones + logros destacados.
+  // Los completados viven en una sola sección superior y NO se repiten
+  // debajo por categoría cuando se abre "Ver todos".
+  const earnedBadges = BADGES.filter(b => earnedBadgeIds.has(b.id));
+  const lockedBadges = BADGES.filter(b => !earnedBadgeIds.has(b.id));
+  const storedPoints = userStats.counts.points_total || 0;
+  const badgePointsFallback = earnedBadges.reduce((sum,b) => sum + b.points, 0);
+  const totalPoints = Math.max(storedPoints, badgePointsFallback);
+  const earnedCount = earnedBadges.length;
+
+  const getProgress = (b) => {
+    const c = userStats.counts || {};
+    const m = b.id.match(/^(post|log|like|comment|save|story)-(\d+)$/);
+    if(m){
+      const map = {post:'posts_created', log:'logbook_entries', like:'likes_given', comment:'comments_written', save:'posts_saved', story:'stories_created'};
+      return Math.min(Number(m[2]), c[map[m[1]]] || 0);
+    }
+    if(b.id.startsWith('streak-')) return Math.min(Number(b.id.split('-')[1]), userStats.longest_streak || 0);
+    if(b.id.startsWith('start-')){
+      const totalActions = (c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);
+      return Math.min([1,2,3,5,10,20][Number(b.id.split('-')[1])-1] || 0, totalActions);
+    }
+    return 0;
+  };
+
+  const featured = BADGES
+    .map(b => ({ b, earned: earnedBadgeIds.has(b.id), progress: getProgress(b) }))
+    .sort((a,b) => {
+      if(a.earned !== b.earned) return a.earned ? -1 : 1;
+      const aTarget = a.b.id.match(/-(\d+)$/)?.[1] ? Number(a.b.id.match(/-(\d+)$/)[1]) : 9999;
+      const bTarget = b.b.id.match(/-(\d+)$/)?.[1] ? Number(b.b.id.match(/-(\d+)$/)[1]) : 9999;
+      if(!a.earned && aTarget !== bTarget) return aTarget - bTarget;
+      return BADGES.indexOf(a.b) - BADGES.indexOf(b.b);
+    })
+    .slice(0,10);
+
+  const missionCards = MISSIONS.map(m => {
+    const progress = getMissionProgress(m);
+    const done = progress >= m.target;
+    const claimed = !!userStats.counts[missionClaimKey(m.id)];
+    const pct = Math.round((progress / m.target) * 100);
+    return `
+      <article class="mission-card ${done ? 'done' : ''}">
+        <div class="mission-icon">${m.icon}</div>
+        <div style="min-width:0;">
+          <h4>${m.title}</h4>
+          <p>${m.desc}</p>
+          <div class="mission-progress"><span style="width:${pct}%"></span></div>
+          <p style="margin-top:4px;"><strong>${progress}/${m.target}</strong>${done ? ' · completada' : ` · ${m.target-progress} para lograrla`}</p>
+        </div>
+        <div class="mission-reward">${claimed ? '✓' : `+${m.points}`}<br><span style="font-weight:500;">pts</span></div>
+      </article>
+    `;
+  }).join('');
+
   document.getElementById('badgesSummary').innerHTML = !currentUser ? '' : `
-    <div><strong>${totalPoints}</strong>puntos</div>
+    <div><strong>${totalPoints}</strong>puntos raíz</div>
     <div><strong>${earnedCount}/${BADGES.length}</strong>logros</div>
     <div><strong>🔥 ${userStats.longest_streak||0}</strong>mejor racha</div>
   `;
-  document.getElementById('badgeSections').innerHTML = BADGE_CATEGORIES.map(cat => `
-    <h4 class="badge-section-title">${cat}</h4>
-    <div class="badge-grid">
-      ${BADGES.filter(b => b.cat === cat).map(b => {
-        const earned = earnedBadgeIds.has(b.id);
+
+  document.getElementById('badgeSections').innerHTML = !currentUser ? '' : `
+    <div class="growth-card">
+      <div class="growth-top">
+        <div>
+          <h3>Haz crecer tu raíz</h3>
+          <p>Pequeñas acciones esta semana suman puntos y hacen crecer tu perfil.</p>
+        </div>
+        <div class="points-pill">
+          <strong>${totalPoints}</strong>
+          <span>PUNTOS RAÍZ</span>
+        </div>
+      </div>
+      <div class="mission-list">${missionCards}</div>
+      <div class="mission-foot">💡 <strong>Tip:</strong> empieza por la primera misión. Publicar una acción es la forma más rápida de hacer que tu actividad también ayude a la comunidad.</div>
+    </div>
+
+    <div class="badge-featured-head">
+      <div>
+        <strong style="font-family:var(--serif);">Tus logros destacados</strong>
+        <p>Mostramos solo 10: primero los que ya ganaste y luego los más fáciles de conseguir.</p>
+      </div>
+    </div>
+
+    <div class="badge-featured-grid">
+      ${featured.map(({b,earned,progress}) => {
+        const targetMatch = b.id.match(/-(\d+)$/);
+        const target = targetMatch ? Number(targetMatch[1]) : null;
+        const progressText = earned ? '✓ Completado' : (target ? `${progress}/${target} · te falta ${Math.max(0,target-progress)}` : 'Disponible');
         return `
-          <div class="badge-card ${earned ? '' : 'locked'}">
+          <div class="badge-mini ${earned ? 'earned' : ''}">
             <div class="badge-icon">${b.icon}</div>
-            <div>
+            <div style="min-width:0;">
               <h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4>
               <p>${b.desc}</p>
+              <div class="badge-progress">${progressText}</div>
             </div>
           </div>
         `;
       }).join('')}
     </div>
-  `).join('');
+
+    <div class="badge-all-wrap">
+      <button class="badge-toggle" id="badgeToggleBtn">Ver todos los ${BADGES.length} logros ↓</button>
+      <div class="badge-full-list" id="badgeFullList" hidden>
+        ${earnedBadges.length ? `
+          <div class="badge-completed-block">
+            <div class="badge-completed-head">
+              <strong>✓ Completados</strong>
+              <span>${earnedBadges.length} logrados · ${earnedBadges.reduce((s,b)=>s+b.points,0)} pts en logros</span>
+            </div>
+            <div class="badge-earned-grid">
+              ${earnedBadges.map(b => `
+                <div class="badge-earned-card">
+                  <div class="badge-icon">${b.icon}</div>
+                  <div>
+                    <h4>${b.name}</h4>
+                    <p>+${b.points} pts · ${b.desc}</p>
+                  </div>
+                  <div class="badge-earned-mark">✓</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+        <div class="badge-locked-section">
+          <p class="badge-locked-note">Aún por conseguir · ordenados para que encuentres primero los siguientes más alcanzables.</p>
+          ${BADGE_CATEGORIES.map(cat => {
+            const catBadges = lockedBadges.filter(b => b.cat === cat);
+            if(!catBadges.length) return '';
+            return `
+              <h4 class="badge-section-title">${cat}</h4>
+              <div class="badge-grid">
+                ${catBadges.map(b => {
+                  const progress = getProgress(b);
+                  const targetMatch = b.id.match(/-(\d+)$/);
+                  const target = targetMatch ? Number(targetMatch[1]) : null;
+                  return `
+                    <div class="badge-card locked">
+                      <div class="badge-icon">${b.icon}</div>
+                      <div>
+                        <h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4>
+                        <p>${b.desc}</p>
+                        ${target ? `<div class="badge-progress">${progress}/${target} · faltan ${Math.max(0,target-progress)}</div>` : ''}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  const badgeToggleBtn = document.getElementById('badgeToggleBtn');
+  const badgeFullList = document.getElementById('badgeFullList');
+  if(badgeToggleBtn && badgeFullList){
+    badgeToggleBtn.addEventListener('click', () => {
+      const isHidden = badgeFullList.hasAttribute('hidden');
+      if(isHidden){
+        badgeFullList.removeAttribute('hidden');
+        badgeToggleBtn.textContent = 'Ocultar logros ↑';
+      }else{
+        badgeFullList.setAttribute('hidden','');
+        badgeToggleBtn.textContent = `Ver todos los ${BADGES.length} logros ↓`;
+      }
+    });
+  }
 }
 
 // ---------- FORM SUBMIT (bitácora privada) ----------
