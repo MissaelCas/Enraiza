@@ -663,6 +663,25 @@
   .profile-stats-row strong{ display:block; font-size: 1.05rem; color: var(--ink); font-family: var(--serif); }
   .profile-bio{ font-size: 0.88rem; color: var(--ink-soft); max-width: 46ch; }
   .profile-bio strong{ display:block; color: var(--ink); font-family: var(--serif); font-size: 1rem; margin-bottom: 2px; }
+  .settings-bio-wrap{ display:flex; flex-direction:column; gap:12px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
+  .settings-bio-wrap textarea{ width:100%; max-width:420px; min-height:88px; resize:vertical; border:1px solid var(--line); border-radius:6px; background:var(--paper); font:inherit; padding:10px 11px; }
+  .bio-presets{ display:flex; flex-wrap:wrap; gap:8px; }
+  .bio-preset-btn{ border:1px solid var(--line); background:var(--paper-alt); color:var(--ink); border-radius:999px; padding:6px 10px; font-size:0.76rem; cursor:pointer; }
+  .bio-preset-btn.active{ background:var(--moss); color:#fff; border-color:var(--moss); }
+  .btn-following{ background:var(--paper-alt); border-color:var(--line); color:var(--ink); }
+  .btn-following.is-following{ background:var(--moss); color:#fff; border-color:var(--moss); }
+  .profile-follow-stat{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:70px; cursor:pointer; }
+  .profile-follow-stat.disabled{ opacity:.55; cursor:not-allowed; }
+  .profile-follow-stat strong{ font-size:1rem; }
+  .profile-follow-stat span{ font-size:0.7rem; color:var(--ink-soft); }
+  .privacy-setting-list{ display:grid; gap:14px; }
+  .privacy-setting-item{ display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 0; border-top:1px solid var(--line); }
+  .privacy-setting-item:first-child{ border-top:none; padding-top:0; }
+  .privacy-setting-item small{ display:block; color:var(--ink-soft); margin-top:3px; }
+  .privacy-setting-item input[type="checkbox"]{ accent-color:var(--moss); width:18px; height:18px; }
+  .search-empty{ padding:10px 12px; color:var(--ink-soft); font-size:0.82rem; }
+  .search-result-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; }
+  .search-result-row:hover{ background:var(--paper-alt); }
 
   .profile-post-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 6px; }
   .profile-post-thumb{ aspect-ratio: 1/1; object-fit:cover; width:100%; cursor:pointer; background: var(--paper-alt); }
@@ -1270,9 +1289,13 @@
           <form id="settingsProfileForm">
             <label for="settingsProfileName">Nombre o apodo</label>
             <input type="text" id="settingsProfileName" maxlength="80" placeholder="Tu nombre o apodo" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;">
-            <button type="submit" class="btn btn-primary btn-small">Guardar nombre</button>
+
+            <label for="settingsProfileBio">Descripción</label>
+            <textarea id="settingsProfileBio" maxlength="160" placeholder="Escribe un resumen corto de tu enfoque sostenible"></textarea>
+            <div class="bio-presets" id="profileBioPresetList" aria-label="Opciones rápidas de descripción"></div>
+            <div style="margin-top:10px;"><button type="submit" class="btn btn-primary btn-small">Guardar perfil</button></div>
           </form>
-          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="settings-bio-wrap" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <div class="avatar" id="settingsAvatarPreview">?</div>
             <div style="flex:1;min-width:180px;"><strong style="display:block;font-size:.86rem;">Foto de perfil</strong><small style="display:block;color:var(--ink-soft);font-size:.72rem;margin-top:2px;">La foto se cambia únicamente desde Configuración.</small></div>
             <button type="button" class="btn btn-outline btn-small" id="settingsAvatarBtn">Cambiar foto</button>
@@ -1289,6 +1312,28 @@
         <div class="setting-row">
           <div><strong>Mostrar mis publicaciones</strong><small>Las publicaciones de la red son públicas para la comunidad.</small></div>
           <span style="font-size:.72rem;color:var(--moss-dark);font-weight:700;">Públicas</span>
+        </div>
+        <div class="privacy-setting-list">
+          <label class="privacy-setting-item">
+            <div><strong>Mostrar mis seguidores</strong><small>Permite que los veas tú mismo desde tu perfil.</small></div>
+            <input type="checkbox" id="privacyShowFollowers" checked>
+          </label>
+          <label class="privacy-setting-item">
+            <div><strong>Mostrar a quién sigo</strong><small>Controla si quieres ver tu lista de seguidos dentro de tu perfil.</small></div>
+            <input type="checkbox" id="privacyShowFollowing" checked>
+          </label>
+          <label class="privacy-setting-item">
+            <div><strong>Permitir ver mis seguidores</strong><small>Otros usuarios podrán abrir tu lista de seguidores si lo activas.</small></div>
+            <input type="checkbox" id="privacyAllowFollowersToOthers" checked>
+          </label>
+          <label class="privacy-setting-item">
+            <div><strong>Permitir ver a quién sigo</strong><small>Otros usuarios podrán abrir tu lista de seguidos si lo activas.</small></div>
+            <input type="checkbox" id="privacyAllowFollowingToOthers" checked>
+          </label>
+          <label class="privacy-setting-item">
+            <div><strong>Mostrar mi perfil en búsquedas</strong><small>Si lo desactivas, no aparecerás en la búsqueda de personas.</small></div>
+            <input type="checkbox" id="privacyShowInSearch" checked>
+          </label>
         </div>
       </div>
       <div class="settings-group" data-settings-panel="comunidad">
@@ -1375,7 +1420,7 @@
             </div>
           </div>
           <div class="profile-stats-row" id="profileStats"></div>
-          <div class="profile-bio"><strong>Enraíza</strong>🌱 Por una vida más sostenible, una raíz a la vez.</div>
+          <div class="profile-bio" id="profileBioText"><strong>Enraíza</strong>🌱 Por una vida más sostenible, una raíz a la vez.</div>
         </div>
       </div>
 
@@ -1435,7 +1480,7 @@
             <span class="profile-visit-badge" aria-label="Cuenta verificada">✓</span>
           </div>
           <div class="profile-visit-actions">
-            <button type="button" class="btn btn-primary btn-small">Seguir</button>
+            <button type="button" class="btn btn-primary btn-small btn-following" id="profileVisitFollowBtn">Seguir</button>
             <button type="button" class="btn btn-outline btn-small">Mensaje</button>
           </div>
           <div class="profile-visit-stats" id="profileVisitStats"></div>
@@ -1965,24 +2010,95 @@ const DB = {
       const { data, error } = await sb.from('profiles').select('*').eq('id', id).maybeSingle();
       if(error) throw error;
       if(!data) return null;
-      return { id: data.id, name: data.name, avatarUrl: data.avatar_url };
+      return {
+        id: data.id,
+        name: data.name,
+        avatarUrl: data.avatar_url,
+        bio: data.bio || '',
+        privacySettings: normalizePrivacySettings(data.privacy_settings || data.profile_privacy || data.privacy || {})
+      };
     },
     async search(query){
       if(!query || !query.trim()) return [];
       const { data, error } = await sb.from('profiles').select('*').ilike('name', `%${query.trim()}%`).limit(8);
       if(error) throw error;
-      return (data||[]).map(d => ({ id: d.id, name: d.name, avatarUrl: d.avatar_url }));
+      return (data||[]).map(d => ({
+        id: d.id,
+        name: d.name,
+        avatarUrl: d.avatar_url,
+        bio: d.bio || '',
+        privacySettings: normalizePrivacySettings(d.privacy_settings || d.profile_privacy || d.privacy || {})
+      }));
+    },
+    async updateProfile(id, profile){
+      const patch = {};
+      if('name' in profile) patch.name = profile.name;
+      if('bio' in profile) patch.bio = profile.bio;
+      if('privacySettings' in profile) patch.privacy_settings = profile.privacySettings;
+      if(Object.keys(patch).length === 0) return { id, name: '', avatarUrl: '', bio: '', privacySettings: normalizePrivacySettings({}) };
+      const { data, error } = await sb.from('profiles').update(patch).eq('id', id).select().single();
+      if(error) throw error;
+      return {
+        id: data.id,
+        name: data.name,
+        avatarUrl: data.avatar_url,
+        bio: data.bio || '',
+        privacySettings: normalizePrivacySettings(data.privacy_settings || data.profile_privacy || data.privacy || {})
+      };
     },
     async updateName(id, name){
-      const { data, error } = await sb.from('profiles').update({ name }).eq('id', id).select().single();
-      if(error) throw error;
-      return { id: data.id, name: data.name, avatarUrl: data.avatar_url };
+      return this.updateProfile(id, { name });
+    },
+    async updateBio(id, bio){
+      return this.updateProfile(id, { bio });
     },
     async updateAvatar(id, avatarUrl){
       const { data, error } = await sb.from('profiles').update({ avatar_url: avatarUrl }).eq('id', id).select().single();
       if(error) throw error;
-      return { id: data.id, name: data.name, avatarUrl: data.avatar_url };
+      return { id: data.id, name: data.name, avatarUrl: data.avatar_url, bio: data.bio || '' };
     },
+  },
+
+  follows: {
+    async getCounts(userId){
+      const [{ data: followersData, error: followersError }, { data: followingData, error: followingError }] = await Promise.all([
+        sb.from('user_follows').select('follower_id').eq('followed_id', userId),
+        sb.from('user_follows').select('followed_id').eq('follower_id', userId)
+      ]);
+      if(followersError || followingError) throw followersError || followingError;
+      return {
+        followersCount: (followersData || []).length,
+        followingCount: (followingData || []).length
+      };
+    },
+    async listFollowers(userId){
+      const { data, error } = await sb.from('user_follows').select('follower_id').eq('followed_id', userId);
+      if(error) throw error;
+      return (data || []).map(r => r.follower_id);
+    },
+    async listFollowing(userId){
+      const { data, error } = await sb.from('user_follows').select('followed_id').eq('follower_id', userId);
+      if(error) throw error;
+      return (data || []).map(r => r.followed_id);
+    },
+    async isFollowing(followerId, followedId){
+      if(!followerId || !followedId || followerId === followedId) return false;
+      const { data, error } = await sb.from('user_follows').select('follower_id').eq('follower_id', followerId).eq('followed_id', followedId).maybeSingle();
+      if(error) throw error;
+      return !!data;
+    },
+    async toggle(followerId, followedId){
+      if(!followerId || !followedId || followerId === followedId) return false;
+      const existing = await this.isFollowing(followerId, followedId).catch(() => false);
+      if(existing){
+        const { error } = await sb.from('user_follows').delete().eq('follower_id', followerId).eq('followed_id', followedId);
+        if(error) throw error;
+        return false;
+      }
+      const { error } = await sb.from('user_follows').insert({ follower_id: followerId, followed_id: followedId });
+      if(error) throw error;
+      return true;
+    }
   },
 
   posts: {
@@ -2239,6 +2355,75 @@ let currentUser = null; // {id, name, avatarUrl}
 let usersCache = {};
 let activeAuthorFilter = null; // {id, name} cuando se filtra el feed por una búsqueda
 
+function normalizePrivacySettings(value){
+  const source = (value && typeof value === 'object') ? value : {};
+  return {
+    showFollowers: source.showFollowers !== false,
+    showFollowing: source.showFollowing !== false,
+    allowFollowersToOthers: source.allowFollowersToOthers !== false,
+    allowFollowingToOthers: source.allowFollowingToOthers !== false,
+    showInSearch: source.showInSearch !== false,
+  };
+}
+function getProfilePrivacy(user){
+  const raw = user && (user.privacySettings || user.profilePrivacy || user.privacy_settings || user.profile_privacy || {});
+  return normalizePrivacySettings(raw);
+}
+function canViewFollowSection(ownerUser, viewerUserId, section){
+  if(!ownerUser) return false;
+  const privacy = getProfilePrivacy(ownerUser);
+  if(ownerUser.id === viewerUserId){
+    return section === 'followers' ? privacy.showFollowers : privacy.showFollowing;
+  }
+  return section === 'followers' ? privacy.allowFollowersToOthers : privacy.allowFollowingToOthers;
+}
+function getRecentSearches(){
+  try{
+    const raw = localStorage.getItem('enraiza:recent_user_searches');
+    if(!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter(Boolean).slice(0, 8) : [];
+  }catch(err){ return []; }
+}
+function saveRecentSearches(ids){
+  try{ localStorage.setItem('enraiza:recent_user_searches', JSON.stringify((ids||[]).filter(Boolean).slice(0,8))); }catch(err){}
+}
+function addRecentSearch(userId){
+  if(!userId || (currentUser && userId === currentUser.id)) return;
+  const ids = getRecentSearches().filter(id => id !== userId);
+  ids.unshift(userId);
+  saveRecentSearches(ids.slice(0, 8));
+}
+async function renderRecentSearches(){
+  const ids = getRecentSearches();
+  if(!ids.length){
+    searchResultsEl.innerHTML = '<div class="search-empty">Tus búsquedas recientes aparecerán aquí.</div>';
+    searchResultsEl.style.display = 'block';
+    return;
+  }
+  const profiles = await Promise.all(ids.map(async id => { const user = await getUserCached(id); return user || await DB.users.findById(id); }));
+  const visible = profiles.filter(Boolean).filter(user => user.id !== currentUser?.id && getProfilePrivacy(user).showInSearch !== false);
+  if(!visible.length){
+    searchResultsEl.innerHTML = '<div class="search-empty">Todavía no tienes usuarios recientes visibles.</div>';
+    searchResultsEl.style.display = 'block';
+    return;
+  }
+  searchResultsEl.innerHTML = visible.map(u => `
+    <div class="search-result-row" data-userid="${u.id}" data-username="${escapeHtml(u.name)}">
+      <div class="avatar" style="width:26px;height:26px;font-size:0.7rem;">${avatarHTML(u)}</div>
+      <span>${escapeHtml(u.name)}</span>
+    </div>
+  `).join('');
+  searchResultsEl.querySelectorAll('[data-userid]').forEach(row => row.addEventListener('click', () => {
+    addRecentSearch(row.dataset.userid);
+    usersCache[row.dataset.userid] = usersCache[row.dataset.userid] || { id: row.dataset.userid, name: row.dataset.username, avatarUrl: null, privacySettings: normalizePrivacySettings({}) };
+    searchResultsEl.style.display = 'none';
+    userSearchInput.value = '';
+    openUserProfile(row.dataset.userid, row.dataset.username);
+  }));
+  searchResultsEl.style.display = 'block';
+}
+
 async function getUserCached(id){
   if(!id) return null;
   if(usersCache[id]) return usersCache[id];
@@ -2265,27 +2450,41 @@ function requireLogin(actionLabel){
 }
 
 // ---------- BÚSQUEDA DE PERSONAS ----------
+const PROFILE_BIO_OPTIONS = [
+  '🌿 Cuidando mi entorno, paso a paso.',
+  '♻️ Buscando soluciones pequeñas y sostenibles.',
+  '🏡 Mejorando mi hogar con ideas prácticas.',
+  '🌱 Aprendiendo a sembrar y reutilizar.',
+  '💧 Ahorrando agua y cuidando la comunidad.',
+  '🌎 Red de ideas para vivir más conscientemente.'
+];
+
 const userSearchInput = document.getElementById('userSearchInput');
 const searchResultsEl = document.getElementById('searchResults');
 let searchDebounce = null;
+userSearchInput.addEventListener('focus', () => {
+  if(!userSearchInput.value.trim()) renderRecentSearches();
+});
 userSearchInput.addEventListener('input', () => {
   clearTimeout(searchDebounce);
   const q = userSearchInput.value.trim();
-  if(!q){ searchResultsEl.style.display = 'none'; searchResultsEl.innerHTML = ''; return; }
+  if(!q){ renderRecentSearches(); return; }
   searchDebounce = setTimeout(async () => {
     let results = [];
     try{ results = await DB.users.search(q); }catch(err){ results = []; }
-    if(!results.length){
+    const visible = results.filter(u => u.id !== currentUser?.id && getProfilePrivacy(u).showInSearch !== false);
+    if(!visible.length){
       searchResultsEl.innerHTML = '<div class="search-empty">Nadie con ese nombre todavía.</div>';
     } else {
-      searchResultsEl.innerHTML = results.map(u => `
+      searchResultsEl.innerHTML = visible.map(u => `
         <div class="search-result-row" data-userid="${u.id}" data-username="${escapeHtml(u.name)}">
           <div class="avatar" style="width:26px;height:26px;font-size:0.7rem;">${avatarHTML(u)}</div>
           <span>${escapeHtml(u.name)}</span>
         </div>
       `).join('');
       searchResultsEl.querySelectorAll('[data-userid]').forEach(row => row.addEventListener('click', () => {
-        usersCache[row.dataset.userid] = usersCache[row.dataset.userid] || { id: row.dataset.userid, name: row.dataset.username, avatarUrl: null };
+        addRecentSearch(row.dataset.userid);
+        usersCache[row.dataset.userid] = usersCache[row.dataset.userid] || { id: row.dataset.userid, name: row.dataset.username, avatarUrl: null, privacySettings: normalizePrivacySettings({}) };
         searchResultsEl.style.display = 'none';
         userSearchInput.value = '';
         openUserProfile(row.dataset.userid, row.dataset.username);
@@ -2317,7 +2516,7 @@ let viewingUserId = null;
 function openUserProfile(userId, name){
   if(!userId) return;
   if(currentUser && userId === currentUser.id){ showView('perfil'); return; }
-  usersCache[userId] = usersCache[userId] || { id: userId, name: name || 'Alguien de la comunidad', avatarUrl: null };
+  usersCache[userId] = usersCache[userId] || { id: userId, name: name || 'Alguien de la comunidad', avatarUrl: null, bio: '' };
   viewingUserId = userId;
   showView('perfilVisita');
 }
@@ -2327,6 +2526,7 @@ async function renderUserProfileVisit(){
   const nameEl = document.getElementById('profileVisitName');
   const avatarEl = document.getElementById('profileVisitAvatar');
   const bioEl = document.getElementById('profileVisitBio');
+  const followBtn = document.getElementById('profileVisitFollowBtn');
   nameEl.textContent = usersCache[uid]?.name || 'Cargando…';
   avatarEl.innerHTML = avatarHTML(usersCache[uid]);
 
@@ -2336,11 +2536,29 @@ async function renderUserProfileVisit(){
     nameEl.textContent = freshUser.name;
     avatarEl.innerHTML = avatarHTML(freshUser);
     if(bioEl) {
-      const bioText = freshUser.bio || 'Construyendo un cambio sostenible, proyecto a proyecto.';
+      const bioText = (freshUser.bio || '').trim() || 'Construyendo un cambio sostenible, proyecto a proyecto.';
       bioEl.innerHTML = `<strong>${escapeHtml(freshUser.name || 'Enraíza')}</strong>${escapeHtml(bioText)}`;
     }
   } else if(bioEl) {
     bioEl.innerHTML = '<strong>Enraíza</strong>Construyendo un cambio sostenible, proyecto a proyecto.';
+  }
+
+  if(followBtn){
+    followBtn.disabled = !currentUser || currentUser.id === uid;
+    followBtn.style.display = currentUser && currentUser.id !== uid ? 'inline-flex' : 'none';
+    if(currentUser && currentUser.id !== uid){
+      const isFollowing = await DB.follows.isFollowing(currentUser.id, uid).catch(() => false);
+      followBtn.textContent = isFollowing ? 'Siguiendo' : 'Seguir';
+      followBtn.classList.toggle('is-following', isFollowing);
+      followBtn.onclick = async () => {
+        if(!currentUser) return;
+        const newState = await DB.follows.toggle(currentUser.id, uid).catch(() => false);
+        const finalState = typeof newState === 'boolean' ? newState : !followBtn.classList.contains('is-following');
+        followBtn.textContent = finalState ? 'Siguiendo' : 'Seguir';
+        followBtn.classList.toggle('is-following', finalState);
+        renderUserProfileVisit();
+      };
+    }
   }
 
   if(!postsCacheReady) await loadPostsIntoCache();
@@ -2348,13 +2566,25 @@ async function renderUserProfileVisit(){
   const posts = postsCache.filter(p => p.authorId === uid);
   const totalLikes = posts.reduce((sum, p) => sum + (p.likedBy || []).length, 0);
   const publicLogs = await DB.projects.listPublicForUser(uid).catch(() => []);
+  const counts = await DB.follows.getCounts(uid).catch(() => ({ followersCount: 0, followingCount: 0 }));
+  const owner = usersCache[uid] || freshUser || { id: uid, privacySettings: normalizePrivacySettings({}) };
+  const privacy = getProfilePrivacy(owner);
+  const viewerId = currentUser ? currentUser.id : null;
+  const canSeeFollowers = canViewFollowSection(owner, viewerId, 'followers');
+  const canSeeFollowing = canViewFollowSection(owner, viewerId, 'following');
   const statEl = document.getElementById('profileVisitStats');
   if(statEl){
     statEl.innerHTML = `
-      <div><strong>${posts.length}</strong>publicaciones</div>
-      <div><strong>${totalLikes}</strong>me gusta</div>
-      <div><strong>${publicLogs.length}</strong>bitácoras</div>
+      <div class="profile-follow-stat ${!canSeeFollowers ? 'disabled' : ''}" data-follow-kind="followers" data-userid="${uid}"><strong>${canSeeFollowers ? counts.followersCount : '—'}</strong><span>seguidores</span></div>
+      <div class="profile-follow-stat ${!canSeeFollowing ? 'disabled' : ''}" data-follow-kind="following" data-userid="${uid}"><strong>${canSeeFollowing ? counts.followingCount : '—'}</strong><span>siguiendo</span></div>
+      <div class="profile-follow-stat disabled"><strong>${posts.length}</strong><span>publicaciones</span></div>
     `;
+    statEl.querySelectorAll('[data-follow-kind]').forEach(el => {
+      const kind = el.dataset.followKind;
+      const target = el.dataset.userid;
+      if(!canViewFollowSection(owner, viewerId, kind)){ return; }
+      el.addEventListener('click', () => openFollowModal(target, kind));
+    });
   }
   const postCountEl = document.getElementById('profileVisitPostCountLabel');
   if(postCountEl) postCountEl.textContent = `${posts.length}`;
@@ -4622,21 +4852,56 @@ function renderSettingsPage(){
   const activityBtn=document.getElementById('settingsActivityBtn');
   if(activityBtn) activityBtn.onclick=()=>{ if(requireLogin('ver tu actividad')) openActivityModal(); };
   const form=document.getElementById('settingsProfileForm');
+  const bioInput=document.getElementById('settingsProfileBio');
+  const presetList=document.getElementById('profileBioPresetList');
+  if(bioInput) bioInput.value = currentUser?.bio || '';
+  if(presetList){
+    presetList.innerHTML = PROFILE_BIO_OPTIONS.map(opt => `
+      <button type="button" class="bio-preset-btn ${((currentUser?.bio || '').trim() === opt) ? 'active' : ''}" data-bio-option="${escapeHtml(opt)}">${opt}</button>
+    `).join('');
+    presetList.querySelectorAll('[data-bio-option]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.dataset.bioOption || '';
+        if(!bioInput) return;
+        bioInput.value = val;
+        presetList.querySelectorAll('.bio-preset-btn').forEach(el => el.classList.toggle('active', el === btn));
+      });
+    });
+  }
+  const privacySettings = currentUser ? getProfilePrivacy(currentUser) : normalizePrivacySettings({});
+  const showFollowersEl=document.getElementById('privacyShowFollowers');
+  const showFollowingEl=document.getElementById('privacyShowFollowing');
+  const allowFollowersToOthersEl=document.getElementById('privacyAllowFollowersToOthers');
+  const allowFollowingToOthersEl=document.getElementById('privacyAllowFollowingToOthers');
+  const showInSearchEl=document.getElementById('privacyShowInSearch');
+  if(showFollowersEl) showFollowersEl.checked = privacySettings.showFollowers !== false;
+  if(showFollowingEl) showFollowingEl.checked = privacySettings.showFollowing !== false;
+  if(allowFollowersToOthersEl) allowFollowersToOthersEl.checked = privacySettings.allowFollowersToOthers !== false;
+  if(allowFollowingToOthersEl) allowFollowingToOthersEl.checked = privacySettings.allowFollowingToOthers !== false;
+  if(showInSearchEl) showInSearchEl.checked = privacySettings.showInSearch !== false;
   if(form && !form.dataset.bound){
     form.dataset.bound='1';
     form.addEventListener('submit', async (e)=>{
       e.preventDefault();
       if(!requireLogin('editar tu perfil')) return;
       const name=document.getElementById('settingsProfileName').value.trim();
+      const bio=(document.getElementById('settingsProfileBio').value || '').trim();
+      const privacy = {
+        showFollowers: !!document.getElementById('privacyShowFollowers')?.checked,
+        showFollowing: !!document.getElementById('privacyShowFollowing')?.checked,
+        allowFollowersToOthers: !!document.getElementById('privacyAllowFollowersToOthers')?.checked,
+        allowFollowingToOthers: !!document.getElementById('privacyAllowFollowingToOthers')?.checked,
+        showInSearch: !!document.getElementById('privacyShowInSearch')?.checked,
+      };
       if(!name) return;
       try{
-        currentUser=await DB.users.updateName(currentUser.id,name);
+        currentUser=await DB.users.updateProfile(currentUser.id, { name, bio, privacySettings: privacy });
         usersCache[currentUser.id]=currentUser;
         applyProfileToUI();
         renderProfile();
         renderSettingsPage();
         showToast('Perfil actualizado');
-      }catch(err){ alert('No se pudo guardar el nombre: '+(err.message||err)); }
+      }catch(err){ alert('No se pudo guardar el perfil: '+(err.message||err)); }
     });
   }
   const avatarBtn=document.getElementById('settingsAvatarBtn');
@@ -4962,7 +5227,25 @@ async function renderProfile(){
   applyProfileToUI(); renderSettingsPage();
   const stats=await computeStats();
   const verifiedEl=document.getElementById('profileVerifiedBadge'); if(verifiedEl) verifiedEl.style.display=isVerifiedOwner(currentUser)?'inline-flex':'none';
-  document.getElementById('profileStats').innerHTML=`<div><strong>${stats.ownPosts}</strong>publicaciones</div><div><strong>${stats.projectCount}</strong>bitácoras</div><div><strong>${userStats.counts.points_total||0}</strong>puntos</div><div><strong>🔥 ${userStats.current_streak||0}</strong>racha</div>`;
+  const bioTextEl=document.getElementById('profileBioText');
+  const myBio = (currentUser && currentUser.bio) ? currentUser.bio.trim() : '';
+  const formattedBio = myBio || '🌱 Por una vida más sostenible, una raíz a la vez.';
+  if(bioTextEl){ bioTextEl.innerHTML = `<strong>${escapeHtml(currentUser ? currentUser.name : 'Enraíza')}</strong>${escapeHtml(formattedBio)}`; }
+
+  let followCounts = { followersCount: 0, followingCount: 0 };
+  if(currentUser){
+    try{ followCounts = await DB.follows.getCounts(currentUser.id); }catch(err){ followCounts = { followersCount: 0, followingCount: 0 }; }
+  }
+  const privacy = getProfilePrivacy(currentUser || {});
+  const ownFollowersVisible = !!currentUser && privacy.showFollowers;
+  const ownFollowingVisible = !!currentUser && privacy.showFollowing;
+  document.getElementById('profileStats').innerHTML=`<div><strong>${stats.ownPosts}</strong>publicaciones</div><div><strong>${stats.projectCount}</strong>bitácoras</div><div class="profile-follow-stat ${!ownFollowersVisible ? 'disabled' : ''}" data-follow-kind="followers" data-userid="${currentUser?.id || ''}"><strong>${ownFollowersVisible ? followCounts.followersCount : '—'}</strong><span>seguidores</span></div><div class="profile-follow-stat ${!ownFollowingVisible ? 'disabled' : ''}" data-follow-kind="following" data-userid="${currentUser?.id || ''}"><strong>${ownFollowingVisible ? followCounts.followingCount : '—'}</strong><span>siguiendo</span></div><div><strong>${userStats.counts.points_total||0}</strong>puntos</div><div><strong>🔥 ${userStats.current_streak||0}</strong>racha</div>`;
+  document.getElementById('profileStats').querySelectorAll('[data-follow-kind]').forEach(el => {
+    const kind = el.dataset.followKind;
+    const uid = el.dataset.userid;
+    if(!uid) return;
+    el.addEventListener('click', () => openFollowModal(uid, kind));
+  });
   document.getElementById('profilePostCountLabel').textContent=stats.ownPosts?`${stats.ownPosts} ${stats.ownPosts===1?'publicación':'publicaciones'}`:'Aún no has publicado';
   const grid=document.getElementById('profilePostGrid');
   if(!currentUser) grid.innerHTML='<p class="profile-empty-grid">Inicia sesión para ver tus publicaciones aquí.</p>';
@@ -5004,6 +5287,38 @@ function renderMissionsPage(){
   if(!currentUser){score.innerHTML='';content.innerHTML='<div class="auth-gate"><p>Inicia sesión para participar en las misiones.</p><button class="btn btn-primary btn-small" onclick="openAuthModal(\'login\')">Iniciar sesión</button></div>';return;}
   const done=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;score.innerHTML=`<strong>${done}/${MISSIONS.length}</strong><span>MISIONES DE ESTA SEMANA</span>`;
   content.innerHTML=`<div class="growth-page-wrap"><div class="missions-page-list">${MISSIONS.map(m=>{const p=getMissionProgress(m),pct=Math.min(100,Math.round(p/m.target*100)),ok=p>=m.target,claimed=!!userStats.counts[missionClaimKey(m.id)];return `<article class="mission-page-card ${ok?'done':''}"><div class="mission-icon">${m.icon}</div><div><h3>${m.title}</h3><p>${m.desc}</p><div class="mission-progress"><span style="width:${pct}%"></span></div><p><strong>${p}/${m.target}</strong> · ${ok?'completada':`faltan ${m.target-p}`}</p></div><div class="mission-reward">${claimed?'✓':`+${m.points}`}<br><span>pts</span></div></article>`}).join('')}</div><p class="mission-page-note">💡 <strong>Empieza por una publicación:</strong> compartir lo que hiciste hoy convierte tu avance en algo que otra persona puede descubrir, copiar o mejorar.</p></div>`;
+}
+
+async function openFollowModal(userId, kind){
+  if(!userId) return;
+  const owner = await getUserCached(userId) || { id: userId, name: 'Usuario', privacySettings: normalizePrivacySettings({}) };
+  const viewerId = currentUser ? currentUser.id : null;
+  if(!canViewFollowSection(owner, viewerId, kind)){
+    showToast('Esta lista está privada.');
+    return;
+  }
+  const ids = kind === 'followers' ? await DB.follows.listFollowers(userId) : await DB.follows.listFollowing(userId);
+  modalBox.className = 'modal';
+  const title = kind === 'followers' ? 'Seguidores' : 'Siguiendo';
+  const rows = ids.length ? await Promise.all(ids.map(async id => {
+    const u = await getUserCached(id) || await DB.users.findById(id);
+    return u ? `
+      <div class="search-result-row" data-userid="${u.id}" data-username="${escapeHtml(u.name)}">
+        <div class="avatar" style="width:30px;height:30px;font-size:0.75rem;">${avatarHTML(u)}</div>
+        <span>${escapeHtml(u.name)}</span>
+      </div>
+    ` : '';
+  })) : '<div class="search-empty">Aún no hay personas aquí.</div>';
+  modalContent.innerHTML = `
+    <h3>${title}</h3>
+    <div class="search-results" style="display:block;position:static;max-height:360px;overflow:auto;border:none;padding:0;">${rows.join('')}</div>
+  `;
+  modalContent.querySelectorAll('[data-userid]').forEach(row => row.addEventListener('click', () => {
+    addRecentSearch(row.dataset.userid);
+    closeModal();
+    openUserProfile(row.dataset.userid, row.dataset.username);
+  }));
+  modalBackdrop.classList.add('open');
 }
 
 try{
