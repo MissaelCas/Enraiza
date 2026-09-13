@@ -87,23 +87,33 @@
   const W = canvas.width, H = canvas.height;
   const GROUND_Y = H - 34;
 
-  const COLORS = { moss:'#3F6B4A', mossDark:'#2C4E35', clay:'#C1793C', clayDark:'#9C5F2C', line:'#B8AE93', paperAlt:'#E5DFC6', ink:'#23301D' };
+  const COLORS = { moss:'#3F6B4A', mossDark:'#2C4E35', clay:'#C1793C', clayDark:'#9C5F2C', line:'#B8AE93', paperAlt:'#E5DFC6', ink:'#23301D', sky:'#F4EEDB', cloud:'#FFFFFF' };
 
-  let player, obstacles, speed, gravity, score, best, running, gameOverFlag, spawnTimer, raf;
+  let player, obstacles, clouds, speed, gravity, score, best, running, gameOverFlag, spawnTimer, raf;
   const BEST_KEY = 'enraiza:offline_highscore';
 
   function loadBest(){ try{ return parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; }catch(e){ return 0; } }
   function saveBest(v){ try{ localStorage.setItem(BEST_KEY, String(v)); }catch(e){} }
+  function rand(min, max){ return Math.random() * (max - min) + min; }
 
   function resetGame(){
     player = { x:50, y:GROUND_Y-28, w:26, h:28, vy:0, onGround:true };
     obstacles = [];
-    speed = 4.2;
-    gravity = 0.85;
+    clouds = Array.from({ length: 5 }, (_, i) => ({
+      x: rand(0, W),
+      y: rand(18, 90),
+      w: rand(24, 50),
+      h: rand(16, 28),
+      speed: rand(0.3, 0.8) + i * 0.05
+    }));
+    speed = 5.2;
+    gravity = 0.82;
     score = 0;
     running = false;
     gameOverFlag = false;
-    spawnTimer = 0;
+    spawnTimer = 40;
+    document.getElementById('overlayTitle').textContent = '🌱 Toca o presiona espacio para saltar';
+    document.getElementById('overlaySub').textContent = 'Esquiva las piedras, bichos y pájaros mientras esperamos la señal.';
     document.getElementById('overlay').classList.add('hidden');
     draw();
   }
@@ -115,10 +125,34 @@
   }
 
   function spawnObstacle(){
-    const isBug = Math.random() < 0.4;
-    const h = isBug ? 16 : 22 + Math.random()*14;
-    const w = isBug ? 20 : 16 + Math.random()*10;
-    obstacles.push({ x: W + 10, y: GROUND_Y - h, w, h, type: isBug ? 'bug' : 'rock' });
+    const roll = Math.random();
+    let type = 'rock';
+    if(roll < 0.25) type = 'bug';
+    else if(roll < 0.5) type = 'bird';
+    else if(roll < 0.75) type = 'cactus';
+    else type = 'rock';
+
+    if(type === 'bird'){
+      obstacles.push({
+        type: 'bird',
+        x: W + 20, y: rand(90, GROUND_Y - 56), w: 26, h: 18,
+        phase: rand(0, Math.PI * 2)
+      });
+      return;
+    }
+
+    if(type === 'bug'){
+      obstacles.push({
+        type: 'bug',
+        x: W + 20, y: GROUND_Y - 18, w: 20, h: 16,
+        phase: rand(0, Math.PI * 2)
+      });
+      return;
+    }
+
+    const h = type === 'cactus' ? rand(24, 42) : rand(18, 28);
+    const w = type === 'cactus' ? rand(14, 18) : rand(12, 18);
+    obstacles.push({ type, x: W + 20, y: GROUND_Y - h, w, h, phase: rand(0, Math.PI * 2) });
   }
 
   function rectsOverlap(a,b){
@@ -131,21 +165,36 @@
     player.y += player.vy;
     if(player.y >= GROUND_Y - player.h){ player.y = GROUND_Y - player.h; player.vy = 0; player.onGround = true; }
 
+    clouds.forEach(c => {
+      c.x -= c.speed * (0.8 + speed / 8);
+      if(c.x + c.w < -10){
+        c.x = W + 10;
+        c.y = rand(18, 82);
+        c.w = rand(24, 50);
+        c.h = rand(16, 28);
+      }
+    });
+
     spawnTimer--;
     if(spawnTimer <= 0){
       spawnObstacle();
-      spawnTimer = Math.max(35, 70 - Math.floor(score/8)) + Math.random()*30;
+      const base = Math.max(26, 85 - Math.floor(score / 8));
+      spawnTimer = rand(base * 0.75, base + 18);
     }
 
-    obstacles.forEach(o => o.x -= speed);
-    obstacles = obstacles.filter(o => o.x + o.w > -5);
+    obstacles.forEach(o => {
+      o.x -= speed;
+      if(o.type === 'bird') o.y += Math.sin((score * 0.35) + o.phase) * 0.7;
+      if(o.type === 'bug') o.y = GROUND_Y - (Math.sin((score * 0.4) + o.phase) * 4 + 18);
+    });
+    obstacles = obstacles.filter(o => o.x + o.w > -10);
 
     for(const o of obstacles){
       if(rectsOverlap(player, o)){ endGame(); return; }
     }
 
-    score += 0.12;
-    speed = Math.min(11, 4.2 + score/120);
+    score += 0.32 + speed * 0.03;
+    speed = Math.min(14, 5.2 + score / 24);
   }
 
   function endGame(){
@@ -156,35 +205,60 @@
     document.getElementById('overlayTitle').textContent = `🌧️ Puntaje: ${finalScore}`;
     document.getElementById('overlaySub').textContent = 'Toca o presiona espacio para volver a intentar.';
     document.getElementById('overlay').classList.remove('hidden');
+    document.getElementById('bestVal').textContent = best;
   }
 
   function drawGround(){
+    ctx.fillStyle = COLORS.mossDark;
+    ctx.fillRect(0, GROUND_Y + 2, W, H - (GROUND_Y + 2));
     ctx.strokeStyle = COLORS.line;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y+1);
-    ctx.lineTo(W, GROUND_Y+1);
+    ctx.moveTo(0, GROUND_Y + 1);
+    ctx.lineTo(W, GROUND_Y + 1);
     ctx.stroke();
+
+    ctx.beginPath();
+    for(let x = 0; x <= W + 20; x += 18){
+      ctx.moveTo(x, GROUND_Y + 8);
+      ctx.lineTo(x + 8, GROUND_Y + 8);
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.stroke();
+  }
+
+  function drawClouds(){
+    clouds.forEach(c => {
+      ctx.fillStyle = COLORS.cloud;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.h * 0.45, 0, Math.PI * 2);
+      ctx.arc(c.x + c.w * 0.25, c.y - c.h * 0.2, c.h * 0.34, 0, Math.PI * 2);
+      ctx.arc(c.x + c.w * 0.55, c.y - c.h * 0.12, c.h * 0.38, 0, Math.PI * 2);
+      ctx.arc(c.x + c.w, c.y, c.h * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
 
   function drawPlayer(){
     const x = player.x, y = player.y, w = player.w, h = player.h;
-    // maceta
     ctx.fillStyle = COLORS.clay;
     ctx.beginPath();
     ctx.moveTo(x, y+h-14); ctx.lineTo(x+w, y+h-14); ctx.lineTo(x+w-4, y+h); ctx.lineTo(x+4, y+h);
     ctx.closePath(); ctx.fill();
-    // tallo
+
     ctx.strokeStyle = COLORS.moss;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(x+w/2, y+h-14);
     ctx.lineTo(x+w/2, y+6);
     ctx.stroke();
-    // hojas
+
     ctx.fillStyle = COLORS.moss;
     ctx.beginPath(); ctx.ellipse(x+w/2-7, y+6, 8, 5, -0.5, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.ellipse(x+w/2+7, y+10, 8, 5, 0.5, 0, Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = COLORS.paperAlt;
+    ctx.fillRect(x + 6, y + 4, 14, 9);
   }
 
   function drawObstacles(){
@@ -194,13 +268,38 @@
         ctx.beginPath();
         ctx.moveTo(o.x, o.y+o.h);
         ctx.lineTo(o.x+o.w*0.2, o.y);
-        ctx.lineTo(o.x+o.w*0.8, o.y+o.h*0.2);
+        ctx.lineTo(o.x+o.w*0.8, o.y+o.h*0.15);
         ctx.lineTo(o.x+o.w, o.y+o.h);
         ctx.closePath(); ctx.fill();
-      } else {
+      }
+
+      if(o.type === 'cactus'){
+        ctx.fillStyle = COLORS.moss;
+        ctx.fillRect(o.x, o.y, o.w, o.h);
+        ctx.fillRect(o.x - 4, o.y + 12, 6, 10);
+        ctx.fillRect(o.x + o.w - 2, o.y + 12, 6, 10);
+        ctx.fillStyle = COLORS.clayDark;
+        ctx.fillRect(o.x + 3, o.y + 18, 3, 8);
+        ctx.fillRect(o.x + o.w - 6, o.y + 18, 3, 8);
+      }
+
+      if(o.type === 'bug'){
         ctx.fillStyle = COLORS.clayDark;
         ctx.beginPath();
-        ctx.ellipse(o.x+o.w/2, o.y+o.h/2, o.w/2, o.h/2, 0, 0, Math.PI*2);
+        ctx.ellipse(o.x + o.w/2, o.y + o.h/2, o.w/2, o.h/2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = COLORS.paperAlt;
+        ctx.fillRect(o.x + 2, o.y + 4, 4, 4);
+        ctx.fillRect(o.x + o.w - 6, o.y + 4, 4, 4);
+      }
+
+      if(o.type === 'bird'){
+        const wing = Math.sin((score * 0.4) + o.phase) > 0 ? 1 : -1;
+        ctx.fillStyle = COLORS.clayDark;
+        ctx.beginPath();
+        ctx.moveTo(o.x, o.y + o.h/2);
+        ctx.quadraticCurveTo(o.x + o.w * 0.3, o.y - wing * 6, o.x + o.w, o.y + o.h/2);
+        ctx.quadraticCurveTo(o.x + o.w * 0.3, o.y + o.h * 0.65, o.x, o.y + o.h/2);
         ctx.fill();
       }
     });
@@ -208,6 +307,9 @@
 
   function draw(){
     ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = COLORS.sky;
+    ctx.fillRect(0,0,W,H);
+    drawClouds();
     drawGround();
     drawObstacles();
     drawPlayer();
