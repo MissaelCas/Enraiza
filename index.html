@@ -4919,6 +4919,14 @@ async function pingKeepAlive(){
   try{ await sb.from('profiles').select('id').limit(1); }
   catch(err){ /* silencioso: si falla, no debe romper nada visible */ }
 }
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event && event.reason;
+  const msg = reason && reason.message ? reason.message : String(reason || '');
+  if(msg && /Failed to fetch|fetch failed|NetworkError|ERR_NETWORK|429|timeout|Tardó demasiado/i.test(msg)){
+    console.warn('Supabase hizo una petición fallida, pero la app continua:', msg);
+    event.preventDefault();
+  }
+});
 setInterval(pingKeepAlive, 6 * 60 * 60 * 1000); // cada 6 horas
 pingKeepAlive(); // uno al cargar, además del que ya hace loadPostsIntoCache()
 
