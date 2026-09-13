@@ -541,6 +541,87 @@
   .activity-item .when{ font-size:0.74rem; color: var(--ink-soft); }
 
   .profile-header-actions{display:flex;align-items:center;gap:8px;margin-top:-2px}.profile-settings-btn{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;background:var(--white-ish);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.profile-settings-btn:hover{border-color:var(--moss);background:var(--paper-alt)}.profile-settings-btn svg{width:20px;height:20px}.profile-settings-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--white-ish);margin-top:22px}.profile-settings-entry strong{display:block;font-size:.86rem}.profile-settings-entry small{display:block;color:var(--ink-soft);font-size:.72rem;margin-top:2px}.settings-page{max-width:920px;margin:0 auto}.settings-mobile-back{display:none}.settings-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:start}.settings-nav{border:1px solid var(--line);border-radius:12px;background:var(--white-ish);overflow:hidden;position:sticky;top:84px}.settings-nav button{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:13px 15px;cursor:pointer;color:var(--ink);font:inherit}.settings-nav button:last-child{border-bottom:0}.settings-nav button:hover,.settings-nav button.active{background:var(--paper-alt);font-weight:700}.settings-content{min-width:0}.settings-content .settings-group{display:none}.settings-content .settings-group.active{display:block}.settings-mobile-title{display:none}
+
+  /* ---------- PERFIL: jerarquía más intuitiva, inspirado en Instagram ---------- */
+  .profile-main-head{
+    max-width:760px;
+    margin:8px auto 18px;
+    display:grid;
+    grid-template-columns:88px minmax(0,1fr);
+    gap:22px;
+    align-items:start;
+    flex-wrap:nowrap;
+  }
+  .profile-main-head .avatar-big{width:88px;height:88px;font-size:1.8rem}
+  .profile-ig-right{min-width:0}
+  .profile-name-line{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-height:36px;
+    margin-bottom:8px;
+  }
+  .profile-name-line .profile-ig-name{
+    margin:0;
+    font-size:1.18rem;
+    line-height:1.2;
+  }
+  .profile-header-actions{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+  }
+  .profile-settings-btn{
+    width:34px;
+    height:34px;
+    padding:0;
+    border:0;
+    border-radius:50%;
+    background:transparent;
+    color:var(--ink);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:background .15s, transform .15s;
+  }
+  .profile-settings-btn:hover{
+    background:var(--paper-alt);
+    transform:rotate(12deg);
+  }
+  .profile-settings-btn:focus-visible{
+    outline:2px solid var(--moss);
+    outline-offset:2px;
+  }
+  .profile-settings-btn svg{width:22px;height:22px}
+  .profile-tabs{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    margin-top:24px;
+  }
+  .profile-tab{
+    border:0;
+    background:transparent;
+    padding:11px 8px;
+    color:var(--ink-soft);
+    font-size:.76rem;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .profile-tab.active{color:var(--ink);box-shadow:inset 0 -2px 0 var(--ink)}
+  @media(max-width:700px){
+    .profile-main-head{grid-template-columns:76px minmax(0,1fr);gap:15px;align-items:start}
+    .profile-main-head .avatar-big{width:76px;height:76px}
+  }
+  @media(max-width:480px){
+    .profile-main-head{grid-template-columns:68px minmax(0,1fr);gap:12px}
+    .profile-main-head .avatar-big{width:68px;height:68px}
+    .profile-name-line .profile-ig-name{font-size:1rem}
+    .profile-settings-btn{width:32px;height:32px}
+    .profile-settings-btn svg{width:21px;height:21px}
+  }
   .profile-ig-head{ display:flex; gap: 22px; align-items:center; margin-bottom: 16px; flex-wrap:wrap; }
   .avatar-big-wrap{ position:relative; flex-shrink:0; }
   .avatar-big{
@@ -564,6 +645,45 @@
   .profile-post-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 6px; }
   .profile-post-thumb{ aspect-ratio: 1/1; object-fit:cover; width:100%; cursor:pointer; background: var(--paper-alt); }
   .profile-empty-grid{ color: var(--ink-soft); font-style: italic; font-size: 0.88rem; padding: 20px 0; }
+  .profile-log-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin:12px 0 10px;
+  }
+  .profile-log-head strong{display:block;font-family:var(--serif);font-size:.98rem}
+  .profile-log-head small{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}
+  .profile-log-grid{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:6px;
+  }
+  .profile-log-card{
+    aspect-ratio:1/1;position:relative;overflow:hidden;cursor:pointer;
+    background:var(--paper-alt);border:0;padding:0;text-align:left;
+  }
+  .profile-log-card img,.profile-log-card .profile-log-placeholder{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .profile-log-placeholder{
+    display:flex!important;align-items:center;justify-content:center;
+    font-size:2rem;background:var(--paper-alt);color:var(--moss-dark);
+  }
+  .profile-log-overlay{
+    position:absolute;left:0;right:0;bottom:0;padding:26px 8px 8px;
+    background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;
+  }
+  .profile-log-overlay strong{display:block;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .profile-log-overlay span{display:block;font-size:.65rem;margin-top:2px;opacity:.92}
+  .profile-log-badge{
+    position:absolute;top:7px;left:7px;background:rgba(35,48,29,.82);color:#fff;
+    border-radius:999px;padding:3px 7px;font-size:.62rem;font-weight:800;
+  }
+  .log-form-hint{display:block;color:var(--ink-soft);font-size:.68rem;line-height:1.35;margin-top:-5px}
+  .log-day-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .avatar-edit-btn{
+    display:flex;align-items:center;justify-content:center;line-height:1;
+    box-shadow:0 1px 5px rgba(35,48,29,.2);
+  }
+  @media(max-width:700px){.profile-log-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.profile-log-head{align-items:flex-start}}
+  @media(max-width:480px){.profile-log-head .btn{padding:7px 10px;font-size:.76rem}.log-day-row{grid-template-columns:1fr 1fr}}
+
 
   .settings-block{ border: 1px solid var(--line); border-radius: 4px; padding: 18px 20px; background: var(--white-ish); margin-top: 14px; }
   .settings-block label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:6px; }
@@ -715,6 +835,14 @@
   }
   .share-menu button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.85rem; cursor:pointer; color:var(--ink); }
   .share-menu button:hover{ background: var(--paper-alt); }
+
+  /* Microinteracciones discretas: hacen que los elementos accionables se entiendan sin recargar la interfaz. */
+  .explore-menu a{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:var(--ink);padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+  .explore-menu a:last-child{border-bottom:0}
+  .explore-menu a::after{content:'›';font-size:1.05rem;color:var(--ink-soft);transition:transform .15s}
+  .explore-menu a:hover::after{transform:translateX(2px)}
+  .explore-menu a:hover{color:var(--moss-dark)}
+
 </style>
 </head>
 <body>
@@ -939,24 +1067,38 @@
     <div class="bitacora-layout">
       <form class="log-form" id="logForm">
         <div>
-          <label for="logTitle">Título</label>
-          <input type="text" id="logTitle" placeholder="Ej. Aguacate, semana 3" required>
+          <label for="logProject">Proyecto</label>
+          <select id="logProject" required></select>
+          <small class="log-form-hint">Elige el proyecto que estás siguiendo. Cada día quedará dentro de ese proyecto.</small>
+        </div>
+        <div class="log-day-row">
+          <div>
+            <label for="logDay">Día</label>
+            <input type="number" id="logDay" min="1" max="9999" value="1" required>
+          </div>
+          <div>
+            <label for="logCategory">Tipo</label>
+            <select id="logCategory">
+              <option value="proyecto">Proyecto</option>
+              <option value="planta">Planta</option>
+              <option value="observacion">Observación general</option>
+            </select>
+          </div>
         </div>
         <div>
-          <label for="logCategory">Categoría</label>
-          <select id="logCategory">
-            <option value="planta">Planta</option>
-            <option value="proyecto">Proyecto</option>
-            <option value="observacion">Observación general</option>
-          </select>
+          <label for="logTitle">Título del día</label>
+          <input type="text" id="logTitle" placeholder="Ej. Apareció la primera raíz" required>
         </div>
         <div>
           <label for="logNotes">Notas</label>
           <textarea id="logNotes" placeholder="¿Qué observaste? ¿Qué hiciste?" required></textarea>
         </div>
         <div>
-          <label for="logPhoto">Foto (URL, opcional)</label>
-          <input type="url" id="logPhoto" placeholder="https://...">
+          <label>Foto (opcional)</label>
+          <button type="button" class="photo-picker-btn" id="logPhotoPickBtn">📷 Añadir foto</button>
+          <input type="file" id="logPhotoInput" accept="image/*" class="visually-hidden">
+          <input type="hidden" id="logPhoto" value="">
+          <div class="photo-preview-row" id="logPhotoPreview"></div>
         </div>
         <div class="share-row">
           <input type="checkbox" id="logShare">
@@ -1109,18 +1251,41 @@
   <section id="perfil" class="view">
     <div class="profile-shell">
       <div class="profile-ig-head profile-main-head">
-        <div class="avatar-big-wrap"><div class="avatar-big" id="profileAvatar">?</div></div>
+        <div class="avatar-big-wrap">
+          <div class="avatar-big" id="profileAvatar">?</div>
+          <button type="button" class="avatar-edit-btn" id="profileAvatarEditBtn" title="Cambiar foto de perfil" aria-label="Cambiar foto de perfil">✎</button>
+        </div>
         <div class="profile-ig-right">
-          <div class="profile-name-line"><p class="profile-ig-name" id="profileDisplayName">Sin nombre todavía</p><span class="verified-badge" id="profileVerifiedBadge" title="Cuenta verificada" aria-label="Cuenta verificada">✓</span></div>
-           <div class="profile-header-actions"><button type="button" class="profile-settings-btn" id="profileSettingsBtn" title="Configuración" aria-label="Configuración"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1A1.7 1.7 0 0 0 6.2 12a1.7 1.7 0 0 0-1.2-2.9h-.2a1.7 1.7 0 0 1 0-3.4H5A1.7 1.7 0 0 0 6.2 3.8l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1A1.7 1.7 0 0 0 11.5.2h.2a1.7 1.7 0 0 1 3.4 0v.2A1.7 1.7 0 0 0 17.9 1.7l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1A1.7 1.7 0 0 0 21.5 7h.2a1.7 1.7 0 0 1 0 3.4h-.2A1.7 1.7 0 0 0 20.3 13a1.7 1.7 0 0 0-.9 2Z" transform="translate(1.8 1.8) scale(.85)"/></svg></button></div>
+          <div class="profile-name-line">
+            <p class="profile-ig-name" id="profileDisplayName">Sin nombre todavía</p>
+            <span class="verified-badge" id="profileVerifiedBadge" title="Cuenta verificada" aria-label="Cuenta verificada">✓</span>
+            <div class="profile-header-actions">
+              <button type="button" class="profile-settings-btn" id="profileSettingsBtn" title="Configuración" aria-label="Abrir configuración">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <circle cx="12" cy="12" r="3.1"/>
+                  <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.82 1.82-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V22h-2.57v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.82-1.82.06-.06A1.7 1.7 0 0 0 6.06 17a1.7 1.7 0 0 0-1.56-1.03H4.42V13.4h.08A1.7 1.7 0 0 0 6.06 12a1.7 1.7 0 0 0-.34-1.88l-.06-.06L7.48 8.24l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56V7h2.57v.08a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 1.82 1.82-.06.06A1.7 1.7 0 0 0 19.4 12c.2.63.79 1.03 1.44 1.03h.08v2.57h-.08c-.65 0-1.24.4-1.44 1.03Z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
           <div class="profile-stats-row" id="profileStats"></div>
           <div class="profile-bio"><strong>Enraíza</strong>🌱 Por una vida más sostenible, una raíz a la vez.</div>
         </div>
       </div>
+
       <div class="profile-quick-actions">
-        <button class="profile-action-card" data-view="misiones"><span class="profile-action-icon">🎯</span><span><strong>Misiones</strong><small id="profileMissionSummary">Esta semana</small></span><b>›</b></button>
-        <button class="profile-action-card" data-view="logros"><span class="profile-action-icon">🏅</span><span><strong>Logros</strong><small id="profileBadgeSummary">Ver tu progreso</small></span><b>›</b></button>
+        <button class="profile-action-card" data-view="misiones">
+          <span class="profile-action-icon">🎯</span>
+          <span><strong>Misiones</strong><small id="profileMissionSummary">Esta semana</small></span>
+          <b>›</b>
+        </button>
+        <button class="profile-action-card" data-view="logros">
+          <span class="profile-action-icon">🏅</span>
+          <span><strong>Logros</strong><small id="profileBadgeSummary">Ver tu progreso</small></span>
+          <b>›</b>
+        </button>
       </div>
+
       <h3 class="profile-sub-title">Explorar Enraíza</h3>
       <div class="settings-block explore-menu">
         <a data-view="proyectos">🌿 Proyectos — ideas caseras, fáciles y rápidas</a>
@@ -1128,8 +1293,25 @@
         <a data-view="articulos">📜 Artículos, leyes y contexto</a>
         <a data-view="bitacora">📔 Mi bitácora — privada o pública por entrada</a>
       </div>
-      <div class="profile-section-head compact-head" style="margin-top:22px;"><div><h3>Publicaciones</h3><span id="profilePostCountLabel"></span></div></div>
-      <div class="profile-post-grid" id="profilePostGrid"></div>
+      <div class="profile-tabs" aria-label="Contenido del perfil">
+        <button class="profile-tab active" type="button" data-profile-tab="posts">▦ Publicaciones <span id="profilePostCountLabel"></span></button>
+        <button class="profile-tab" type="button" data-profile-tab="logs">📔 Bitácora <span id="profileLogCountLabel"></span></button>
+      </div>
+
+      <div id="profilePostsPanel">
+        <div class="profile-post-grid" id="profilePostGrid"></div>
+      </div>
+
+      <div id="profileLogsPanel" hidden>
+        <div class="profile-log-head">
+          <div>
+            <strong>Mis proyectos</strong>
+            <small>Cada tarjeta corresponde a un día de un proyecto.</small>
+          </div>
+          <button type="button" class="btn btn-primary btn-small" id="profileAddLogBtn">＋ Añadir día</button>
+        </div>
+        <div class="profile-log-grid" id="profileLogGrid"></div>
+      </div>
     </div>
   </section>
 
@@ -1391,7 +1573,9 @@ function openProjectModal(p){
   `;
   modalBackdrop.classList.add('open');
   document.getElementById('addToLogBtn').addEventListener('click', () => {
-    document.getElementById('logTitle').value = p.title;
+    document.getElementById('logProject').value = p.id;
+    document.getElementById('logDay').value = '1';
+    document.getElementById('logTitle').value = 'Comienzo del proyecto';
     document.getElementById('logCategory').value = 'proyecto';
     document.getElementById('logNotes').value = 'Empecé este proyecto hoy.';
     closeModal();
@@ -2205,8 +2389,55 @@ function renderPhotoPreview(){
 // ---------- TOPBAR ICON ACTIONS ----------
 document.getElementById('btnGoHome').addEventListener('click', () => { showView('inicio'); });
 document.getElementById('btnGoProfile').addEventListener('click', () => { showView('perfil'); });
+document.querySelectorAll('#perfil .profile-tab[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => showView(btn.dataset.view));
+});
 const profileSettingsBtn = document.getElementById('profileSettingsBtn');
 if(profileSettingsBtn) profileSettingsBtn.addEventListener('click', () => { if(requireLogin('abrir configuración')) showView('configuracion'); });
+const profileAvatarEditBtn = document.getElementById('profileAvatarEditBtn');
+if(profileAvatarEditBtn){
+  profileAvatarEditBtn.addEventListener('click', () => {
+    if(!requireLogin('cambiar tu foto de perfil')) return;
+    const input=document.getElementById('settingsAvatarInput');
+    if(input) input.click();
+  });
+}
+
+const profilePostsPanel = document.getElementById('profilePostsPanel');
+const profileLogsPanel = document.getElementById('profileLogsPanel');
+document.querySelectorAll('#perfil [data-profile-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#perfil [data-profile-tab]').forEach(b => b.classList.toggle('active', b === btn));
+    const showLogs = btn.dataset.profileTab === 'logs';
+    if(profilePostsPanel) profilePostsPanel.hidden = showLogs;
+    if(profileLogsPanel) profileLogsPanel.hidden = !showLogs;
+    if(showLogs && currentUser) renderProfileLogs();
+  });
+});
+
+function populateLogProjectSelect(){
+  const select=document.getElementById('logProject');
+  if(!select) return;
+  select.innerHTML = '<option value="">Selecciona un proyecto…</option>' +
+    PROJECTS.map(p => `<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('');
+}
+populateLogProjectSelect();
+
+document.getElementById('profileAddLogBtn')?.addEventListener('click', () => {
+  if(!requireLogin('añadir un día a tu bitácora')) return;
+  showView('bitacora');
+  const form=document.getElementById('logForm');
+  if(form) form.scrollIntoView({behavior:'smooth', block:'start'});
+  document.getElementById('logProject')?.focus();
+});
+
+document.getElementById('logProject')?.addEventListener('change', () => {
+  const projectId=document.getElementById('logProject').value;
+  const project=PROJECTS.find(p=>p.id===projectId);
+  const title=document.getElementById('logTitle');
+  if(project && title && !title.value.trim()) title.value='Comienzo del proyecto';
+});
+
 document.getElementById('btnNewPost').addEventListener('click', () => {
   if(!requireLogin('publicar')) return;
   showView('inicio');
@@ -3821,8 +4052,10 @@ async function renderProfile(){
   else { grid.innerHTML=stats.ownPostList.map(p=>`<img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0])||placeholderImage(p.id+p.title,p.category)}" alt="${escapeHtml(p.title)}">`).join(''); grid.querySelectorAll('[data-goto]').forEach(img=>attachLongPress(img,img.dataset.goto)); }
   const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id));
   const doneMissions=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;
+  const points=userStats.counts.points_total||0;
   const bs=document.getElementById('profileBadgeSummary'); if(bs) bs.textContent=`${earned.length}/${BADGES.length} logrados · ver todos`;
   const ms=document.getElementById('profileMissionSummary'); if(ms) ms.textContent=`${doneMissions}/${MISSIONS.length} completadas · ver esta semana`;
+  renderProfileLogs();
 }
 let currentAuthEmail = '';
 function isVerifiedOwner(user){
@@ -3868,18 +4101,121 @@ try{
   }
 }catch(err){}
 
+// ---------- BITÁCORA EN EL PERFIL ----------
+function parseLogEntry(e){
+  // Formato nuevo: "Proyecto · Día N · Título". Las entradas antiguas siguen funcionando.
+  const m=(e.title||'').match(/^(.*?) · Día (\\d+) · (.*)$/);
+  if(m) return {projectName:m[1], day:Number(m[2]), title:m[3]};
+  const legacy=(e.title||'').match(/^(.*?) · Día (\\d+)$/);
+  if(legacy) return {projectName:legacy[1], day:Number(legacy[2]), title:'Registro del día'};
+  return {projectName:e.title||'Proyecto', day:null, title:e.title||'Entrada'};
+}
+
+async function renderProfileLogs(){
+  const grid=document.getElementById('profileLogGrid');
+  const countLabel=document.getElementById('profileLogCountLabel');
+  if(!grid) return;
+  if(!currentUser){
+    grid.innerHTML='<p class="profile-empty-grid">Inicia sesión para ver tu bitácora.</p>';
+    if(countLabel) countLabel.textContent='';
+    return;
+  }
+  let entries=[];
+  try{ entries=await DB.logbook.listForUser(currentUser.id); }
+  catch(err){ grid.innerHTML='<p class="profile-empty-grid">No se pudo cargar la bitácora.</p>'; return; }
+
+  if(countLabel) countLabel.textContent=entries.length ? ` ${entries.length}` : '';
+  if(!entries.length){
+    grid.innerHTML='<p class="profile-empty-grid">Aún no hay días registrados. Añade el primero con “＋ Añadir día”.</p>';
+    return;
+  }
+
+  grid.innerHTML=entries.map(e=>{
+    const p=parseLogEntry(e);
+    const img=e.photo ? `<img src="${escapeHtml(e.photo)}" alt="" onerror="this.style.display='none'">` :
+      `<div class="profile-log-placeholder">📔</div>`;
+    return `<button type="button" class="profile-log-card" data-log-id="${e.id}">
+      ${img}
+      ${p.day ? `<span class="profile-log-badge">Día ${p.day}</span>` : ''}
+      <span class="profile-log-overlay">
+        <strong>${escapeHtml(p.projectName)}</strong>
+        <span>${escapeHtml(p.title)}</span>
+      </span>
+    </button>`;
+  }).join('');
+
+  grid.querySelectorAll('[data-log-id]').forEach(card=>{
+    card.addEventListener('click',()=>{
+      const entry=entries.find(x=>String(x.id)===String(card.dataset.logId));
+      if(entry) openProfileLogModal(entry);
+    });
+  });
+}
+
+function openProfileLogModal(entry){
+  const p=parseLogEntry(entry);
+  modalBox.className='modal';
+  modalContent.innerHTML=`
+    <h3>${escapeHtml(p.projectName)}</h3>
+    <div class="project-meta">
+      ${p.day ? `<span>Día ${p.day}</span>` : ''}
+      <span>${escapeHtml(entry.category)}</span>
+      <span>${entry.shared ? '🌎 Pública' : '🔒 Privada'}</span>
+    </div>
+    <h4 style="font-family:var(--serif);margin:12px 0 4px;">${escapeHtml(p.title)}</h4>
+    <p style="white-space:pre-wrap;color:var(--ink-soft);font-size:.92rem;">${escapeHtml(entry.notes)}</p>
+    ${entry.photo ? `<img src="${escapeHtml(entry.photo)}" alt="" style="width:100%;max-height:420px;object-fit:cover;border-radius:6px;margin-top:12px;">` : ''}
+    <p class="log-date" style="margin-top:12px;">${fmtDate(entry.date)}</p>
+  `;
+  modalBackdrop.classList.add('open');
+}
+
+// Foto de bitácora: se sube al mismo Storage de Enraíza.
+let pendingLogPhotoFile=null;
+const logPhotoPickBtn=document.getElementById('logPhotoPickBtn');
+const logPhotoInput=document.getElementById('logPhotoInput');
+if(logPhotoPickBtn && logPhotoInput){
+  logPhotoPickBtn.addEventListener('click',()=>logPhotoInput.click());
+  logPhotoInput.addEventListener('change',(e)=>{
+    const file=e.target.files[0]; e.target.value='';
+    if(!file) return;
+    pendingLogPhotoFile=file;
+    const preview=document.getElementById('logPhotoPreview');
+    if(preview){
+      preview.innerHTML=`<div class="photo-preview-item"><img src="${URL.createObjectURL(file)}" alt=""><button type="button" id="logPhotoRemove">&times;</button></div>`;
+      document.getElementById('logPhotoRemove').addEventListener('click',()=>{
+        pendingLogPhotoFile=null; preview.innerHTML='';
+      });
+    }
+  });
+}
+
 // ---------- FORM SUBMIT (bitácora privada) ----------
 document.getElementById('logForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   if(!requireLogin('usar tu bitácora')) return;
-  const title = document.getElementById('logTitle').value.trim();
+  const projectId = document.getElementById('logProject').value;
+  const project = PROJECTS.find(p=>p.id===projectId);
+  const day = Math.max(1, parseInt(document.getElementById('logDay').value,10) || 1);
+  const dayTitle = document.getElementById('logTitle').value.trim();
   const category = document.getElementById('logCategory').value;
   const notes = document.getElementById('logNotes').value.trim();
-  const photo = document.getElementById('logPhoto').value.trim();
   const shared = document.getElementById('logShare').checked;
-  if(!title || !notes) return;
-  try{ localStorage.setItem('enraiza:default_private_log', '1'); }catch(err){}
+  if(!project || !dayTitle || !notes) return;
 
+  let photo = document.getElementById('logPhoto').value.trim();
+  try{
+    localStorage.setItem('enraiza:default_private_log', '1');
+    if(pendingLogPhotoFile){
+      photo = await uploadImageFile(pendingLogPhotoFile,'logbook');
+      document.getElementById('logPhoto').value=photo;
+    }
+  }catch(err){
+    alert('No se pudo subir la foto: ' + (err.message || err));
+    return;
+  }
+
+  const title = `${project.title} · Día ${day} · ${dayTitle}`;
   await DB.logbook.create(currentUser.id, { title, category, notes, photo, shared });
   incrementStat('logbook_entries');
   renderLog();
@@ -3891,7 +4227,13 @@ document.getElementById('logForm').addEventListener('submit', async (e) => {
     renderFeedFromCache();
   }
   e.target.reset();
+  pendingLogPhotoFile=null;
+  document.getElementById('logPhoto').value='';
+  document.getElementById('logPhotoPreview').innerHTML='';
+  document.getElementById('logDay').value='1';
+  populateLogProjectSelect();
   renderProfile();
+  renderProfileLogs();
 });
 
 // =====================================================================
