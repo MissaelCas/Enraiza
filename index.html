@@ -4233,17 +4233,27 @@ async function loadUserStatsAndBadges(){
 async function reconcileHistoricalStats(){
   if(!currentUser) return;
   try{
-    const [posts, projects, stories, savedIds] = await Promise.all([
-      DB.posts.list(),
+    // Reutiliza la caché de publicaciones en vez de volver a traer
+    // toda la tabla otra vez (antes se pedía dos veces por cada carga).
+    if(!postsCacheReady) await loadPostsIntoCache();
+    const posts = postsCache;
+    const [projects, stories, savedIds] = await Promise.all([
       DB.projects.listForUser(currentUser.id),
       DB.stories.listActive(),
       DB.saved.listForUser(currentUser.id)
     ]);
     const mine = posts.filter(p => p.authorId === currentUser.id);
+    // Antes esto hacía una consulta POR CADA proyecto (N+1). Si esa consulta
+    // fallaba, el error se repetía en cada carga sin que lo notaras (estaba
+    // en un try/catch silencioso), gastando CPU de la base de datos para nada.
+    // Una sola consulta agregada resuelve lo mismo en una sola petición.
     let logCount = 0;
-    for(const pr of projects){
-      try{ const entries = await DB.logbook.listForProject(pr.id); logCount += entries.length; }catch(err){ /* ignore */ }
-    }
+    try{
+      const { count, error } = await sb.from('logbook_entries')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id);
+      if(!error) logCount = count || 0;
+    }catch(err){ /* ignore */ }
     const observed = {
       posts_created: mine.length,
       logbook_entries: logCount,
