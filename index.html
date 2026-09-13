@@ -2413,7 +2413,13 @@ function openAuthModal(mode, actionLabel){
         <label for="authPassword">Contraseña</label>
         <input type="password" id="authPassword" minlength="10" autocomplete="${isLogin ? 'current-password' : 'new-password'}" required>
       </div>
-      ${!isLogin ? `<div class="security-hint">Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.</div>` : ''}
+      ${!isLogin ? `
+        <div class="security-hint">Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.</div>
+        <label class="checkbox-row" for="termsAccepted">
+          <input type="checkbox" id="termsAccepted" required>
+          <span>Acepto los <strong>Términos de uso</strong> y la <strong>Política de privacidad</strong>.</span>
+        </label>
+      ` : ''}
       <p class="auth-error" id="authError" style="display:none;"></p>
       <button type="submit" class="btn btn-primary btn-small" id="authSubmitBtn">${isLogin ? 'Entrar' : 'Crear cuenta'}</button>
       ${isLogin ? `<button type="button" class="btn-text" id="forgotPasswordBtn">¿Olvidaste tu contraseña?</button>` : ''}
@@ -2437,6 +2443,15 @@ function openAuthModal(mode, actionLabel){
     errorEl.style.display = 'none';
     const email = document.getElementById('authEmail').value.trim().toLowerCase();
     const password = document.getElementById('authPassword').value;
+
+    if(!isLogin){
+      const termsAccepted = document.getElementById('termsAccepted');
+      if(!termsAccepted || !termsAccepted.checked){
+        errorEl.textContent = 'Debes aceptar los Términos de uso y la Política de privacidad para crear tu cuenta.';
+        errorEl.style.display = 'block';
+        return;
+      }
+    }
 
     if(!isLogin && !isStrongPassword(password)){
       errorEl.textContent = 'La contraseña debe tener al menos 10 caracteres, mayúscula, minúscula, número y símbolo.';
@@ -3083,6 +3098,11 @@ function setupFeedInfiniteScroll(posts){
 
 // ---------- RECARGAR TODO DESDE CERO (solo al iniciar, iniciar/cerrar sesión, o si algo falla) ----------
 async function reloadFeed(){
+  if(document.hidden && postsCacheReady){
+    renderFeedFromCache();
+    return;
+  }
+
   feedEntriesEl.innerHTML = '<p class="feed-empty">Cargando publicaciones…</p>';
   const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error('Tardó demasiado en responder (revisa tu conexión o la consola)')), ms));
   try{
@@ -3098,6 +3118,17 @@ async function reloadFeed(){
   renderFeedFromCache();
 }
 async function renderFeed(){ await reloadFeed(); }
+
+window.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && postsCacheReady){
+    renderFeedFromCache();
+  }
+});
+window.addEventListener('focus', () => {
+  if(document.visibilityState === 'visible' && postsCacheReady){
+    renderFeedFromCache();
+  }
+});
 
 function spawnHeartBurst(id, point){
   document.querySelectorAll(`[data-burstlayer="${id}"]`).forEach(layer => {
