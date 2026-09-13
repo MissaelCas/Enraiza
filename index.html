@@ -263,6 +263,15 @@
     .points-pill{ padding:7px 9px; }
   }
 
+  /* ---------- PERFIL Y PANTALLAS DE PROGRESO ---------- */
+  .profile-shell{max-width:860px;margin:0 auto}.profile-main-head{max-width:720px;margin:8px auto 18px;flex-wrap:nowrap}.profile-main-head .avatar-big{width:88px;height:88px;font-size:1.8rem}.profile-name-line{display:flex;align-items:center;gap:7px;margin-bottom:8px}.profile-name-line .profile-ig-name{margin:0;font-size:1.18rem}.verified-badge{display:inline-flex;width:18px;height:18px;border-radius:50%;align-items:center;justify-content:center;background:var(--moss);color:#fff;font-size:.68rem;font-weight:900;box-shadow:0 0 0 2px var(--paper)}
+  .profile-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 auto 22px;max-width:720px}.profile-action-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--white-ish);color:var(--ink);text-align:left;cursor:pointer;transition:.15s}.profile-action-card:hover{border-color:var(--moss);transform:translateY(-1px)}.profile-action-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--paper-alt)}.profile-action-card strong{display:block;font-size:.84rem}.profile-action-card small{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}.profile-action-card b{color:var(--ink-soft);font-size:1.1rem}.profile-section-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.compact-head h3{font-family:var(--serif);font-size:1rem;margin:0}.compact-head span{color:var(--ink-soft);font-size:.72rem}.profile-settings{margin-top:22px;border-top:1px solid var(--line)}.profile-settings summary{cursor:pointer;list-style:none;padding:13px 2px;color:var(--ink-soft);font-size:.82rem}.profile-settings summary::-webkit-details-marker{display:none}.profile-settings summary::after{content:'＋';float:right}.profile-settings[open] summary::after{content:'−'}.profile-settings .settings-block{margin-top:0}
+  .growth-page-head{max-width:860px;margin:0 auto 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.eyebrow{display:block;color:var(--moss-dark);font-size:.66rem;letter-spacing:.12em;font-weight:800;margin-bottom:5px}.growth-page-score{flex-shrink:0;border:1px solid var(--line);background:var(--white-ish);border-radius:12px;padding:10px 14px;text-align:center}.growth-page-score strong{display:block;font-family:var(--serif);font-size:1.25rem}.growth-page-score span{font-size:.62rem;color:var(--ink-soft)}.growth-page-wrap{max-width:860px;margin:0 auto}
+  .achievement-completed-strip{border:1px solid var(--moss);background:var(--paper-alt);border-radius:14px;padding:13px;margin-bottom:18px}.achievement-completed-strip h3{font-family:var(--serif);margin:0 0 3px;font-size:1rem}.achievement-completed-strip p{margin:0 0 11px;color:var(--ink-soft);font-size:.72rem}.achievement-completed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.achievement-card{border:1px solid var(--line);border-radius:11px;background:var(--white-ish);padding:11px;display:flex;gap:10px;align-items:center;min-width:0}.achievement-card.earned{border-color:rgba(63,107,74,.38)}.achievement-card .badge-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--paper-alt);font-size:1.2rem;flex-shrink:0}.achievement-card.earned .badge-icon{background:var(--moss)}.achievement-card h4{margin:0;font-family:var(--serif);font-size:.84rem}.achievement-card p{margin:2px 0 0;color:var(--ink-soft);font-size:.68rem;line-height:1.3}.achievement-mark{margin-left:auto;font-weight:900;color:var(--moss-dark)}.achievement-category{margin:0 0 22px}.achievement-category-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}.achievement-category-head h3{margin:0;font-family:var(--serif);font-size:1rem}.achievement-category-head span{color:var(--ink-soft);font-size:.68rem}.achievement-locked-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.achievement-card.locked .badge-icon{filter:saturate(.35);opacity:.8}.achievement-progress{margin-top:5px;color:var(--moss-dark);font-weight:700;font-size:.64rem}
+  .missions-page-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mission-page-card{border:1px solid var(--line);border-radius:13px;padding:15px;background:var(--white-ish);display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start}.mission-page-card.done{border-color:var(--moss);background:var(--paper-alt)}.mission-page-card .mission-icon{width:40px;height:40px}.mission-page-card h3{margin:0;font-family:var(--serif);font-size:.95rem}.mission-page-card p{margin:3px 0 0;color:var(--ink-soft);font-size:.72rem;line-height:1.4}.mission-page-card .mission-reward{padding-top:2px}.mission-page-note{margin:14px 0 0;border-left:3px solid var(--clay);padding:9px 12px;color:var(--ink-soft);font-size:.72rem;background:var(--paper-alt)}
+  @media(max-width:700px){.profile-shell{max-width:100%}.profile-main-head{align-items:flex-start;gap:15px}.profile-main-head .avatar-big{width:76px;height:76px}.profile-quick-actions{grid-template-columns:1fr}.growth-page-head{align-items:flex-start}.missions-page-list{grid-template-columns:1fr}}
+  @media(max-width:480px){.profile-main-head{gap:12px}.profile-main-head .avatar-big{width:68px;height:68px}.profile-stats-row{gap:15px;justify-content:space-between}.profile-stats-row div{font-size:.72rem}.profile-stats-row strong{font-size:.95rem}.profile-bio{font-size:.76rem}.profile-name-line .profile-ig-name{font-size:1rem}.achievement-completed-grid,.achievement-locked-grid{grid-template-columns:1fr}.growth-page-score{padding:8px 10px}}
+
   .avatar{
     width: 38px; height:38px; border-radius: 50%; background: var(--moss);
     color: var(--white-ish); display:flex; align-items:center; justify-content:center;
@@ -298,11 +307,13 @@
   .stories-row{ display:flex; gap: 16px; overflow-x:auto; padding: 16px 4px 20px; }
   .story-item{ display:flex; flex-direction:column; align-items:center; gap: 6px; flex-shrink:0; width: 68px; cursor:pointer; background:none; border:none; font-family: var(--sans); }
   .story-ring{
-    width: 62px; height:62px; border-radius:50%; padding: 2.5px;
-    background: linear-gradient(45deg, var(--clay), var(--clay-dark), var(--moss));
-    display:flex; align-items:center; justify-content:center;
+    --story-segments: 1; --story-gap: 3deg;
+    width:62px; height:62px; border-radius:50%; padding:2.5px;
+    background:var(--story-ring-bg, var(--clay)); display:flex; align-items:center; justify-content:center; position:relative;
   }
-  .story-ring.seen{ background: var(--line); }
+  .story-ring::before{ content:""; position:absolute; inset:0; border-radius:50%; background:repeating-conic-gradient(from -90deg, transparent 0deg calc((360deg / var(--story-segments)) - var(--story-gap)), var(--paper) calc((360deg / var(--story-segments)) - var(--story-gap)) calc(360deg / var(--story-segments))); }
+  .story-ring.seen{ --story-ring-bg:var(--line); }
+  .story-ring-partial{ --story-ring-bg:var(--clay); }
   .story-avatar{
     width: 100%; height:100%; border-radius:50%; background: var(--paper);
     border: 2px solid var(--paper); display:flex; align-items:center; justify-content:center;
@@ -529,6 +540,7 @@
   .activity-item:last-child{ border-bottom:none; }
   .activity-item .when{ font-size:0.74rem; color: var(--ink-soft); }
 
+  .profile-header-actions{display:flex;align-items:center;gap:8px;margin-top:-2px}.profile-settings-btn{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;background:var(--white-ish);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.profile-settings-btn:hover{border-color:var(--moss);background:var(--paper-alt)}.profile-settings-btn svg{width:20px;height:20px}.profile-settings-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--white-ish);margin-top:22px}.profile-settings-entry strong{display:block;font-size:.86rem}.profile-settings-entry small{display:block;color:var(--ink-soft);font-size:.72rem;margin-top:2px}.settings-page{max-width:920px;margin:0 auto}.settings-mobile-back{display:none}.settings-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:start}.settings-nav{border:1px solid var(--line);border-radius:12px;background:var(--white-ish);overflow:hidden;position:sticky;top:84px}.settings-nav button{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:13px 15px;cursor:pointer;color:var(--ink);font:inherit}.settings-nav button:last-child{border-bottom:0}.settings-nav button:hover,.settings-nav button.active{background:var(--paper-alt);font-weight:700}.settings-content{min-width:0}.settings-content .settings-group{display:none}.settings-content .settings-group.active{display:block}.settings-mobile-title{display:none}
   .profile-ig-head{ display:flex; gap: 22px; align-items:center; margin-bottom: 16px; flex-wrap:wrap; }
   .avatar-big-wrap{ position:relative; flex-shrink:0; }
   .avatar-big{
@@ -557,6 +569,29 @@
   .settings-block label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:6px; }
   .settings-block input{ padding: 9px 11px; border: 1px solid var(--line); border-radius: 3px; font-size:0.92rem; width:100%; max-width:320px; margin-bottom: 14px; }
   .settings-privacy{ font-size: 0.82rem; color: var(--ink-soft); border-left: 3px solid var(--clay); padding-left: 12px; margin: 14px 0; }
+  .settings-page{max-width:760px;margin:0 auto}
+  .settings-group{border:1px solid var(--line);border-radius:12px;background:var(--white-ish);overflow:hidden;margin-bottom:14px}
+  .settings-group h3{font-family:var(--serif);font-size:1rem;margin:0;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .setting-row:last-child{border-bottom:none}
+  .setting-row strong{display:block;font-size:.86rem}
+  .setting-row small{display:block;color:var(--ink-soft);font-size:.72rem;margin-top:2px;line-height:1.35}
+  .setting-toggle{position:relative;width:44px;height:24px;flex:0 0 44px}
+  .setting-toggle input{opacity:0;width:0;height:0}
+  .setting-toggle span{position:absolute;inset:0;border-radius:999px;background:var(--line);cursor:pointer;transition:.15s}
+  .setting-toggle span:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.15s}
+  .setting-toggle input:checked + span{background:var(--moss)}
+  .setting-toggle input:checked + span:before{transform:translateX(20px)}
+  .log-visibility{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--ink-soft)}
+  .log-visibility button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 9px;cursor:pointer;color:var(--moss-dark);font-size:.72rem}
+  .public-logbook{margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
+  @media(max-width:600px){.setting-row{align-items:flex-start}.settings-page{width:100%}}
+  @media(max-width:700px){
+    header.nav .nav-inner{padding:10px 12px;gap:8px}.search-wrap{max-width:none}.ig-icons{gap:10px}.ig-icon-btn svg{width:22px;height:22px}.ig-icon-btn .avatar{width:27px;height:27px}
+    .profile-ig-head.profile-main-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;align-items:start;margin:0 0 14px}.profile-main-head .avatar-big{width:78px;height:78px}.profile-header-actions{position:absolute;right:0;top:0}.profile-main-head{position:relative}.profile-ig-right{min-width:0;padding-right:42px}.profile-stats-row{gap:16px;justify-content:space-between}.profile-settings-entry{margin-top:16px;padding:13px}.settings-layout{display:block}.settings-nav{display:none}.settings-mobile-back{display:flex;align-items:center;gap:8px;border:0;background:none;padding:0 0 14px;color:var(--ink-soft);font:inherit;cursor:pointer}.settings-mobile-title{display:block;font-family:var(--serif);font-size:1.35rem;margin:0 0 14px}.settings-content .settings-group.active{display:block}.settings-group{border-radius:10px}.setting-row{min-height:62px;padding:14px}.settings-block input{max-width:none}.settings-page{width:100%;max-width:none}.settings-page .section-head{display:none}
+  }
+  @media(min-width:701px){.settings-mobile-back{display:none}}
+
 
   .explore-menu{ padding:6px 0; margin-top:0; }
   .explore-menu a{ display:block; padding:14px 20px; text-decoration:none; color:var(--ink); border-bottom:1px solid var(--line); cursor:pointer; }
@@ -672,6 +707,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7.2-4.6-9.7-9.1C.6 8.6 2 5 5.4 4.2 7.7 3.6 10 4.6 12 7c2-2.4 4.3-3.4 6.6-2.8C22 5 23.4 8.6 21.7 11.9 19.2 16.4 12 21 12 21Z"/></svg>
         <span class="ig-dot" id="activityDot" style="display:none;"></span>
       </button>
+
       <button class="ig-icon-btn" id="btnGoProfile" title="Perfil" aria-label="Perfil">
         <div class="avatar" id="topbarAvatar">?</div>
       </button>
@@ -909,49 +945,127 @@
     </div>
   </section>
 
-  <!-- ===================== PERFIL (pantalla aparte) ===================== -->
-  <section id="perfil" class="view">
-    <div class="section-head">
-      <div>
-        <h2 class="section-title">Perfil</h2>
-        <p class="section-desc">Cómo te ves en Enraíza y lo que has ido logrando.</p>
-      </div>
+  <!-- ===================== LOGROS (pantalla aparte) ===================== -->
+  <section id="logros" class="view">
+    <div class="back-row"><button class="back-link" data-view="perfil">← Volver a Perfil</button></div>
+    <div class="growth-page-head">
+      <div><span class="eyebrow">TU PROGRESO</span><h2 class="section-title">Logros</h2><p class="section-desc">Pequeñas acciones que se convierten en raíces. Los logros que consigues son permanentes.</p></div>
+      <div class="growth-page-score" id="achievementsPageScore"></div>
     </div>
+    <div id="achievementsPageContent"></div>
+  </section>
 
-    <div class="profile-ig-head">
-      <div class="avatar-big-wrap">
-        <div class="avatar-big" id="profileAvatar">?</div>
-        <button type="button" class="avatar-edit-btn" id="avatarEditBtn" title="Cambiar foto de perfil">✎</button>
-        <input type="file" id="avatarInput" accept="image/*" class="visually-hidden">
+  <!-- ===================== MISIONES (pantalla aparte) ===================== -->
+  <section id="misiones" class="view">
+    <div class="back-row"><button class="back-link" data-view="perfil">← Volver a Perfil</button></div>
+    <div class="growth-page-head">
+      <div><span class="eyebrow">ESTA SEMANA</span><h2 class="section-title">Misiones</h2><p class="section-desc">No se trata de acumular puntos: se trata de hacer algo que deje huella.</p></div>
+      <div class="growth-page-score" id="missionsPageScore"></div>
+    </div>
+    <div id="missionsPageContent"></div>
+  </section>
+
+  <!-- ===================== CONFIGURACIÓN ===================== -->
+  <section id="configuracion" class="view">
+    <div class="settings-page">
+      <button class="settings-mobile-back" id="settingsMobileBack">← Volver al perfil</button>
+      <h2 class="settings-mobile-title">Configuración</h2>
+      <div class="settings-layout">
+        <nav class="settings-nav" aria-label="Secciones de configuración">
+          <button type="button" class="active" data-settings-section="perfil">Perfil</button>
+          <button type="button" data-settings-section="privacidad">Privacidad</button>
+          <button type="button" data-settings-section="comunidad">Comunidad</button>
+          <button type="button" data-settings-section="sesion">Sesión</button>
+          <button type="button" data-settings-section="seguridad">Seguridad</button>
+        </nav>
+        <div class="settings-content">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">TU CUENTA</span>
+          <h2 class="section-title">Configuración</h2>
+          <p class="section-desc">Controla tu perfil, privacidad y cómo compartes tu progreso en Enraíza.</p>
+        </div>
       </div>
-      <div class="profile-ig-right">
-        <p class="profile-ig-name" id="profileDisplayName">Sin nombre todavía</p>
-        <div class="profile-stats-row" id="profileStats"></div>
-        <div class="profile-bio">
-          <strong>Enraíza</strong>
-          🌱 Por una vida más sostenible, una raíz a la vez.
+      <div class="settings-group active" data-settings-panel="perfil">
+        <h3>Perfil</h3>
+        <div style="padding:16px;">
+          <form id="settingsProfileForm">
+            <label for="settingsProfileName">Nombre o apodo</label>
+            <input type="text" id="settingsProfileName" maxlength="80" placeholder="Tu nombre o apodo" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;">
+            <button type="submit" class="btn btn-primary btn-small">Guardar nombre</button>
+          </form>
+          <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div class="avatar" id="settingsAvatarPreview">?</div>
+            <div style="flex:1;min-width:180px;"><strong style="display:block;font-size:.86rem;">Foto de perfil</strong><small style="display:block;color:var(--ink-soft);font-size:.72rem;margin-top:2px;">La foto se cambia únicamente desde Configuración.</small></div>
+            <button type="button" class="btn btn-outline btn-small" id="settingsAvatarBtn">Cambiar foto</button>
+            <input type="file" id="settingsAvatarInput" accept="image/*" class="visually-hidden">
+          </div>
+        </div>
+      </div>
+      <div class="settings-group" data-settings-panel="privacidad">
+        <h3>Privacidad</h3>
+        <div class="setting-row">
+          <div><strong>Bitácora privada por defecto</strong><small>Las nuevas entradas se guardarán privadas. Puedes compartir cada una individualmente.</small></div>
+          <label class="setting-toggle"><input type="checkbox" id="defaultPrivateLog" checked><span></span></label>
+        </div>
+        <div class="setting-row">
+          <div><strong>Mostrar mis publicaciones</strong><small>Las publicaciones de la red son públicas para la comunidad.</small></div>
+          <span style="font-size:.72rem;color:var(--moss-dark);font-weight:700;">Públicas</span>
+        </div>
+      </div>
+      <div class="settings-group" data-settings-panel="comunidad">
+        <h3>Comunidad</h3>
+        <div class="setting-row"><div><strong>Misiones y logros</strong><small>Tu progreso se conserva aunque borres una publicación o entrada.</small></div><button class="btn btn-outline btn-small" data-view="logros">Ver logros</button></div>
+        <div class="setting-row"><div><strong>Actividad</strong><small>Consulta las interacciones recibidas en tus publicaciones.</small></div><button class="btn btn-outline btn-small" id="settingsActivityBtn">Ver actividad</button></div>
+      </div>
+      <div class="settings-group" data-settings-panel="sesion">
+        <h3>Sesión</h3>
+        <div class="setting-row"><div><strong>Cuenta</strong><small id="settingsAccountState">Cargando…</small></div><button class="btn btn-outline btn-small" id="settingsLogoutBtn">Cerrar sesión</button></div>
+      </div>
+      <div class="settings-group" data-settings-panel="seguridad">
+        <h3>Seguridad</h3>
+        <div style="padding:16px;">
+          <form id="settingsSecurityForm">
+            <label for="settingsEmail">Correo de la cuenta</label>
+            <input type="email" id="settingsEmail" readonly style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 14px;">
+            <label for="settingsNewPassword">Nueva contraseña</label>
+            <input type="password" id="settingsNewPassword" minlength="6" placeholder="Mínimo 6 caracteres" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;">
+            <button type="submit" class="btn btn-primary btn-small">Actualizar contraseña</button>
+          </form>
+          <p class="settings-privacy">Tu contraseña nunca se guarda en esta página. El cambio se procesa mediante Supabase Auth.</p>
         </div>
       </div>
     </div>
-
-    <h3 class="profile-sub-title">Explorar Enraíza</h3>
-    <div class="settings-block explore-menu">
-      <a data-view="proyectos">🌿 Proyectos — ideas para empezar hoy</a>
-      <a data-view="plantas">🪴 Cuidado de plantas</a>
-      <a data-view="articulos">📜 Artículos y leyes</a>
-      <a data-view="bitacora">📔 Mi bitácora privada</a>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <h3 class="profile-sub-title">Tus publicaciones</h3>
-    <div class="profile-post-grid" id="profilePostGrid"></div>
-
-    <h3 class="profile-sub-title">Logros</h3>
-    <div class="badges-summary" id="badgesSummary"></div>
-    <div id="badgeSections"></div>
-
-    <h3 class="profile-sub-title">Cuenta</h3>
-    <div class="settings-block" id="accountBlock">
-      <!-- se llena dinámicamente -->
+  <!-- ===================== PERFIL (pantalla aparte) ===================== -->
+  <section id="perfil" class="view">
+    <div class="profile-shell">
+      <div class="profile-ig-head profile-main-head">
+        <div class="avatar-big-wrap"><div class="avatar-big" id="profileAvatar">?</div></div>
+        <div class="profile-ig-right">
+          <div class="profile-name-line"><p class="profile-ig-name" id="profileDisplayName">Sin nombre todavía</p><span class="verified-badge" id="profileVerifiedBadge" title="Cuenta verificada" aria-label="Cuenta verificada">✓</span></div>
+           <div class="profile-header-actions"><button type="button" class="profile-settings-btn" id="profileSettingsBtn" title="Configuración" aria-label="Configuración"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 1 1-2.4-2.4l.1-.1A1.7 1.7 0 0 0 6.2 12a1.7 1.7 0 0 0-1.2-2.9h-.2a1.7 1.7 0 0 1 0-3.4H5A1.7 1.7 0 0 0 6.2 3.8l-.1-.1a1.7 1.7 0 1 1 2.4-2.4l.1.1A1.7 1.7 0 0 0 11.5.2h.2a1.7 1.7 0 0 1 3.4 0v.2A1.7 1.7 0 0 0 17.9 1.7l.1-.1a1.7 1.7 0 1 1 2.4 2.4l-.1.1A1.7 1.7 0 0 0 21.5 7h.2a1.7 1.7 0 0 1 0 3.4h-.2A1.7 1.7 0 0 0 20.3 13a1.7 1.7 0 0 0-.9 2Z" transform="translate(1.8 1.8) scale(.85)"/></svg></button></div>
+          <div class="profile-stats-row" id="profileStats"></div>
+          <div class="profile-bio"><strong>Enraíza</strong>🌱 Por una vida más sostenible, una raíz a la vez.</div>
+        </div>
+      </div>
+      <div class="profile-quick-actions">
+        <button class="profile-action-card" data-view="misiones"><span class="profile-action-icon">🎯</span><span><strong>Misiones</strong><small id="profileMissionSummary">Esta semana</small></span><b>›</b></button>
+        <button class="profile-action-card" data-view="logros"><span class="profile-action-icon">🏅</span><span><strong>Logros</strong><small id="profileBadgeSummary">Ver tu progreso</small></span><b>›</b></button>
+      </div>
+      <h3 class="profile-sub-title">Explorar Enraíza</h3>
+      <div class="settings-block explore-menu">
+        <a data-view="proyectos">🌿 Proyectos — ideas caseras, fáciles y rápidas</a>
+        <a data-view="plantas">🪴 Guías de cuidado y plantación</a>
+        <a data-view="articulos">📜 Artículos, leyes y contexto</a>
+        <a data-view="bitacora">📔 Mi bitácora — privada o pública por entrada</a>
+      </div>
+      <div class="profile-section-head compact-head" style="margin-top:22px;"><div><h3>Publicaciones</h3><span id="profilePostCountLabel"></span></div></div>
+      <div class="profile-post-grid" id="profilePostGrid"></div>
     </div>
   </section>
 
@@ -969,6 +1083,13 @@
     </div>
     <h3 class="profile-sub-title">Publicaciones</h3>
     <div class="profile-post-grid" id="profileVisitPostGrid"></div>
+    <div class="public-logbook">
+      <h3 class="profile-sub-title" style="margin-top:0;">Bitácora pública</h3>
+      <div class="log-entries" id="profileVisitLogbook"></div>
+    </div>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -1013,6 +1134,8 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const BUCKET = 'enraiza';
 const STORY_DAY_MS = 24 * 60 * 60 * 1000;
 const STORY_DURATION_MS = 5000;
+// Opcional: si conoces el UUID de la cuenta dueña, asígnalo aquí para una verificación inequívoca.
+// window.ENRAIZA_OWNER_ID = 'TU-UUID-DE-DUENO';
 
 // ---------- DATA: PROJECTS ----------
 const PROJECTS = [
@@ -1242,7 +1365,7 @@ Object.keys(PLANTS).forEach((key, i) => {
 });
 
 // ---------- CAMBIO DE PANTALLA ----------
-const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora','perfil'];
+const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora','perfil','logros','misiones','configuracion'];
 function showView(name){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const target = document.getElementById(name);
@@ -1252,6 +1375,9 @@ function showView(name){
     try{ sessionStorage.setItem('enraiza:view', name); }catch(err){ /* ignore */ }
   }
   if(name === 'perfil') renderProfile();
+  if(name === 'logros') renderAchievementsPage();
+  if(name === 'misiones') renderMissionsPage();
+  if(name === 'configuracion') renderSettingsPage();
   if(name === 'perfilVisita') renderUserProfileVisit();
 }
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', (e) => {
@@ -1497,6 +1623,16 @@ const DB = {
       if(error) throw error;
       return mapLogRow(data);
     },
+    async listSharedForUser(userId){
+      const { data, error } = await sb.from('logbook_entries').select('*').eq('user_id', userId).eq('shared', true).order('created_at', { ascending:false });
+      if(error) throw error;
+      return (data||[]).map(mapLogRow);
+    },
+    async updateShared(userId, entryId, shared){
+      const { data, error } = await sb.from('logbook_entries').update({ shared: !!shared }).eq('id', entryId).eq('user_id', userId).select().single();
+      if(error) throw error;
+      return mapLogRow(data);
+    },
     async remove(userId, entryId){
       const { error } = await sb.from('logbook_entries').delete().eq('id', entryId).eq('user_id', userId);
       if(error) throw error;
@@ -1681,6 +1817,18 @@ async function renderUserProfileVisit(){
     <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
   `).join('');
   grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
+  const publicLog = document.getElementById('profileVisitLogbook');
+  if(publicLog){
+    try{
+      const entries = await DB.logbook.listSharedForUser(uid);
+      publicLog.innerHTML = entries.length ? entries.map(e => `
+        <article class="log-entry">
+          <div class="log-entry-head"><div><h4>${escapeHtml(e.title)}</h4><span class="log-date">${fmtDate(e.date)} · ${e.category}</span></div><span style="font-size:.72rem;color:var(--moss-dark);">🌎 Pública</span></div>
+          <p>${escapeHtml(e.notes)}</p>
+          ${e.photo ? `<img src="${escapeHtml(e.photo)}" alt="Foto de ${escapeHtml(e.title)}" onerror="this.style.display='none'">` : ''}
+        </article>`).join('') : '<p class="empty-note">Esta persona todavía no ha compartido entradas de su bitácora.</p>';
+    }catch(err){ publicLog.innerHTML = '<p class="empty-note">No se pudo cargar la bitácora pública.</p>'; }
+  }
 }
 
 // ---------- VISTA PREVIA RÁPIDA AL MANTENER PRESIONADA UNA IMAGEN (estilo IG) ----------
@@ -1833,7 +1981,8 @@ function translateAuthError(msg){
 }
 
 async function loadCurrentUserFromSession(session){
-  if(!session || !session.user){ currentUser = null; return; }
+  if(!session || !session.user){ currentUser = null; currentAuthEmail = ''; return; }
+  currentAuthEmail = String(session.user.email || '').trim().toLowerCase();
   let profile = await DB.users.findById(session.user.id);
   if(!profile){
     await wait(600);
@@ -1845,6 +1994,7 @@ async function loadCurrentUserFromSession(session){
 async function refreshAppAfterAuthChange(){
   applyProfileToUI();
   await loadUserStatsAndBadges();
+  await reconcileHistoricalStats();
   await Promise.all([renderLog(), reloadFeed(), renderStories()]);
   if(currentUser) await recordDailyLogin();
   renderProfile();
@@ -1866,30 +2016,6 @@ function applyProfileToUI(){
     : 'Inicia sesión para compartir un proyecto o planta';
   document.getElementById('profileDisplayName').textContent = currentUser ? currentUser.name : 'Invitado';
 }
-
-// ---------- FOTO DE PERFIL ----------
-document.getElementById('avatarEditBtn').addEventListener('click', () => {
-  if(!requireLogin('cambiar tu foto de perfil')) return;
-  document.getElementById('avatarInput').click();
-});
-document.getElementById('avatarInput').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  e.target.value = '';
-  if(!file || !currentUser) return;
-  const btn = document.getElementById('avatarEditBtn');
-  btn.textContent = '…';
-  try{
-    const url = await uploadImageFile(file, 'avatars');
-    currentUser = await DB.users.updateAvatar(currentUser.id, url);
-    usersCache[currentUser.id] = currentUser;
-    applyProfileToUI();
-    renderProfile();
-    renderFeedFromCache();
-  }catch(err){
-    alert('No se pudo subir la foto: ' + (err.message || err));
-  }
-  btn.textContent = '✎';
-});
 
 // ---------- CREATE BAR / COMPOSER ----------
 const composerForm = document.getElementById('composerForm');
@@ -1937,6 +2063,8 @@ function renderPhotoPreview(){
 // ---------- TOPBAR ICON ACTIONS ----------
 document.getElementById('btnGoHome').addEventListener('click', () => { showView('inicio'); });
 document.getElementById('btnGoProfile').addEventListener('click', () => { showView('perfil'); });
+const profileSettingsBtn = document.getElementById('profileSettingsBtn');
+if(profileSettingsBtn) profileSettingsBtn.addEventListener('click', () => { if(requireLogin('abrir configuración')) showView('configuracion'); });
 document.getElementById('btnNewPost').addEventListener('click', () => {
   if(!requireLogin('publicar')) return;
   showView('inicio');
@@ -2713,11 +2841,13 @@ async function renderStories(){
       const authorObj = usersCache[g.authorId];
       const name = authorObj?.name || 'Comunidad Enraíza';
       const allSeen = g.stories.every(s => viewed.has(s.id));
-      const cover = g.stories[g.stories.length-1];
+      const seenCount = g.stories.filter(s => viewed.has(s.id)).length;
+      const cover = g.stories.find(s => !viewed.has(s.id)) || g.stories[g.stories.length-1];
+      const segmentStyle = `--story-segments:${g.stories.length};`;
       return `
       <button class="story-item" data-groupindex="${i}">
-        <div class="story-ring ${allSeen ? 'seen' : ''}"><div class="story-avatar">${cover.photo ? `<img src="${cover.photo}" alt="">` : avatarHTML(authorObj)}</div></div>
-        <span class="story-label">${escapeHtml(name)}${g.stories.some(s=>s.demo) ? ' · ej.' : ''}</span>
+        <div class="story-ring ${allSeen ? 'seen' : 'story-ring-partial'}" style="${segmentStyle}"><div class="story-avatar">${cover.photo ? `<img src="${cover.photo}" alt="">` : avatarHTML(authorObj)}</div></div>
+        <span class="story-label">${escapeHtml(name)}${g.stories.length > 1 ? ` · ${seenCount}/${g.stories.length}` : ''}${g.stories.some(s=>s.demo) ? ' · ej.' : ''}</span>
       </button>
     `;}).join('')}
   `;
@@ -2780,7 +2910,7 @@ function openStoryViewer(groupIndex){
   const group = storyGroups[groupIndex];
   const viewed = getViewedStoryIds();
   const firstUnseen = group.stories.findIndex(s => !viewed.has(s.id));
-  currentStoryIndex = firstUnseen === -1 ? 0 : firstUnseen;
+  currentStoryIndex = firstUnseen >= 0 ? firstUnseen : 0;
   modalBox.className = 'modal story-view-backdrop';
   document.body.classList.add('story-open');
   renderStoryViewer();
@@ -2963,13 +3093,25 @@ async function renderLog(){
           <h4>${escapeHtml(e.title)}</h4>
           <span class="log-date">${fmtDate(e.date)} · ${e.category}${e.shared ? ' · compartida' : ''}</span>
         </div>
-        <button class="log-del" data-id="${e.id}">Eliminar</button>
+        <div class="log-visibility">
+          <button type="button" class="log-share-toggle" data-logshare="${e.id}" data-shared="${e.shared ? '1':'0'}">${e.shared ? '🌎 Pública' : '🔒 Privada'}</button>
+          <button class="log-del" data-id="${e.id}">Eliminar</button>
+        </div>
       </div>
       <p>${escapeHtml(e.notes)}</p>
       ${e.photo ? `<img src="${e.photo}" alt="Foto de ${escapeHtml(e.title)}" onerror="this.style.display='none'">` : ''}
     </div>
   `).join('');
   document.querySelectorAll('#logEntries .log-del').forEach(btn => btn.addEventListener('click', handleDelete));
+  document.querySelectorAll('#logEntries .log-share-toggle').forEach(btn => btn.addEventListener('click', () => handleToggleLogShare(btn.dataset.logshare, btn.dataset.shared !== '1')));
+}
+async function handleToggleLogShare(id, shared){
+  if(!currentUser) return;
+  try{
+    await DB.logbook.updateShared(currentUser.id, id, shared);
+    showToast(shared ? '🌎 Entrada compartida públicamente' : '🔒 Entrada vuelta a privada');
+    await renderLog();
+  }catch(err){ alert('No se pudo cambiar la privacidad: ' + (err.message || err)); }
 }
 async function handleDelete(e){
   if(!currentUser) return;
@@ -3084,6 +3226,38 @@ async function loadUserStatsAndBadges(){
   try{ earnedBadgeIds = new Set(await DB.badges.listEarned(currentUser.id)); }
   catch(err){ earnedBadgeIds = new Set(); }
 }
+async function reconcileHistoricalStats(){
+  if(!currentUser) return;
+  try{
+    const [posts, logs, stories, savedIds] = await Promise.all([
+      DB.posts.list(),
+      DB.logbook.listForUser(currentUser.id),
+      DB.stories.listActive(),
+      DB.saved.listForUser(currentUser.id)
+    ]);
+    const mine = posts.filter(p => p.authorId === currentUser.id);
+    const observed = {
+      posts_created: mine.length,
+      logbook_entries: logs.length,
+      stories_created: stories.filter(s => s.authorId === currentUser.id).length,
+      likes_given: posts.reduce((n,p) => n + ((p.likedBy||[]).includes(currentUser.id) ? 1 : 0), 0),
+      comments_written: posts.reduce((n,p) => n + (p.comments||[]).filter(c => c.authorId === currentUser.id).length, 0),
+      posts_saved: savedIds.length
+    };
+    const pending=[];
+    Object.entries(observed).forEach(([field,value]) => {
+      const stored=Number(userStats.counts[field]||0);
+      if(value>stored){
+        const delta=value-stored;
+        userStats.counts[field]=value;
+        pending.push(DB.stats.increment(field, delta));
+      }
+    });
+    if(pending.length) await Promise.all(pending);
+    checkAndAwardBadges();
+    checkAndAwardMissions();
+  }catch(err){ /* si una consulta falla, no bloquea la app */ }
+}
 
 async function recordDailyLogin(){
   if(!currentUser) return;
@@ -3182,235 +3356,149 @@ async function computeStats(){
   return { logCount: entries.length, ownPosts: ownPosts.length, ownPostList: ownPosts, likedCount, savedCount: savedIds.length, ownComments };
 }
 
-function renderAccountBlock(){
-  const block = document.getElementById('accountBlock');
-  if(!currentUser){
-    block.innerHTML = `
-      <p class="section-desc" style="margin:0 0 12px;">No has iniciado sesión.</p>
-      <button class="btn btn-primary btn-small" id="accountLoginBtn">Iniciar sesión o crear cuenta</button>
-    `;
-    document.getElementById('accountLoginBtn').addEventListener('click', () => openAuthModal('login'));
-    return;
+function renderSettingsPage(){
+  initSettingsSecurity();
+  const state=document.getElementById('settingsAccountState');
+  const logoutBtn=document.getElementById('settingsLogoutBtn');
+  const nameInput=document.getElementById('settingsProfileName');
+  const avatarPreview=document.getElementById('settingsAvatarPreview');
+  if(state) state.textContent=currentUser ? `Sesión iniciada como ${currentUser.name}` : 'No has iniciado sesión.';
+  if(logoutBtn){ logoutBtn.style.display=currentUser ? 'inline-block' : 'none'; logoutBtn.onclick=logout; }
+  if(nameInput) nameInput.value=currentUser?.name || '';
+  if(avatarPreview) avatarPreview.innerHTML=currentUser ? avatarHTML(currentUser) : '?';
+  const activityBtn=document.getElementById('settingsActivityBtn');
+  if(activityBtn) activityBtn.onclick=()=>{ if(requireLogin('ver tu actividad')) openActivityModal(); };
+  const form=document.getElementById('settingsProfileForm');
+  if(form && !form.dataset.bound){
+    form.dataset.bound='1';
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      if(!requireLogin('editar tu perfil')) return;
+      const name=document.getElementById('settingsProfileName').value.trim();
+      if(!name) return;
+      try{
+        currentUser=await DB.users.updateName(currentUser.id,name);
+        usersCache[currentUser.id]=currentUser;
+        applyProfileToUI();
+        renderProfile();
+        renderSettingsPage();
+        showToast('Perfil actualizado');
+      }catch(err){ alert('No se pudo guardar el nombre: '+(err.message||err)); }
+    });
   }
-  block.innerHTML = `
-    <form id="profileForm">
-      <label for="profileNameInput">Tu nombre o apodo</label>
-      <input type="text" id="profileNameInput" value="${escapeHtml(currentUser.name)}">
-      <div style="display:flex; gap:8px;">
-        <button type="submit" class="btn btn-outline btn-small">Guardar nombre</button>
-        <button type="button" class="btn btn-text" id="logoutBtn">Cerrar sesión</button>
-      </div>
-    </form>
-    <p class="settings-privacy">
-      Lo que publicas en Inicio y las historias que subas son visibles para cualquiera que abra esta página. Tu bitácora es privada, a menos que marques "compartir" al guardar una entrada.
-    </p>
-  `;
-  document.getElementById('profileForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('profileNameInput').value.trim();
-    if(!name) return;
-    currentUser = await DB.users.updateName(currentUser.id, name);
-    usersCache[currentUser.id] = currentUser;
-    applyProfileToUI();
-    renderProfile();
-    renderFeedFromCache();
-  });
-  document.getElementById('logoutBtn').addEventListener('click', logout);
-}
-
-async function renderProfile(){
-  applyProfileToUI();
-  renderAccountBlock();
-  const stats = await computeStats();
-  document.getElementById('profileStats').innerHTML = `
-    <div><strong>${stats.ownPosts}</strong>publicaciones</div>
-    <div><strong>${stats.logCount}</strong>en tu bitácora</div>
-    <div><strong>${stats.likedCount}</strong>me gusta dados</div>
-    <div><strong>${stats.savedCount}</strong>guardados</div>
-    ${currentUser ? `<div><strong>🔥 ${userStats.current_streak||0}</strong>racha actual</div>` : ''}
-  `;
-  const profileGrid = document.getElementById('profilePostGrid');
-  if(!currentUser){
-    profileGrid.innerHTML = '<p class="profile-empty-grid">Inicia sesión para ver tus publicaciones aquí.</p>';
-  } else if(!stats.ownPostList.length){
-    profileGrid.innerHTML = '<p class="profile-empty-grid">Comparte algo en Inicio para verlo aquí.</p>';
-  } else {
-    profileGrid.innerHTML = stats.ownPostList.map(p => `
-      <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
-    `).join('');
-    profileGrid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
-  }
-
-  // ---- Crecimiento: puntos + misiones + logros destacados.
-  // Los completados viven en una sola sección superior y NO se repiten
-  // debajo por categoría cuando se abre "Ver todos".
-  const earnedBadges = BADGES.filter(b => earnedBadgeIds.has(b.id));
-  const lockedBadges = BADGES.filter(b => !earnedBadgeIds.has(b.id));
-  const storedPoints = userStats.counts.points_total || 0;
-  const badgePointsFallback = earnedBadges.reduce((sum,b) => sum + b.points, 0);
-  const totalPoints = Math.max(storedPoints, badgePointsFallback);
-  const earnedCount = earnedBadges.length;
-
-  const getProgress = (b) => {
-    const c = userStats.counts || {};
-    const m = b.id.match(/^(post|log|like|comment|save|story)-(\d+)$/);
-    if(m){
-      const map = {post:'posts_created', log:'logbook_entries', like:'likes_given', comment:'comments_written', save:'posts_saved', story:'stories_created'};
-      return Math.min(Number(m[2]), c[map[m[1]]] || 0);
-    }
-    if(b.id.startsWith('streak-')) return Math.min(Number(b.id.split('-')[1]), userStats.longest_streak || 0);
-    if(b.id.startsWith('start-')){
-      const totalActions = (c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);
-      return Math.min([1,2,3,5,10,20][Number(b.id.split('-')[1])-1] || 0, totalActions);
-    }
-    return 0;
-  };
-
-  const featured = BADGES
-    .map(b => ({ b, earned: earnedBadgeIds.has(b.id), progress: getProgress(b) }))
-    .sort((a,b) => {
-      if(a.earned !== b.earned) return a.earned ? -1 : 1;
-      const aTarget = a.b.id.match(/-(\d+)$/)?.[1] ? Number(a.b.id.match(/-(\d+)$/)[1]) : 9999;
-      const bTarget = b.b.id.match(/-(\d+)$/)?.[1] ? Number(b.b.id.match(/-(\d+)$/)[1]) : 9999;
-      if(!a.earned && aTarget !== bTarget) return aTarget - bTarget;
-      return BADGES.indexOf(a.b) - BADGES.indexOf(b.b);
-    })
-    .slice(0,10);
-
-  const missionCards = MISSIONS.map(m => {
-    const progress = getMissionProgress(m);
-    const done = progress >= m.target;
-    const claimed = !!userStats.counts[missionClaimKey(m.id)];
-    const pct = Math.round((progress / m.target) * 100);
-    return `
-      <article class="mission-card ${done ? 'done' : ''}">
-        <div class="mission-icon">${m.icon}</div>
-        <div style="min-width:0;">
-          <h4>${m.title}</h4>
-          <p>${m.desc}</p>
-          <div class="mission-progress"><span style="width:${pct}%"></span></div>
-          <p style="margin-top:4px;"><strong>${progress}/${m.target}</strong>${done ? ' · completada' : ` · ${m.target-progress} para lograrla`}</p>
-        </div>
-        <div class="mission-reward">${claimed ? '✓' : `+${m.points}`}<br><span style="font-weight:500;">pts</span></div>
-      </article>
-    `;
-  }).join('');
-
-  document.getElementById('badgesSummary').innerHTML = !currentUser ? '' : `
-    <div><strong>${totalPoints}</strong>puntos raíz</div>
-    <div><strong>${earnedCount}/${BADGES.length}</strong>logros</div>
-    <div><strong>🔥 ${userStats.longest_streak||0}</strong>mejor racha</div>
-  `;
-
-  document.getElementById('badgeSections').innerHTML = !currentUser ? '' : `
-    <div class="growth-card">
-      <div class="growth-top">
-        <div>
-          <h3>Haz crecer tu raíz</h3>
-          <p>Pequeñas acciones esta semana suman puntos y hacen crecer tu perfil.</p>
-        </div>
-        <div class="points-pill">
-          <strong>${totalPoints}</strong>
-          <span>PUNTOS RAÍZ</span>
-        </div>
-      </div>
-      <div class="mission-list">${missionCards}</div>
-      <div class="mission-foot">💡 <strong>Tip:</strong> empieza por la primera misión. Publicar una acción es la forma más rápida de hacer que tu actividad también ayude a la comunidad.</div>
-    </div>
-
-    <div class="badge-featured-head">
-      <div>
-        <strong style="font-family:var(--serif);">Tus logros destacados</strong>
-        <p>Mostramos solo 10: primero los que ya ganaste y luego los más fáciles de conseguir.</p>
-      </div>
-    </div>
-
-    <div class="badge-featured-grid">
-      ${featured.map(({b,earned,progress}) => {
-        const targetMatch = b.id.match(/-(\d+)$/);
-        const target = targetMatch ? Number(targetMatch[1]) : null;
-        const progressText = earned ? '✓ Completado' : (target ? `${progress}/${target} · te falta ${Math.max(0,target-progress)}` : 'Disponible');
-        return `
-          <div class="badge-mini ${earned ? 'earned' : ''}">
-            <div class="badge-icon">${b.icon}</div>
-            <div style="min-width:0;">
-              <h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4>
-              <p>${b.desc}</p>
-              <div class="badge-progress">${progressText}</div>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-
-    <div class="badge-all-wrap">
-      <button class="badge-toggle" id="badgeToggleBtn">Ver todos los ${BADGES.length} logros ↓</button>
-      <div class="badge-full-list" id="badgeFullList" hidden>
-        ${earnedBadges.length ? `
-          <div class="badge-completed-block">
-            <div class="badge-completed-head">
-              <strong>✓ Completados</strong>
-              <span>${earnedBadges.length} logrados · ${earnedBadges.reduce((s,b)=>s+b.points,0)} pts en logros</span>
-            </div>
-            <div class="badge-earned-grid">
-              ${earnedBadges.map(b => `
-                <div class="badge-earned-card">
-                  <div class="badge-icon">${b.icon}</div>
-                  <div>
-                    <h4>${b.name}</h4>
-                    <p>+${b.points} pts · ${b.desc}</p>
-                  </div>
-                  <div class="badge-earned-mark">✓</div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        ` : ''}
-        <div class="badge-locked-section">
-          <p class="badge-locked-note">Aún por conseguir · ordenados para que encuentres primero los siguientes más alcanzables.</p>
-          ${BADGE_CATEGORIES.map(cat => {
-            const catBadges = lockedBadges.filter(b => b.cat === cat);
-            if(!catBadges.length) return '';
-            return `
-              <h4 class="badge-section-title">${cat}</h4>
-              <div class="badge-grid">
-                ${catBadges.map(b => {
-                  const progress = getProgress(b);
-                  const targetMatch = b.id.match(/-(\d+)$/);
-                  const target = targetMatch ? Number(targetMatch[1]) : null;
-                  return `
-                    <div class="badge-card locked">
-                      <div class="badge-icon">${b.icon}</div>
-                      <div>
-                        <h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4>
-                        <p>${b.desc}</p>
-                        ${target ? `<div class="badge-progress">${progress}/${target} · faltan ${Math.max(0,target-progress)}</div>` : ''}
-                      </div>
-                    </div>
-                  `;
-                }).join('')}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    </div>
-  `;
-  const badgeToggleBtn = document.getElementById('badgeToggleBtn');
-  const badgeFullList = document.getElementById('badgeFullList');
-  if(badgeToggleBtn && badgeFullList){
-    badgeToggleBtn.addEventListener('click', () => {
-      const isHidden = badgeFullList.hasAttribute('hidden');
-      if(isHidden){
-        badgeFullList.removeAttribute('hidden');
-        badgeToggleBtn.textContent = 'Ocultar logros ↑';
-      }else{
-        badgeFullList.setAttribute('hidden','');
-        badgeToggleBtn.textContent = `Ver todos los ${BADGES.length} logros ↓`;
-      }
+  const avatarBtn=document.getElementById('settingsAvatarBtn');
+  const avatarInput=document.getElementById('settingsAvatarInput');
+  if(avatarBtn && avatarInput && !avatarBtn.dataset.bound){
+    avatarBtn.dataset.bound='1';
+    avatarBtn.onclick=()=>{ if(requireLogin('cambiar tu foto de perfil')) avatarInput.click(); };
+    avatarInput.addEventListener('change', async (e)=>{
+      const file=e.target.files[0]; e.target.value='';
+      if(!file || !currentUser) return;
+      avatarBtn.disabled=true;
+      try{
+        const url=await uploadImageFile(file,'avatars');
+        currentUser=await DB.users.updateAvatar(currentUser.id,url);
+        usersCache[currentUser.id]=currentUser;
+        applyProfileToUI();
+        renderProfile();
+        renderSettingsPage();
+        showToast('Foto de perfil actualizada');
+      }catch(err){ alert('No se pudo cambiar la foto: '+(err.message||err)); }
+      finally{ avatarBtn.disabled=false; }
     });
   }
 }
+
+async function initSettingsSecurity(){
+  const form=document.getElementById('settingsSecurityForm');
+  const email=document.getElementById('settingsEmail');
+  if(email) email.value=currentAuthEmail || '';
+  if(form && !form.dataset.bound){
+    form.dataset.bound='1';
+    form.addEventListener('submit',async(e)=>{
+      e.preventDefault();
+      if(!requireLogin('cambiar tu contraseña')) return;
+      const input=document.getElementById('settingsNewPassword');
+      const password=input.value.trim();
+      if(password.length<6){showToast('La contraseña debe tener al menos 6 caracteres.');return;}
+      try{
+        const {error}=await sb.auth.updateUser({password});
+        if(error) throw error;
+        input.value='';
+        showToast('Contraseña actualizada');
+      }catch(err){alert('No se pudo actualizar la contraseña: '+(err.message||err));}
+    });
+  }
+}
+
+function initSettingsNavigation(){
+  const buttons=[...document.querySelectorAll('[data-settings-section]')];
+  const panels=[...document.querySelectorAll('[data-settings-panel]')];
+  const select=(key)=>{buttons.forEach(b=>b.classList.toggle('active',b.dataset.settingsSection===key));panels.forEach(p=>p.classList.toggle('active',p.dataset.settingsPanel===key));};
+  buttons.forEach(b=>{if(!b.dataset.bound){b.dataset.bound='1';b.addEventListener('click',()=>select(b.dataset.settingsSection));}});
+  const back=document.getElementById('settingsMobileBack');
+  if(back && !back.dataset.bound){back.dataset.bound='1';back.addEventListener('click',()=>showView('perfil'));}
+}
+initSettingsNavigation();
+
+async function renderProfile(){
+  applyProfileToUI(); renderSettingsPage();
+  const stats=await computeStats();
+  const verifiedEl=document.getElementById('profileVerifiedBadge'); if(verifiedEl) verifiedEl.style.display=isVerifiedOwner(currentUser)?'inline-flex':'none';
+  document.getElementById('profileStats').innerHTML=`<div><strong>${stats.ownPosts}</strong>publicaciones</div><div><strong>${stats.logCount}</strong>bitácora</div><div><strong>${userStats.counts.points_total||0}</strong>puntos</div><div><strong>🔥 ${userStats.current_streak||0}</strong>racha</div>`;
+  document.getElementById('profilePostCountLabel').textContent=stats.ownPosts?`${stats.ownPosts} ${stats.ownPosts===1?'publicación':'publicaciones'}`:'Aún no has publicado';
+  const grid=document.getElementById('profilePostGrid');
+  if(!currentUser) grid.innerHTML='<p class="profile-empty-grid">Inicia sesión para ver tus publicaciones aquí.</p>';
+  else if(!stats.ownPostList.length) grid.innerHTML='<p class="profile-empty-grid">Comparte algo en Inicio para verlo aquí.</p>';
+  else { grid.innerHTML=stats.ownPostList.map(p=>`<img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0])||placeholderImage(p.id+p.title,p.category)}" alt="${escapeHtml(p.title)}">`).join(''); grid.querySelectorAll('[data-goto]').forEach(img=>attachLongPress(img,img.dataset.goto)); }
+  const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id));
+  const doneMissions=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;
+  const bs=document.getElementById('profileBadgeSummary'); if(bs) bs.textContent=`${earned.length}/${BADGES.length} logrados · ver todos`;
+  const ms=document.getElementById('profileMissionSummary'); if(ms) ms.textContent=`${doneMissions}/${MISSIONS.length} completadas · ver esta semana`;
+}
+let currentAuthEmail = '';
+function isVerifiedOwner(user){
+  if(!user) return false;
+  const ownerId=window.ENRAIZA_OWNER_ID||'';
+  return !!((ownerId&&user.id===ownerId) || (currentAuthEmail && currentAuthEmail === 'missael.cas.esc23@gmail.com'));
+}
+function getBadgeProgress(b){
+  const c=userStats.counts||{}; const m=b.id.match(/^(post|log|like|comment|save|story)-(\d+)$/);
+  if(m){const map={post:'posts_created',log:'logbook_entries',like:'likes_given',comment:'comments_written',save:'posts_saved',story:'stories_created'};return Math.min(Number(m[2]),c[map[m[1]]]||0)}
+  if(b.id.startsWith('streak-')) return Math.min(Number(b.id.split('-')[1]),userStats.longest_streak||0);
+  if(b.id.startsWith('start-')){const total=(c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);return Math.min([1,2,3,5,10,20][Number(b.id.split('-')[1])-1]||0,total)} return 0;
+}
+function completionRatio(b,p){const m=b.id.match(/-(\d+)$/);return Math.min(1,p/(m?Number(m[1]):1));}
+function badgeCardHTML(b,earned){const p=getBadgeProgress(b),m=b.id.match(/-(\d+)$/),t=m?Number(m[1]):null;const txt=earned?'✓ Completado':(t?`${p}/${t} · faltan ${Math.max(0,t-p)}`:'Disponible');return `<article class="achievement-card ${earned?'earned':'locked'}"><div class="badge-icon">${b.icon}</div><div style="min-width:0;flex:1"><h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4><p>${b.desc}</p><div class="achievement-progress">${txt}</div></div>${earned?'<span class="achievement-mark">✓</span>':''}</article>`;}
+function renderAchievementsPage(){
+  const score=document.getElementById('achievementsPageScore'),content=document.getElementById('achievementsPageContent');
+  if(!currentUser){score.innerHTML='';content.innerHTML='<div class="auth-gate"><p>Inicia sesión para ver tus logros.</p><button class="btn btn-primary btn-small" onclick="openAuthModal(\'login\')">Iniciar sesión</button></div>';return;}
+  const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id)),points=userStats.counts.points_total||0;score.innerHTML=`<strong>${points}</strong><span>PUNTOS RAÍZ · ${earned.length}/${BADGES.length} LOGROS</span>`;
+  const cats=[...new Set(BADGES.map(b=>b.cat))];content.innerHTML=`<div class="growth-page-wrap">${earned.length?`<section class="achievement-completed-strip"><h3>🌿 Ya echaste raíz</h3><p>Tus logros conseguidos viven aquí y no vuelven a aparecer abajo.</p><div class="achievement-completed-grid">${earned.map(b=>badgeCardHTML(b,true)).join('')}</div></section>`:''}${cats.map(cat=>{const locked=BADGES.filter(b=>b.cat===cat&&!earnedBadgeIds.has(b.id));if(!locked.length)return '';return `<section class="achievement-category"><div class="achievement-category-head"><h3>${cat}</h3><span>${locked.length} pendientes</span></div><div class="achievement-locked-grid">${locked.map(b=>badgeCardHTML(b,false)).join('')}</div></section>`}).join('')}</div>`;
+}
+function renderMissionsPage(){
+  const score=document.getElementById('missionsPageScore'),content=document.getElementById('missionsPageContent');
+  if(!currentUser){score.innerHTML='';content.innerHTML='<div class="auth-gate"><p>Inicia sesión para participar en las misiones.</p><button class="btn btn-primary btn-small" onclick="openAuthModal(\'login\')">Iniciar sesión</button></div>';return;}
+  const done=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;score.innerHTML=`<strong>${done}/${MISSIONS.length}</strong><span>MISIONES DE ESTA SEMANA</span>`;
+  content.innerHTML=`<div class="growth-page-wrap"><div class="missions-page-list">${MISSIONS.map(m=>{const p=getMissionProgress(m),pct=Math.min(100,Math.round(p/m.target*100)),ok=p>=m.target,claimed=!!userStats.counts[missionClaimKey(m.id)];return `<article class="mission-page-card ${ok?'done':''}"><div class="mission-icon">${m.icon}</div><div><h3>${m.title}</h3><p>${m.desc}</p><div class="mission-progress"><span style="width:${pct}%"></span></div><p><strong>${p}/${m.target}</strong> · ${ok?'completada':`faltan ${m.target-p}`}</p></div><div class="mission-reward">${claimed?'✓':`+${m.points}`}<br><span>pts</span></div></article>`}).join('')}</div><p class="mission-page-note">💡 <strong>Empieza por una publicación:</strong> compartir lo que hiciste hoy convierte tu avance en algo que otra persona puede descubrir, copiar o mejorar.</p></div>`;
+}
+
+try{
+  const pref=document.getElementById('defaultPrivateLog');
+  if(pref) pref.checked = localStorage.getItem('enraiza:default_private_log') !== '0';
+  if(pref) pref.addEventListener('change',()=>localStorage.setItem('enraiza:default_private_log', pref.checked ? '1':'0'));
+}catch(err){}
+
+// La preferencia controla el estado inicial del selector de visibilidad de nuevas entradas.
+try{
+  const pref=document.getElementById('defaultPrivateLog');
+  const share=document.getElementById('logShare');
+  if(pref && share){
+    const sync=()=>{ share.checked=!pref.checked; };
+    sync();
+    pref.addEventListener('change',sync);
+  }
+}catch(err){}
 
 // ---------- FORM SUBMIT (bitácora privada) ----------
 document.getElementById('logForm').addEventListener('submit', async (e) => {
@@ -3422,6 +3510,7 @@ document.getElementById('logForm').addEventListener('submit', async (e) => {
   const photo = document.getElementById('logPhoto').value.trim();
   const shared = document.getElementById('logShare').checked;
   if(!title || !notes) return;
+  try{ localStorage.setItem('enraiza:default_private_log', '1'); }catch(err){}
 
   await DB.logbook.create(currentUser.id, { title, category, notes, photo, shared });
   incrementStat('logbook_entries');
@@ -3536,6 +3625,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
   if(session){ await loadCurrentUserFromSession(session); }
   applyProfileToUI();
   await loadUserStatsAndBadges();
+  await reconcileHistoricalStats();
   await Promise.all([renderLog(), reloadFeed(), renderStories()]);
   if(currentUser) await recordDailyLogin();
   renderProfile();
