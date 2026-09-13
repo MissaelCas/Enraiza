@@ -763,6 +763,8 @@
   .checkbox-row input{ width:16px; height:16px; margin:2px 0 0; flex:0 0 16px; accent-color: var(--moss); }
   .checkbox-row a{ color: var(--moss-dark); text-decoration: underline; }
   .auth-error{ font-size: 0.85rem; color: #a3392c; margin: 0; }
+  .auth-success{ display:block; padding:12px 14px; border-radius:10px; background: rgba(63,107,74,0.08); border:1px solid rgba(63,107,74,0.3); color: var(--moss-dark); font-size:0.85rem; line-height:1.5; }
+  .auth-success strong{ display:block; font-size:0.95rem; margin-bottom:4px; }
   .auth-switch{ font-size: 0.85rem; color: var(--ink-soft); margin-top: 4px; }
   .auth-switch button{ background:none; border:none; color: var(--moss-dark); text-decoration:underline; cursor:pointer; padding:0; font-size:inherit; }
   .auth-gate{ text-align:center; padding: 30px 20px; color: var(--ink-soft); }
@@ -2420,7 +2422,7 @@ function openAuthModal(mode, actionLabel){
           <span>He leído y acepto los <a href="legal/terminos.html" target="_blank" rel="noopener noreferrer">Términos de uso</a> y la <a href="legal/privacidad.html" target="_blank" rel="noopener noreferrer">Política de privacidad</a>.</span>
         </label>
       ` : ''}
-      <p class="auth-error" id="authError" style="display:none;"></p>
+      <div class="auth-error" id="authError" style="display:none;"></div>
       <button type="submit" class="btn btn-primary btn-small" id="authSubmitBtn">${isLogin ? 'Entrar' : 'Crear cuenta'}</button>
       ${isLogin ? `<button type="button" class="btn-text" id="forgotPasswordBtn">¿Olvidaste tu contraseña?</button>` : ''}
       <p class="auth-switch">
@@ -2489,20 +2491,51 @@ function openAuthModal(mode, actionLabel){
         if(data.session){
           await loadCurrentUserFromSession(data.session);
         } else {
-          errorEl.textContent = 'Cuenta creada. Revisa tu correo para confirmarla y luego inicia sesión.';
-          errorEl.style.display = 'block';
-          submitBtn.disabled = false;
+          showSignupConfirmationModal(email);
           return;
         }
       }
       await refreshAppAfterAuthChange();
       closeAuthModal();
     }catch(err){
-      errorEl.textContent = translateAuthError(err.message);
+      const msg = translateAuthError(err.message);
+      errorEl.textContent = msg;
       errorEl.style.display = 'block';
     } finally {
       submitBtn.disabled = false;
     }
+  });
+}
+
+function showSignupConfirmationModal(email){
+  authContent.innerHTML = `
+    <div class="auth-success" style="display:block; margin-bottom:16px;">
+      <strong>¡Listo! Ya casi está.</strong>
+      Te enviamos un correo de verificación a <strong>${escapeHtml(email)}</strong>.<br>
+      Ábrelo y confirma tu cuenta para terminar el registro.
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <button type="button" class="btn btn-primary btn-small" id="signupContinueBtn">Continuar</button>
+      <button type="button" class="btn btn-outline btn-small" id="signupBackToLoginBtn">Iniciar sesión</button>
+    </div>
+  `;
+
+  authBackdrop.classList.add('open');
+
+  document.getElementById('signupContinueBtn').addEventListener('click', () => {
+    openAuthModal('login');
+    setTimeout(() => {
+      const loginEmail = document.getElementById('authEmail');
+      if(loginEmail) loginEmail.value = email;
+    }, 0);
+  });
+
+  document.getElementById('signupBackToLoginBtn').addEventListener('click', () => {
+    openAuthModal('login');
+    setTimeout(() => {
+      const loginEmail = document.getElementById('authEmail');
+      if(loginEmail) loginEmail.value = email;
+    }, 0);
   });
 }
 
@@ -2557,7 +2590,9 @@ function openRecoveryModal(){
 function translateAuthError(msg){
   if(!msg) return 'Algo salió mal, intenta de nuevo.';
   if(/invalid login credentials/i.test(msg)) return 'Correo o contraseña incorrectos.';
-  if(/already registered|already exists/i.test(msg)) return 'Ya existe una cuenta con ese correo.';
+  if(/already registered|already exists|user already registered|email.*registered/i.test(msg)) {
+    return 'Ese correo ya está registrado. Si ya tienes cuenta, inicia sesión o recupera tu acceso.';
+  }
   if(/password/i.test(msg) && /least|characters|strong/i.test(msg)) return 'La contraseña no cumple los requisitos de seguridad.';
   if(/phone|sms|provider|message/i.test(msg)) return 'No se pudo enviar el SMS. Revisa que el proveedor SMS esté configurado en Supabase y que el número use formato internacional (+52...).';
   if(/rate limit|too many requests|too many/i.test(msg)) return 'Demasiados intentos. Espera un momento antes de volver a solicitar el código.';
