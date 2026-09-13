@@ -205,7 +205,6 @@
   .badge-full-list{ margin-top:12px; }
   @media(max-width:560px){ .badge-featured-grid{ grid-template-columns:1fr; } }
 
-  /* ---- Misiones y puntos: motivación discreta, centrada en acciones ---- */
   .growth-card{
     margin: 18px 0 22px; border:1px solid var(--line); border-radius:12px;
     background:var(--white-ish); overflow:hidden;
@@ -263,7 +262,6 @@
     .points-pill{ padding:7px 9px; }
   }
 
-  /* ---------- PERFIL Y PANTALLAS DE PROGRESO ---------- */
   .profile-shell{max-width:860px;margin:0 auto}.profile-main-head{max-width:720px;margin:8px auto 18px;flex-wrap:nowrap}.profile-main-head .avatar-big{width:88px;height:88px;font-size:1.8rem}.profile-name-line{display:flex;align-items:center;gap:7px;margin-bottom:8px}.profile-name-line .profile-ig-name{margin:0;font-size:1.18rem}.verified-badge{display:inline-flex;width:18px;height:18px;border-radius:50%;align-items:center;justify-content:center;background:var(--moss);color:#fff;font-size:.68rem;font-weight:900;box-shadow:0 0 0 2px var(--paper)}
   .profile-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 auto 22px;max-width:720px}.profile-action-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--white-ish);color:var(--ink);text-align:left;cursor:pointer;transition:.15s}.profile-action-card:hover{border-color:var(--moss);transform:translateY(-1px)}.profile-action-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--paper-alt)}.profile-action-card strong{display:block;font-size:.84rem}.profile-action-card small{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}.profile-action-card b{color:var(--ink-soft);font-size:1.1rem}.profile-section-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.compact-head h3{font-family:var(--serif);font-size:1rem;margin:0}.compact-head span{color:var(--ink-soft);font-size:.72rem}.profile-settings{margin-top:22px;border-top:1px solid var(--line)}.profile-settings summary{cursor:pointer;list-style:none;padding:13px 2px;color:var(--ink-soft);font-size:.82rem}.profile-settings summary::-webkit-details-marker{display:none}.profile-settings summary::after{content:'＋';float:right}.profile-settings[open] summary::after{content:'−'}.profile-settings .settings-block{margin-top:0}
   .growth-page-head{max-width:860px;margin:0 auto 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.eyebrow{display:block;color:var(--moss-dark);font-size:.66rem;letter-spacing:.12em;font-weight:800;margin-bottom:5px}.growth-page-score{flex-shrink:0;border:1px solid var(--line);background:var(--white-ish);border-radius:12px;padding:10px 14px;text-align:center}.growth-page-score strong{display:block;font-family:var(--serif);font-size:1.25rem}.growth-page-score span{font-size:.62rem;color:var(--ink-soft)}.growth-page-wrap{max-width:860px;margin:0 auto}
@@ -652,82 +650,24 @@
   .profile-log-head strong{display:block;font-family:var(--serif);font-size:.98rem}
   .profile-log-head small{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}
   .profile-log-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:6px}
-  .profile-log-projects{display:grid;gap:16px;margin-top:14px}
-  .profile-project-card{
-    border:1px solid var(--line);border-radius:14px;background:var(--paper);
-    overflow:hidden;box-shadow:0 5px 18px rgba(35,48,29,.06)
-  }
-  .profile-project-cover{
-    position:relative;height:180px;background:var(--paper-alt);overflow:hidden
-  }
-  .profile-project-cover img{width:100%;height:100%;object-fit:cover;display:block}
-  .profile-project-cover-placeholder{
-    width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-    font-size:3rem;background:linear-gradient(135deg,var(--paper-alt),var(--paper))
-  }
-  .profile-project-private{
-    position:absolute;top:10px;right:10px;border-radius:999px;padding:5px 9px;
-    background:rgba(255,255,255,.92);font-size:.68rem;font-weight:800
-  }
-  .profile-project-body{padding:13px 14px 14px}
-  .profile-project-title{
-    margin:0;font-family:var(--serif);font-size:1.1rem;color:var(--ink)
-  }
-  .profile-project-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px}
-  .profile-project-meta span{
-    border-radius:999px;background:var(--paper-alt);padding:4px 8px;
-    font-size:.65rem;color:var(--ink-soft)
-  }
-  .profile-day-strip{display:flex;gap:7px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}
-  .profile-day-strip::-webkit-scrollbar{display:none}
-  .profile-day{
-    flex:0 0 72px;border:1px solid var(--line);border-radius:10px;background:var(--paper);
-    padding:7px 5px;text-align:center;cursor:pointer
-  }
-  .profile-day:hover{border-color:var(--moss);transform:translateY(-1px)}
-  .profile-day strong{display:block;font-size:.7rem}
-  .profile-day small{display:block;margin-top:3px;color:var(--ink-soft);font-size:.6rem}
-  .profile-project-action{
-    width:100%;margin-top:10px;border:0;background:transparent;color:var(--moss-dark);
-    font-weight:800;font-size:.74rem;text-align:left;padding:4px 0;cursor:pointer
-  }
   .profile-log-empty{
     border:1px dashed var(--line);border-radius:14px;padding:28px 18px;text-align:center;
     color:var(--ink-soft);background:var(--paper)
   }
   .profile-log-empty strong{display:block;color:var(--ink);font-family:var(--serif);font-size:1rem;margin-bottom:5px}
   .profile-log-empty button{margin-top:12px}
-
-  .profile-log-card{
-    aspect-ratio:1/1;position:relative;overflow:hidden;cursor:pointer;
-    background:var(--paper-alt);border:0;padding:0;text-align:left;
+  .profile-log-thumb-wrap{ position:relative; aspect-ratio:1/1; cursor:pointer; background:var(--paper-alt); overflow:hidden; }
+  .profile-log-thumb-wrap img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .profile-log-thumb-wrap .profile-log-badge{
+    position:absolute; top:6px; left:6px; background:rgba(35,48,29,.78); color:#fff;
+    border-radius:999px; padding:2px 7px; font-size:.6rem; font-weight:800;
   }
-  .profile-log-card img,.profile-log-card .profile-log-placeholder{
-    width:100%;height:100%;object-fit:cover;display:block;
-  }
-  .profile-log-placeholder{
-    display:flex!important;align-items:center;justify-content:center;
-    font-size:2rem;background:var(--paper-alt);color:var(--moss-dark);
-  }
-  .profile-log-overlay{
-    position:absolute;left:0;right:0;bottom:0;padding:26px 8px 8px;
-    background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;
-  }
-  .profile-log-overlay strong{display:block;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .profile-log-overlay span{display:block;font-size:.65rem;margin-top:2px;opacity:.92}
-  .profile-log-badge{
-    position:absolute;top:7px;left:7px;background:rgba(35,48,29,.82);color:#fff;
-    border-radius:999px;padding:3px 7px;font-size:.62rem;font-weight:800;
-  }
-  .log-form-hint{display:block;color:var(--ink-soft);font-size:.68rem;line-height:1.35;margin-top:-5px}
-  .log-day-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .avatar-edit-btn{
     display:flex;align-items:center;justify-content:center;line-height:1;
     box-shadow:0 1px 5px rgba(35,48,29,.2);
   }
   @media(max-width:700px){.profile-log-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.profile-log-head{align-items:flex-start}}
-  @media(max-width:480px){.profile-log-head .btn{padding:7px 10px;font-size:.76rem}.log-day-row{grid-template-columns:1fr 1fr}}
-
+  @media(max-width:480px){.profile-log-head .btn{padding:7px 10px;font-size:.76rem}}
 
   .settings-block{ border: 1px solid var(--line); border-radius: 4px; padding: 18px 20px; background: var(--white-ish); margin-top: 14px; }
   .settings-block label{ font-size: 0.85rem; color: var(--ink-soft); display:block; margin-bottom:6px; }
@@ -880,13 +820,45 @@
   .share-menu button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.85rem; cursor:pointer; color:var(--ink); }
   .share-menu button:hover{ background: var(--paper-alt); }
 
-  /* Microinteracciones discretas: hacen que los elementos accionables se entiendan sin recargar la interfaz. */
   .explore-menu a{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:var(--ink);padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .explore-menu a:last-child{border-bottom:0}
   .explore-menu a::after{content:'›';font-size:1.05rem;color:var(--ink-soft);transition:transform .15s}
   .explore-menu a:hover::after{transform:translateX(2px)}
   .explore-menu a:hover{color:var(--moss-dark)}
 
+  /* ---------- FORMULARIO CENTRADO: NUEVO PROYECTO DE BITÁCORA ---------- */
+  .new-project-form{ display:flex; flex-direction:column; gap:14px; }
+  .new-project-form label{ font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:4px; }
+  .new-project-form select, .new-project-form input[type="text"]{
+    width:100%; padding:10px 11px; border:1px solid var(--line); border-radius:6px; font:inherit; background:var(--paper);
+  }
+  .privacy-toggle{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .privacy-option{
+    border:1.5px solid var(--line); border-radius:8px; padding:12px; cursor:pointer; text-align:left; background:var(--paper);
+  }
+  .privacy-option.active{ border-color:var(--moss); background:var(--paper-alt); }
+  .privacy-option strong{ display:block; font-size:0.88rem; margin-bottom:2px; }
+  .privacy-option span{ font-size:0.74rem; color:var(--ink-soft); }
+
+  /* ---------- PANTALLA DE UN PROYECTO DE BITÁCORA COMPLETO ---------- */
+  .project-view-wrap{ max-width:640px; margin:0 auto; }
+  .project-view-head{ margin-bottom:18px; }
+  .project-view-cover{ width:100%; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:var(--paper-alt); margin-bottom:14px; }
+  .project-view-cover img{ width:100%; height:100%; object-fit:cover; }
+  .project-view-title-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .project-view-title-row h2{ margin:0; }
+  .project-visibility-pill{
+    font-size:0.72rem; font-weight:700; padding:4px 10px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); cursor:default; flex-shrink:0;
+  }
+  .project-visibility-pill.public{ color:var(--moss-dark); border-color:var(--moss); }
+  .project-visibility-pill.owner-toggle{ cursor:pointer; }
+  .project-owner-actions{ display:flex; gap:8px; margin:12px 0 22px; flex-wrap:wrap; }
+  .project-day-entry{ border:1px solid var(--line); border-radius:8px; padding:16px 18px; background:var(--white-ish); margin-bottom:16px; }
+  .project-day-entry .log-date{ font-size:0.78rem; color:var(--ink-soft); }
+  .project-day-entry h4{ font-family:var(--serif); margin:2px 0 6px; }
+  .project-day-entry p{ margin:0 0 10px; font-size:0.92rem; color:var(--ink); white-space:pre-wrap; }
+  .project-day-entry img{ border-radius:6px; max-height:340px; object-fit:cover; width:100%; }
+  .project-social-bar{ border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:12px 0; margin:18px 0; display:flex; align-items:center; gap:16px; }
 </style>
 </head>
 <body>
@@ -1099,65 +1071,24 @@
     </div>
   </section>
 
-  <!-- ===================== BITÁCORA (pantalla aparte) ===================== -->
+  <!-- ===================== BITÁCORA: LISTA DE MIS PROYECTOS (pantalla aparte) ===================== -->
   <section id="bitacora" class="view">
     <div class="back-row"><button class="back-link" data-view="perfil">← Volver a Perfil</button></div>
     <div class="section-head">
       <div>
         <h2 class="section-title">Bitácora</h2>
-        <p class="section-desc">Tu cuaderno privado. Solo tú lo ves, a menos que marques la casilla para compartir una entrada con la comunidad.</p>
+        <p class="section-desc">Cada proyecto tiene su propia bitácora: un cuaderno con fotos y avances que puedes hacer público o mantener privado.</p>
       </div>
+      <button type="button" class="btn btn-primary btn-small" id="openNewProjectBtn">＋ Nuevo proyecto</button>
     </div>
-    <div class="bitacora-layout">
-      <form class="log-form" id="logForm">
-        <div>
-          <label for="logProject">Proyecto</label>
-          <select id="logProject" required></select>
-          <small class="log-form-hint">Elige el proyecto que estás siguiendo. Cada bitácora representa un proyecto diferente. Después podrás registrar Día 1, Día 2, Día 3…</small>
-        </div>
-        <div class="log-day-row">
-          <div>
-            <label for="logDay">Día</label>
-            <input type="number" id="logDay" min="1" max="9999" value="1" required>
-          </div>
-          <div>
-            <label for="logCategory">Tipo</label>
-            <select id="logCategory">
-              <option value="proyecto">Proyecto</option>
-              <option value="planta">Planta</option>
-              <option value="observacion">Observación general</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label for="logTitle">Título del día</label>
-          <input type="text" id="logTitle" placeholder="Ej. Apareció la primera raíz" required>
-        </div>
-        <div>
-          <label for="logNotes">Notas</label>
-          <textarea id="logNotes" placeholder="¿Qué observaste? ¿Qué hiciste?" required></textarea>
-        </div>
-        <div>
-          <label>Foto (opcional)</label>
-          <button type="button" class="photo-picker-btn" id="logPhotoPickBtn">📷 Añadir foto</button>
-          <input type="file" id="logPhotoInput" accept="image/*" class="visually-hidden">
-          <input type="hidden" id="logPhoto" value="">
-          <div class="photo-preview-row" id="logPhotoPreview"></div>
-        </div>
-        <div class="share-row">
-          <input type="checkbox" id="logShare">
-          <div>
-            <label for="logShare" style="margin:0;">Compartir esta entrada con la comunidad</label>
-            <p class="share-note">Si la compartes, aparecerá en el Inicio para cualquiera que visite la página, con tu cuenta.</p>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary btn-small">Guardar entrada</button>
-      </form>
-      <div>
-        <div class="log-entries" id="logEntries">
-          <p class="empty-note">Cargando tu bitácora…</p>
-        </div>
-      </div>
+    <div class="profile-log-grid" id="bitacoraProjectGrid"></div>
+  </section>
+
+  <!-- ===================== PANTALLA DE UN PROYECTO DE BITÁCORA (pantalla aparte) ===================== -->
+  <section id="proyectoBitacora" class="view">
+    <div class="back-row"><button class="back-link" data-view="bitacora">← Volver a mis proyectos</button></div>
+    <div class="project-view-wrap" id="projectViewContent">
+      <p class="feed-empty">Cargando…</p>
     </div>
   </section>
 
@@ -1221,7 +1152,7 @@
       <div class="settings-group" data-settings-panel="privacidad">
         <h3>Privacidad</h3>
         <div class="setting-row">
-          <div><strong>Bitácora privada por defecto</strong><small>Las nuevas entradas se guardarán privadas. Puedes compartir cada una individualmente.</small></div>
+          <div><strong>Bitácora privada por defecto</strong><small>Los nuevos proyectos se crean privados salvo que elijas hacerlos públicos.</small></div>
           <label class="setting-toggle"><input type="checkbox" id="defaultPrivateLog" checked><span></span></label>
         </div>
         <div class="setting-row">
@@ -1335,7 +1266,7 @@
         <a data-view="proyectos">🌿 Proyectos — ideas caseras, fáciles y rápidas</a>
         <a data-view="plantas">🪴 Guías de cuidado y plantación</a>
         <a data-view="articulos">📜 Artículos, leyes y contexto</a>
-        <a data-view="bitacora">📔 Mi bitácora — privada o pública por entrada</a>
+        <a data-view="bitacora">📔 Mi bitácora — privada o pública por proyecto</a>
       </div>
       <div class="profile-tabs" aria-label="Contenido del perfil">
         <button class="profile-tab active" type="button" data-profile-tab="posts">▦ Publicaciones <span id="profilePostCountLabel"></span></button>
@@ -1350,12 +1281,11 @@
         <div class="profile-log-head">
           <div>
             <strong>Mis proyectos</strong>
-            <small>Cada tarjeta corresponde a un día de un proyecto.</small>
+            <small>Cada foto es la bitácora de un proyecto. Tócala para verla completa.</small>
           </div>
           <button type="button" class="btn btn-primary btn-small" id="profileAddLogBtn">＋ Nueva bitácora</button>
         </div>
         <div class="profile-log-grid" id="profileLogGrid"></div>
-        <div class="profile-log-projects" id="profileLogProjects"></div>
       </div>
     </div>
   </section>
@@ -1374,13 +1304,8 @@
     </div>
     <h3 class="profile-sub-title">Publicaciones</h3>
     <div class="profile-post-grid" id="profileVisitPostGrid"></div>
-    <div class="public-logbook">
-      <h3 class="profile-sub-title" style="margin-top:0;">Bitácora pública</h3>
-      <div class="log-entries" id="profileVisitLogbook"></div>
-    </div>
-        </div>
-      </div>
-    </div>
+    <h3 class="profile-sub-title">Bitácoras públicas</h3>
+    <div class="profile-log-grid" id="profileVisitLogGrid"></div>
   </section>
 </div>
 
@@ -1576,7 +1501,7 @@ const PLANTS = {
   }
 };
 
-// ---------- RENDER PROJECTS ----------
+// ---------- RENDER PROJECTS (catálogo de ideas) ----------
 const grid = document.getElementById('projectGrid');
 function renderProjects(filter){
   grid.innerHTML = '';
@@ -1591,7 +1516,7 @@ function renderProjects(filter){
       <p class="desc">${p.desc}</p>
       <span class="btn btn-outline btn-small" style="align-self:flex-start;">Ver pasos</span>
     `;
-    card.addEventListener('click', () => openProjectModal(p));
+    card.addEventListener('click', () => openProjectIdeaModal(p));
     grid.appendChild(card);
   });
 }
@@ -1608,23 +1533,19 @@ const modalBackdrop = document.getElementById('modalBackdrop');
 const modalContent = document.getElementById('modalContent');
 const modalBox = document.getElementById('modalBox');
 let modalOnClose = null;
-function openProjectModal(p){
+function openProjectIdeaModal(p){
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>${p.title}</h3>
     <div class="project-meta"><span>${p.level}</span><span>${p.who}</span></div>
     <ol class="modal-steps">${p.steps.map(s => `<li>${s}</li>`).join('')}</ol>
-    <button class="btn btn-primary btn-small" id="addToLogBtn">Agregar a mi bitácora</button>
+    <button class="btn btn-primary btn-small" id="startProjectLogBtn">Iniciar bitácora de este proyecto</button>
   `;
   modalBackdrop.classList.add('open');
-  document.getElementById('addToLogBtn').addEventListener('click', () => {
-    document.getElementById('logProject').value = p.id;
-    document.getElementById('logDay').value = '1';
-    document.getElementById('logTitle').value = 'Comienzo del proyecto';
-    document.getElementById('logCategory').value = 'proyecto';
-    document.getElementById('logNotes').value = 'Empecé este proyecto hoy.';
+  document.getElementById('startProjectLogBtn').addEventListener('click', () => {
     closeModal();
     showView('bitacora');
+    openNewProjectModal(p);
   });
 }
 function closeModal(){
@@ -1680,6 +1601,7 @@ function showView(name){
   if(name === 'misiones') renderMissionsPage();
   if(name === 'configuracion') renderSettingsPage();
   if(name === 'perfilVisita') renderUserProfileVisit();
+  if(name === 'bitacora') renderBitacoraProjectList();
 }
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', (e) => {
   e.preventDefault();
@@ -1769,9 +1691,9 @@ async function uploadImageFile(file, folder){
 
 // =====================================================================
 // CAPA DE DATOS (DB.*) — contra Supabase real (Postgres + Auth + Storage)
-// Ver schema.sql para las tablas (incluye story_views, comment_likes,
-// user_stats y user_badges). Las misiones guardan su progreso/estado dentro
-// del jsonb counts, así que no requieren otra tabla.
+// Ver schema.sql (incluye ahora logbook_projects: cada proyecto de
+// bitácora es su propio registro, con visibilidad pública/privada y,
+// opcionalmente, una publicación enlazada en la comunidad).
 // =====================================================================
 const DB = {
   users: {
@@ -1810,8 +1732,8 @@ const DB = {
       if(error) throw error;
       return data ? mapPostRow(data) : null;
     },
-    async create({ authorId, title, category, notes, photos }){
-      const { data, error } = await sb.from('posts').insert({ author_id: authorId, title, category, notes, photos: photos||[] }).select().single();
+    async create({ authorId, title, category, notes, photos, projectId }){
+      const { data, error } = await sb.from('posts').insert({ author_id: authorId, title, category, notes, photos: photos||[], project_id: projectId||null }).select().single();
       if(error) throw error;
       return mapPostRow(data);
     },
@@ -1913,24 +1835,47 @@ const DB = {
     },
   },
 
-  logbook: {
+  // ---- PROYECTOS DE BITÁCORA (contenedor de cada proyecto; público o privado) ----
+  projects: {
     async listForUser(userId){
-      const { data, error } = await sb.from('logbook_entries').select('*').eq('user_id', userId).order('created_at', { ascending:false });
+      const { data, error } = await sb.from('logbook_projects').select('*').eq('owner_id', userId).order('created_at', { ascending:false });
+      if(error) throw error;
+      return (data||[]).map(mapProjectRow);
+    },
+    async listPublicForUser(userId){
+      const { data, error } = await sb.from('logbook_projects').select('*').eq('owner_id', userId).eq('shared', true).order('created_at', { ascending:false });
+      if(error) throw error;
+      return (data||[]).map(mapProjectRow);
+    },
+    async getOne(id){
+      const { data, error } = await sb.from('logbook_projects').select('*').eq('id', id).maybeSingle();
+      if(error) throw error;
+      return data ? mapProjectRow(data) : null;
+    },
+    async create({ ownerId, title, category, coverPhoto, shared }){
+      const { data, error } = await sb.from('logbook_projects').insert({ owner_id: ownerId, title, category, cover_photo: coverPhoto||null, shared: !!shared }).select().single();
+      if(error) throw error;
+      return mapProjectRow(data);
+    },
+    async setLinkedPost(id, postId){
+      const { error } = await sb.from('logbook_projects').update({ linked_post_id: postId }).eq('id', id);
+      if(error) throw error;
+    },
+    async setShared(id, shared){
+      const { data, error } = await sb.from('logbook_projects').update({ shared: !!shared }).eq('id', id).select().single();
+      if(error) throw error;
+      return mapProjectRow(data);
+    },
+  },
+
+  logbook: {
+    async listForProject(projectId){
+      const { data, error } = await sb.from('logbook_entries').select('*').eq('project_id', projectId).order('created_at', { ascending:true });
       if(error) throw error;
       return (data||[]).map(mapLogRow);
     },
-    async create(userId, { title, category, notes, photo, shared }){
-      const { data, error } = await sb.from('logbook_entries').insert({ user_id: userId, title, category, notes, photo: photo||null, shared: !!shared }).select().single();
-      if(error) throw error;
-      return mapLogRow(data);
-    },
-    async listSharedForUser(userId){
-      const { data, error } = await sb.from('logbook_entries').select('*').eq('user_id', userId).eq('shared', true).order('created_at', { ascending:false });
-      if(error) throw error;
-      return (data||[]).map(mapLogRow);
-    },
-    async updateShared(userId, entryId, shared){
-      const { data, error } = await sb.from('logbook_entries').update({ shared: !!shared }).eq('id', entryId).eq('user_id', userId).select().single();
+    async create({ userId, projectId, title, category, notes, photo }){
+      const { data, error } = await sb.from('logbook_entries').insert({ user_id: userId, project_id: projectId, title, category, notes, photo: photo||null }).select().single();
       if(error) throw error;
       return mapLogRow(data);
     },
@@ -1977,7 +1922,7 @@ function mapPostRow(row){
   return {
     id: row.id, authorId: row.author_id, title: row.title, category: row.category,
     notes: row.notes, photos: row.photos || [], date: new Date(row.created_at).getTime(),
-    demo: !!row.is_demo,
+    demo: !!row.is_demo, projectId: row.project_id || null,
     likedBy: (row.post_likes||[]).map(l => l.user_id),
     comments: (row.post_comments||[]).map(c => ({
       id:c.id, authorId:c.author_id, text:c.text, date:new Date(c.created_at).getTime(),
@@ -1990,7 +1935,10 @@ function mapStoryRow(row){
   return { id: row.id, authorId: row.author_id, photo: row.photo, text: row.text, date: new Date(row.created_at).getTime(), demo: !!row.is_demo };
 }
 function mapLogRow(row){
-  return { id: row.id, title: row.title, category: row.category, notes: row.notes, photo: row.photo, shared: row.shared, date: new Date(row.created_at).getTime() };
+  return { id: row.id, projectId: row.project_id, title: row.title, category: row.category, notes: row.notes, photo: row.photo, date: new Date(row.created_at).getTime() };
+}
+function mapProjectRow(row){
+  return { id: row.id, ownerId: row.owner_id, title: row.title, category: row.category, coverPhoto: row.cover_photo, shared: row.shared, linkedPostId: row.linked_post_id || null, date: new Date(row.created_at).getTime() };
 }
 
 // ---------- CACHÉ LOCAL DE PUBLICACIONES (para no volver a pedir todo a Supabase en cada clic) ----------
@@ -2103,6 +2051,7 @@ async function renderUserProfileVisit(){
   }
   if(!postsCacheReady) await loadPostsIntoCache();
   if(uid !== viewingUserId) return;
+  // solo lo público: publicaciones de la comunidad (ya son todas públicas) + proyectos de bitácora marcados como públicos
   const posts = postsCache.filter(p => p.authorId === uid);
   const totalLikes = posts.reduce((sum, p) => sum + (p.likedBy || []).length, 0);
   document.getElementById('profileVisitStats').innerHTML = `
@@ -2112,23 +2061,25 @@ async function renderUserProfileVisit(){
   const grid = document.getElementById('profileVisitPostGrid');
   if(!posts.length){
     grid.innerHTML = '<p class="profile-empty-grid">Esta persona todavía no ha publicado nada.</p>';
-    return;
+  } else {
+    grid.innerHTML = posts.map(p => `
+      <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
+    `).join('');
+    grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
   }
-  grid.innerHTML = posts.map(p => `
-    <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
-  `).join('');
-  grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
-  const publicLog = document.getElementById('profileVisitLogbook');
-  if(publicLog){
+  const logGrid = document.getElementById('profileVisitLogGrid');
+  if(logGrid){
     try{
-      const entries = await DB.logbook.listSharedForUser(uid);
-      publicLog.innerHTML = entries.length ? entries.map(e => `
-        <article class="log-entry">
-          <div class="log-entry-head"><div><h4>${escapeHtml(e.title)}</h4><span class="log-date">${fmtDate(e.date)} · ${e.category}</span></div><span style="font-size:.72rem;color:var(--moss-dark);">🌎 Pública</span></div>
-          <p>${escapeHtml(e.notes)}</p>
-          ${e.photo ? `<img src="${escapeHtml(e.photo)}" alt="Foto de ${escapeHtml(e.title)}" onerror="this.style.display='none'">` : ''}
-        </article>`).join('') : '<p class="empty-note">Esta persona todavía no ha compartido entradas de su bitácora.</p>';
-    }catch(err){ publicLog.innerHTML = '<p class="empty-note">No se pudo cargar la bitácora pública.</p>'; }
+      const projects = await DB.projects.listPublicForUser(uid);
+      if(uid !== viewingUserId) return;
+      logGrid.innerHTML = projects.length ? projects.map(pr => `
+        <div class="profile-log-thumb-wrap" data-openproject="${pr.id}">
+          <img src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
+          <span class="profile-log-badge">📔 Bitácora</span>
+        </div>
+      `).join('') : '<p class="profile-empty-grid">Esta persona no tiene bitácoras públicas todavía.</p>';
+      logGrid.querySelectorAll('[data-openproject]').forEach(el => el.addEventListener('click', () => openProjectView(el.dataset.openproject)));
+    }catch(err){ logGrid.innerHTML = '<p class="profile-empty-grid">No se pudieron cargar las bitácoras públicas.</p>'; }
   }
 }
 
@@ -2153,8 +2104,15 @@ function attachLongPress(imgEl, postId){
   imgEl.addEventListener('pointercancel', cancel);
   imgEl.addEventListener('click', (e) => {
     if(longPressed){ e.preventDefault(); e.stopPropagation(); longPressed = false; return; }
-    openPostModal(postId);
+    openPostOrProject(postId);
   });
+}
+// Si la publicación tiene un proyecto de bitácora enlazado, ir a la vista completa del proyecto en vez del post normal.
+async function openPostOrProject(postId){
+  if(!postsCacheReady) await loadPostsIntoCache();
+  const post = getCachedPost(postId);
+  if(post && post.projectId){ openProjectView(post.projectId); return; }
+  openPostModal(postId);
 }
 async function showQuickPreview(postId){
   let post = getCachedPost(postId);
@@ -2366,7 +2324,7 @@ async function refreshAppAfterAuthChange(){
   applyProfileToUI();
   await loadUserStatsAndBadges();
   await reconcileHistoricalStats();
-  await Promise.all([renderLog(), reloadFeed(), renderStories()]);
+  await Promise.all([reloadFeed(), renderStories()]);
   if(currentUser) await recordDailyLogin();
   renderProfile();
   renderSidePanels();
@@ -2460,32 +2418,15 @@ document.querySelectorAll('#perfil [data-profile-tab]').forEach(btn => {
   });
 });
 
-function populateLogProjectSelect(){
-  const select=document.getElementById('logProject');
-  if(!select) return;
-  select.innerHTML = '<option value="">Selecciona un proyecto…</option>' +
-    PROJECTS.map(p => `<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('');
-}
-populateLogProjectSelect();
-
 document.getElementById('profileAddLogBtn')?.addEventListener('click', () => {
   if(!requireLogin('crear una nueva bitácora')) return;
   showView('bitacora');
-  const form=document.getElementById('logForm');
-  if(form) form.scrollIntoView({behavior:'smooth', block:'start'});
-  const project=document.getElementById('logProject');
-  if(project) project.value='';
-  const day=document.getElementById('logDay'); if(day) day.value='1';
-  const title=document.getElementById('logTitle'); if(title) title.value='';
-  const notes=document.getElementById('logNotes'); if(notes) notes.value='';
-  document.getElementById('logProject')?.focus();
+  openNewProjectModal();
 });
 
-document.getElementById('logProject')?.addEventListener('change', () => {
-  const projectId=document.getElementById('logProject').value;
-  const project=PROJECTS.find(p=>p.id===projectId);
-  const title=document.getElementById('logTitle');
-  if(project && title && !title.value.trim()) title.value='Comienzo del proyecto';
+document.getElementById('openNewProjectBtn')?.addEventListener('click', () => {
+  if(!requireLogin('crear una nueva bitácora')) return;
+  openNewProjectModal();
 });
 
 document.getElementById('btnNewPost').addEventListener('click', () => {
@@ -2530,20 +2471,22 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
   const shown = expanded ? comments : comments.slice(-2);
   const hiddenCount = comments.length - shown.length;
   const isMine = currentUser && post.authorId === currentUser.id;
+  const isProjectPost = !!post.projectId;
   return `
-    <article class="ig-post" data-id="${post.id}">
+    <article class="ig-post" data-id="${post.id}" ${isProjectPost ? `data-projectid="${post.projectId}"` : ''}>
       <div class="ig-post-header">
         <button type="button" class="ig-post-header-link" data-openprofile="${post.authorId}">
           <div class="avatar">${avatarHTML(authorObj)}</div>
           <div class="ig-post-meta">
-            <div class="uname">${escapeHtml(authorName)}${post.demo ? '<span class="ig-demo-tag">Ejemplo</span>' : ''}</div>
+            <div class="uname">${escapeHtml(authorName)}${post.demo ? '<span class="ig-demo-tag">Ejemplo</span>' : ''}${isProjectPost ? '<span class="ig-demo-tag">📔 Bitácora</span>' : ''}</div>
             <div class="time">${fmtRelative(post.date)} · ${post.category}</div>
           </div>
         </button>
         <button class="ig-menu-btn" data-menu="${post.id}">${ICONS.dots}</button>
         ${openMenuId === post.id ? `
           <div class="ig-dropdown">
-            ${isMine ? `<button data-edit="${post.id}">Editar publicación</button><button class="danger" data-del="${post.id}">Eliminar publicación</button>` : `<button data-report="${post.id}">Reportar (no envía nada aún)</button>`}
+            ${isMine && !isProjectPost ? `<button data-edit="${post.id}">Editar publicación</button><button class="danger" data-del="${post.id}">Eliminar publicación</button>` : ''}
+            ${!isMine ? `<button data-report="${post.id}">Reportar (no envía nada aún)</button>` : ''}
             <button data-closemenu="1">Cerrar</button>
           </div>` : ''}
       </div>
@@ -2557,6 +2500,7 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
       </div>
       <p class="ig-likes-line" data-likesline="${post.id}">${likeCount ? `A ${likeCount} persona${likeCount===1?'':'s'} le${likeCount===1?'':'s'} gusta esto` : 'Sé la primera persona en darle me gusta'}</p>
       <p class="ig-caption"><strong>${escapeHtml(post.title)}</strong><br>${escapeHtml(post.notes)}</p>
+      ${isProjectPost ? `<button type="button" class="btn-text" style="margin:0 14px 8px;" data-openprojectlink="${post.projectId}">Ver bitácora completa →</button>` : ''}
       ${comments.length ? `
         <div class="ig-comments-preview">
           ${hiddenCount > 0 ? `<button class="ig-view-more" data-viewmore="${post.id}">Ver los ${comments.length} comentarios</button>` : ''}
@@ -2648,6 +2592,9 @@ function updateLikeUI(id, liked, count){
     const line = article.querySelector(`[data-likesline="${id}"]`);
     if(line) line.textContent = likesLineText(count);
   });
+  // también actualiza la barra social si está abierta la vista del proyecto
+  const projBtn = document.querySelector(`[data-projectlike="${id}"]`);
+  if(projBtn){ projBtn.classList.toggle('liked', liked); projBtn.innerHTML = (liked?ICONS.heartFilled:ICONS.heart) + ' ' + (count||''); }
 }
 function updateSaveUI(id, saved){
   document.querySelectorAll(`.ig-post[data-id="${id}"] [data-save]`).forEach(btn => btn.classList.toggle('saved', saved));
@@ -2688,6 +2635,7 @@ function bindPostCard(article){
   article.querySelectorAll('[data-like]').forEach(btn => btn.addEventListener('click', () => handleLike(id)));
   article.querySelectorAll('[data-save]').forEach(btn => btn.addEventListener('click', () => handleSave(id)));
   article.querySelectorAll('[data-share]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); handleShare(id, btn); }));
+  article.querySelectorAll('[data-openprojectlink]').forEach(btn => btn.addEventListener('click', () => openProjectView(btn.dataset.openprojectlink)));
   const track = article.querySelector('[data-doublelike]');
   if(track){
     let lastClickTime = 0;
@@ -2918,7 +2866,7 @@ async function handleDeletePost(id){
 async function handleEditPost(id){
   openMenuId = null;
   const post = getCachedPost(id);
-  if(!post || !currentUser || post.authorId !== currentUser.id) return;
+  if(!post || !currentUser || post.authorId !== currentUser.id || post.projectId) return;
   showView('inicio');
   openComposer();
   document.getElementById('postEditId').value = id;
@@ -3086,7 +3034,7 @@ async function handleDeleteComment(postId, commentId){
   catch(err){ post.comments = backup; renderCommentsList(post); rerenderCardFromCache(postId); }
 }
 
-// ---------- COMPOSER: publica o edita ----------
+// ---------- COMPOSER: publica o edita (publicaciones normales, no bitácoras) ----------
 document.getElementById('composerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   if(!requireLogin('publicar')) return;
@@ -3489,58 +3437,335 @@ async function openActivityModal(){
   modalBackdrop.classList.add('open');
 }
 
-// ---------- MI BITÁCORA ----------
-const logEntriesEl = document.getElementById('logEntries');
-function renderLogGate(){
-  logEntriesEl.innerHTML = `
-    <div class="auth-gate">
-      <p>Inicia sesión para llevar tu bitácora privada.</p>
-      <button class="btn btn-primary btn-small" id="logGateBtn">Iniciar sesión</button>
-    </div>`;
-  const btn = document.getElementById('logGateBtn');
-  if(btn) btn.addEventListener('click', () => openAuthModal('login', 'usar tu bitácora'));
-}
-async function renderLog(){
-  if(!currentUser){ renderLogGate(); return; }
-  let entries = [];
-  try{ entries = await DB.logbook.listForUser(currentUser.id); }
-  catch(err){ logEntriesEl.innerHTML = `<p class="empty-note">No se pudo cargar tu bitácora.</p>`; return; }
-  if(!entries.length){
-    logEntriesEl.innerHTML = '<p class="empty-note">Aún no tienes entradas. Registra tu primer proyecto o planta con el formulario.</p>';
-    return;
-  }
-  logEntriesEl.innerHTML = entries.map(e => `
-    <div class="log-entry" data-id="${e.id}">
-      <div class="log-entry-head">
-        <div>
-          <h4>${escapeHtml(e.title)}</h4>
-          <span class="log-date">${fmtDate(e.date)} · ${e.category}${e.shared ? ' · compartida' : ''}</span>
-        </div>
-        <div class="log-visibility">
-          <button type="button" class="log-share-toggle" data-logshare="${e.id}" data-shared="${e.shared ? '1':'0'}">${e.shared ? '🌎 Pública' : '🔒 Privada'}</button>
-          <button class="log-del" data-id="${e.id}">Eliminar</button>
+// =====================================================================
+// BITÁCORA COMO PROYECTOS
+// - Crear un proyecto NO exige notas: solo elegir el proyecto/nombre y
+//   si será público o privado. Si es público, se genera automáticamente
+//   una publicación con la imagen predeterminada y el mensaje
+//   "Inicié un nuevo proyecto: <título>".
+// - En el perfil, cada proyecto se ve como una foto normal (miniatura).
+// - Al abrir un proyecto: el dueño puede agregar entradas (día, notas,
+//   foto); cualquier otra persona solo ve, comenta, da like y comparte
+//   (a través de la publicación enlazada, si el proyecto es público).
+// =====================================================================
+let selectedNewProjectRef = null; // referencia a PROJECTS o null (proyecto libre)
+function openNewProjectModal(prefill){
+  if(!requireLogin('crear una bitácora')) return;
+  selectedNewProjectRef = prefill ? prefill.id : null;
+  modalBox.className = 'modal';
+  const defaultPrivate = (() => {
+    try{ return localStorage.getItem('enraiza:default_private_log') !== '0'; }catch(err){ return true; }
+  })();
+  modalContent.innerHTML = `
+    <h3>Nuevo proyecto</h3>
+    <p class="section-desc" style="margin-bottom:14px;">Elige qué vas a hacer y si quieres que se vea en tu perfil público. Podrás agregar fotos y notas después.</p>
+    <form class="new-project-form" id="newProjectForm">
+      <div>
+        <label for="newProjectSelect">¿Qué proyecto vas a llevar?</label>
+        <select id="newProjectSelect">
+          <option value="">Otro (escribe el nombre)</option>
+          ${PROJECTS.map(p => `<option value="${p.id}" ${prefill && prefill.id===p.id ? 'selected' : ''}>${escapeHtml(p.title)}</option>`).join('')}
+        </select>
+      </div>
+      <div id="newProjectCustomWrap" style="${prefill ? 'display:none;' : ''}">
+        <label for="newProjectCustomTitle">Nombre del proyecto</label>
+        <input type="text" id="newProjectCustomTitle" placeholder="Ej. Mi propio compostero" maxlength="120">
+      </div>
+      <div>
+        <label>Visibilidad</label>
+        <div class="privacy-toggle">
+          <button type="button" class="privacy-option ${defaultPrivate ? '' : 'active'}" data-privacy="public">
+            <strong>🌎 Pública</strong>
+            <span>Aparece en tu perfil y en el feed de la comunidad.</span>
+          </button>
+          <button type="button" class="privacy-option ${defaultPrivate ? 'active' : ''}" data-privacy="private">
+            <strong>🔒 Privada</strong>
+            <span>Solo tú la ves. Puedes hacerla pública después.</span>
+          </button>
         </div>
       </div>
-      <p>${escapeHtml(e.notes)}</p>
-      ${e.photo ? `<img src="${e.photo}" alt="Foto de ${escapeHtml(e.title)}" onerror="this.style.display='none'">` : ''}
+      <button type="submit" class="btn btn-primary btn-small" id="newProjectSubmitBtn">Crear bitácora</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  let chosenPrivacy = defaultPrivate ? 'private' : 'public';
+  document.getElementById('newProjectSelect').addEventListener('change', (e) => {
+    document.getElementById('newProjectCustomWrap').style.display = e.target.value ? 'none' : 'block';
+  });
+  modalContent.querySelectorAll('.privacy-option').forEach(btn => btn.addEventListener('click', () => {
+    modalContent.querySelectorAll('.privacy-option').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    chosenPrivacy = btn.dataset.privacy;
+  }));
+  document.getElementById('newProjectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const select = document.getElementById('newProjectSelect');
+    const refId = select.value || null;
+    const refProject = refId ? PROJECTS.find(p => p.id === refId) : null;
+    const customTitle = document.getElementById('newProjectCustomTitle').value.trim();
+    const title = refProject ? refProject.title : customTitle;
+    if(!title){ showToast('Ponle un nombre a tu proyecto.'); return; }
+    const category = refProject ? refProject.cat : 'proyecto';
+    const shared = chosenPrivacy === 'public';
+    const btn = document.getElementById('newProjectSubmitBtn');
+    btn.disabled = true;
+    try{
+      const coverPhoto = placeholderImage(title, category === 'agua' ? 'observacion' : (['planta','cultivo'].includes(category) ? 'planta' : 'proyecto'));
+      const project = await DB.projects.create({ ownerId: currentUser.id, title, category, coverPhoto, shared });
+      if(shared){
+        const created = await DB.posts.create({
+          authorId: currentUser.id, title, category,
+          notes: `Inicié un nuevo proyecto: ${title}`,
+          photos: [coverPhoto], projectId: project.id,
+        });
+        await DB.projects.setLinkedPost(project.id, created.id);
+        project.linkedPostId = created.id;
+        upsertCachedPost(created);
+        incrementStat('posts_created');
+        renderFeedFromCache();
+      }
+      incrementStat('logbook_entries');
+      closeModal();
+      showToast(shared ? '🌎 Proyecto público creado' : '🔒 Proyecto privado creado');
+      openProjectView(project.id);
+    }catch(err){
+      alert('No se pudo crear la bitácora: ' + (err.message || err));
+      btn.disabled = false;
+    }
+  });
+}
+
+// ---------- LISTA DE MIS PROYECTOS (pantalla Bitácora) ----------
+async function renderBitacoraProjectList(){
+  const grid = document.getElementById('bitacoraProjectGrid');
+  if(!currentUser){
+    grid.innerHTML = `<div class="profile-log-empty" style="grid-column:1/-1;">
+      <strong>Tu bitácora vive aquí</strong>Inicia sesión para crear y llevar tus proyectos.
+    </div>`;
+    return;
+  }
+  let projects = [];
+  try{ projects = await DB.projects.listForUser(currentUser.id); }
+  catch(err){ grid.innerHTML = `<p class="empty-note">No se pudieron cargar tus proyectos.</p>`; return; }
+  if(!projects.length){
+    grid.innerHTML = `<div class="profile-log-empty" style="grid-column:1/-1;">
+      <strong>Empieza tu primer proyecto 🌱</strong>
+      Crea una bitácora y ve agregando avances con fotos y notas cuando quieras.
+    </div>`;
+    return;
+  }
+  grid.innerHTML = projects.map(pr => `
+    <div class="profile-log-thumb-wrap" data-openproject="${pr.id}">
+      <img src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
+      <span class="profile-log-badge">${pr.shared ? '🌎' : '🔒'}</span>
     </div>
   `).join('');
-  document.querySelectorAll('#logEntries .log-del').forEach(btn => btn.addEventListener('click', handleDelete));
-  document.querySelectorAll('#logEntries .log-share-toggle').forEach(btn => btn.addEventListener('click', () => handleToggleLogShare(btn.dataset.logshare, btn.dataset.shared !== '1')));
+  grid.querySelectorAll('[data-openproject]').forEach(el => el.addEventListener('click', () => openProjectView(el.dataset.openproject)));
 }
-async function handleToggleLogShare(id, shared){
-  if(!currentUser) return;
+
+// ---------- BITÁCORA EN EL PERFIL (miniaturas, como fotos normales) ----------
+async function renderProfileLogs(){
+  const grid = document.getElementById('profileLogGrid');
+  const countLabel = document.getElementById('profileLogCountLabel');
+  if(!grid) return;
+  if(!currentUser){
+    grid.innerHTML = `<p class="profile-empty-grid">Inicia sesión para ver tu bitácora aquí.</p>`;
+    if(countLabel) countLabel.textContent = '';
+    return;
+  }
+  let projects = [];
+  try{ projects = await DB.projects.listForUser(currentUser.id); }
+  catch(err){ grid.innerHTML = `<p class="profile-empty-grid">No se pudieron cargar tus bitácoras.</p>`; return; }
+  if(countLabel) countLabel.textContent = projects.length ? ` ${projects.length}` : '';
+  if(!projects.length){
+    grid.innerHTML = `<p class="profile-empty-grid">Aún no tienes proyectos. Ve a Bitácora para crear el primero.</p>`;
+    return;
+  }
+  grid.innerHTML = projects.map(pr => `
+    <div class="profile-log-thumb-wrap" data-openproject="${pr.id}">
+      <img src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
+      <span class="profile-log-badge">${pr.shared ? '🌎' : '🔒'}</span>
+    </div>
+  `).join('');
+  grid.querySelectorAll('[data-openproject]').forEach(el => el.addEventListener('click', () => openProjectView(el.dataset.openproject)));
+}
+
+// ---------- PANTALLA COMPLETA DE UN PROYECTO DE BITÁCORA ----------
+let currentProjectView = null;
+async function openProjectView(projectId){
+  currentProjectView = projectId;
+  showView('proyectoBitacora');
+  await renderProjectView();
+}
+async function renderProjectView(){
+  const wrap = document.getElementById('projectViewContent');
+  if(!currentProjectView){ wrap.innerHTML = '<p class="empty-note">No se encontró el proyecto.</p>'; return; }
+  wrap.innerHTML = '<p class="feed-empty">Cargando…</p>';
+  let project;
+  try{ project = await DB.projects.getOne(currentProjectView); }
+  catch(err){ wrap.innerHTML = '<p class="empty-note">No se pudo cargar este proyecto.</p>'; return; }
+  if(!project){ wrap.innerHTML = '<p class="empty-note">Este proyecto ya no existe o es privado.</p>'; return; }
+  const isOwner = currentUser && project.ownerId === currentUser.id;
+  if(!project.shared && !isOwner){ wrap.innerHTML = '<p class="empty-note">Este proyecto es privado.</p>'; return; }
+
+  let entries = [];
+  try{ entries = await DB.logbook.listForProject(project.id); }catch(err){ entries = []; }
+
+  await getUserCached(project.ownerId);
+  const ownerObj = usersCache[project.ownerId];
+
+  let linkedPost = null;
+  if(project.linkedPostId){
+    if(!postsCacheReady) await loadPostsIntoCache();
+    linkedPost = getCachedPost(project.linkedPostId);
+    if(!linkedPost){ try{ linkedPost = await DB.posts.getOne(project.linkedPostId); if(linkedPost) upsertCachedPost(linkedPost); }catch(err){ /* ignore */ } }
+  }
+  const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
+  if(linkedPost) linkedPost._savedLocal = savedIds.includes(linkedPost.id);
+
+  const liked = linkedPost && currentUser ? (linkedPost.likedBy||[]).includes(currentUser.id) : false;
+  const likeCount = linkedPost ? (linkedPost.likedBy||[]).length : 0;
+
+  wrap.innerHTML = `
+    <div class="project-view-head">
+      <div class="project-view-cover">
+        <img src="${escapeHtml(project.coverPhoto || placeholderImage(project.id+project.title, project.category))}" alt="${escapeHtml(project.title)}" onerror="this.src='${placeholderImage(project.id, project.category)}'">
+      </div>
+      <div class="project-view-title-row">
+        <h2>${escapeHtml(project.title)}</h2>
+        <span class="project-visibility-pill ${project.shared ? 'public' : ''} ${isOwner ? 'owner-toggle' : ''}" id="projectVisibilityPill">
+          ${project.shared ? '🌎 Pública' : '🔒 Privada'}${isOwner ? ' · cambiar' : ''}
+        </span>
+      </div>
+      <p class="section-desc">Bitácora de <strong>${escapeHtml(ownerObj?.name || 'alguien de la comunidad')}</strong> · ${fmtDate(project.date)}</p>
+    </div>
+
+    ${isOwner ? `
+      <div class="project-owner-actions">
+        <button class="btn btn-primary btn-small" id="addProjectEntryBtn">＋ Agregar avance</button>
+      </div>
+    ` : ''}
+
+    ${linkedPost ? `
+      <div class="project-social-bar">
+        <button class="ig-icon ${liked?'liked':''}" data-projectlike="${linkedPost.id}">${liked?ICONS.heartFilled:ICONS.heart} ${likeCount||''}</button>
+        <button class="ig-icon" id="projectCommentBtn">${ICONS.comment}</button>
+        <button class="ig-icon share-active" id="projectShareBtn">${ICONS.share}</button>
+        <span class="spacer" style="flex:1;"></span>
+        <button class="ig-icon ${linkedPost._savedLocal?'saved':''}" id="projectSaveBtn">${ICONS.bookmark}</button>
+      </div>
+    ` : (isOwner ? '<p class="section-desc" style="margin-bottom:18px;">Este proyecto es privado, así que no tiene likes ni comentarios — hazlo público cuando quieras compartirlo.</p>' : '')}
+
+    <div id="projectEntriesList">
+      ${entries.length ? entries.map(e => `
+        <div class="project-day-entry">
+          <span class="log-date">${fmtDate(e.date)}${e.title ? ' · ' + escapeHtml(e.title) : ''}</span>
+          ${e.notes ? `<p>${escapeHtml(e.notes)}</p>` : ''}
+          ${e.photo ? `<img src="${escapeHtml(e.photo)}" alt="" onerror="this.style.display='none'">` : ''}
+        </div>
+      `).join('') : '<p class="empty-note">Todavía no hay avances registrados en esta bitácora.</p>'}
+    </div>
+  `;
+
+  if(isOwner){
+    document.getElementById('projectVisibilityPill').addEventListener('click', () => toggleProjectVisibility(project));
+    document.getElementById('addProjectEntryBtn').addEventListener('click', () => openAddProjectEntryModal(project));
+  }
+  if(linkedPost){
+    document.querySelector(`[data-projectlike="${linkedPost.id}"]`).addEventListener('click', () => handleLike(linkedPost.id));
+    document.getElementById('projectCommentBtn').addEventListener('click', () => openCommentsViewForProject(linkedPost.id));
+    document.getElementById('projectShareBtn').addEventListener('click', (e) => handleShare(linkedPost.id, e.currentTarget));
+    document.getElementById('projectSaveBtn').addEventListener('click', (e) => { handleSave(linkedPost.id); e.currentTarget.classList.toggle('saved'); });
+  }
+}
+// abre la vista de comentarios reutilizando la lógica existente, sin necesitar la tarjeta en el feed
+async function openCommentsViewForProject(postId){
+  if(!postsCacheReady) await loadPostsIntoCache();
+  let post = getCachedPost(postId);
+  if(!post){ try{ post = await DB.posts.getOne(postId); if(post) upsertCachedPost(post); }catch(err){ return; } }
+  if(post) openCommentsView(post.id);
+}
+
+async function toggleProjectVisibility(project){
+  if(!currentUser || project.ownerId !== currentUser.id) return;
+  const makePublic = !project.shared;
   try{
-    await DB.logbook.updateShared(currentUser.id, id, shared);
-    showToast(shared ? '🌎 Entrada compartida públicamente' : '🔒 Entrada vuelta a privada');
-    await renderLog();
-  }catch(err){ alert('No se pudo cambiar la privacidad: ' + (err.message || err)); }
+    if(makePublic && !project.linkedPostId){
+      const created = await DB.posts.create({
+        authorId: currentUser.id, title: project.title, category: project.category,
+        notes: `Inicié un nuevo proyecto: ${project.title}`,
+        photos: [project.coverPhoto || placeholderImage(project.id+project.title, project.category)],
+        projectId: project.id,
+      });
+      await DB.projects.setLinkedPost(project.id, created.id);
+      upsertCachedPost(created);
+      incrementStat('posts_created');
+      renderFeedFromCache();
+    } else if(!makePublic && project.linkedPostId){
+      try{ await DB.posts.remove(project.linkedPostId, currentUser.id); removeCachedPost(project.linkedPostId); renderFeedFromCache(); }
+      catch(err){ /* si ya no existe, seguimos */ }
+    }
+    await DB.projects.setShared(project.id, makePublic);
+    showToast(makePublic ? '🌎 Ahora tu proyecto es público' : '🔒 Ahora tu proyecto es privado');
+    await renderProjectView();
+    renderProfileLogs();
+  }catch(err){
+    alert('No se pudo cambiar la privacidad: ' + (err.message || err));
+  }
 }
-async function handleDelete(e){
-  if(!currentUser) return;
-  const id = e.target.dataset.id;
-  await DB.logbook.remove(currentUser.id, id);
-  renderLog();
+
+function openAddProjectEntryModal(project){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Nuevo avance</h3>
+    <p class="section-desc" style="margin-bottom:14px;">Cuenta qué pasó con "${escapeHtml(project.title)}" y agrega una foto si quieres.</p>
+    <form id="addEntryForm">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:4px;">Título breve (opcional)</label>
+        <input type="text" id="entryTitle" placeholder="Ej. Ya salió la primera raíz" maxlength="120" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:6px;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:4px;">Notas</label>
+        <textarea id="entryNotes" placeholder="¿Qué observaste o hiciste?" required style="width:100%; min-height:80px; padding:9px 11px; border:1px solid var(--line); border-radius:6px; font-family:var(--sans);"></textarea>
+      </div>
+      <button type="button" class="photo-picker-btn" id="entryPhotoPickBtn">📷 Añadir foto (opcional)</button>
+      <input type="file" id="entryPhotoInput" accept="image/*" class="visually-hidden">
+      <div class="photo-preview-row" id="entryPhotoPreview"></div>
+      <button type="submit" class="btn btn-primary btn-small" id="entrySubmitBtn">Guardar avance</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  let entryFile = null;
+  document.getElementById('entryPhotoPickBtn').addEventListener('click', () => document.getElementById('entryPhotoInput').click());
+  document.getElementById('entryPhotoInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file) return;
+    entryFile = file;
+    document.getElementById('entryPhotoPreview').innerHTML = `
+      <div class="photo-preview-item"><img src="${URL.createObjectURL(file)}" alt=""><button type="button" id="entryPhotoRemove">&times;</button></div>
+    `;
+    document.getElementById('entryPhotoRemove').addEventListener('click', () => { entryFile = null; document.getElementById('entryPhotoPreview').innerHTML = ''; });
+  });
+  document.getElementById('addEntryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('entryTitle').value.trim();
+    const notes = document.getElementById('entryNotes').value.trim();
+    if(!notes) return;
+    const btn = document.getElementById('entrySubmitBtn');
+    btn.disabled = true;
+    try{
+      let photo = '';
+      if(entryFile) photo = await uploadImageFile(entryFile, 'logbook');
+      await DB.logbook.create({ userId: currentUser.id, projectId: project.id, title, category: project.category, notes, photo });
+      incrementStat('logbook_entries');
+      closeModal();
+      await renderProjectView();
+    }catch(err){
+      alert('No se pudo guardar el avance: ' + (err.message || err));
+      btn.disabled = false;
+    }
+  });
 }
 
 // =====================================================================
@@ -3553,7 +3778,6 @@ let userStats = { counts: {}, current_streak: 0, longest_streak: 0 };
 let earnedBadgeIds = new Set();
 
 const BADGES = [
-  // ---- Primeros pasos ----
   { id:'start-1', cat:'Primeros pasos', icon:'🌱', name:'Primera semilla', points:10, desc:'Crea tu primera acción en Enraíza.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 1 },
   { id:'start-2', cat:'Primeros pasos', icon:'👣', name:'Ya arrancaste', points:10, desc:'Registra 2 acciones que hayas realizado.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 2 },
   { id:'start-3', cat:'Primeros pasos', icon:'🪴', name:'Manos a la tierra', points:15, desc:'Completa 3 acciones en total.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 3 },
@@ -3561,7 +3785,6 @@ const BADGES = [
   { id:'start-5', cat:'Primeros pasos', icon:'🌳', name:'Ya echaste raíz', points:35, desc:'Completa 10 acciones en total.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 10 },
   { id:'start-6', cat:'Primeros pasos', icon:'🌎', name:'Cambio en marcha', points:60, desc:'Completa 20 acciones en total.', check:(s)=> ((s.counts.posts_created||0)+(s.counts.logbook_entries||0)+(s.counts.stories_created||0)) >= 20 },
 
-  // ---- Publicaciones ----
   { id:'post-1', cat:'Publicaciones', icon:'📣', name:'Primera voz', points:10, desc:'Comparte tu primera publicación con la comunidad.', check:(s)=> (s.counts.posts_created||0) >= 1 },
   { id:'post-3', cat:'Publicaciones', icon:'🌱', name:'Semillero de ideas', points:15, desc:'Publica 3 veces.', check:(s)=> (s.counts.posts_created||0) >= 3 },
   { id:'post-5', cat:'Publicaciones', icon:'📝', name:'Voz constante', points:25, desc:'Publica 5 veces.', check:(s)=> (s.counts.posts_created||0) >= 5 },
@@ -3569,15 +3792,13 @@ const BADGES = [
   { id:'post-15', cat:'Publicaciones', icon:'🌳', name:'Narrador de la huerta', points:50, desc:'Publica 15 veces.', check:(s)=> (s.counts.posts_created||0) >= 15 },
   { id:'post-30', cat:'Publicaciones', icon:'👑', name:'Cronista de Enraíza', points:100, desc:'Publica 30 veces.', check:(s)=> (s.counts.posts_created||0) >= 30 },
 
-  // ---- Bitácora ----
-  { id:'log-1', cat:'Bitácora', icon:'📔', name:'Primera raíz', points:10, desc:'Guarda tu primera entrada en la bitácora.', check:(s)=> (s.counts.logbook_entries||0) >= 1 },
-  { id:'log-3', cat:'Bitácora', icon:'✍️', name:'Manos que anotan', points:15, desc:'Guarda 3 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 3 },
-  { id:'log-5', cat:'Bitácora', icon:'📒', name:'Buena racha', points:20, desc:'Guarda 5 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 5 },
-  { id:'log-10', cat:'Bitácora', icon:'🗃️', name:'Coleccionista de cambios', points:30, desc:'Guarda 10 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 10 },
-  { id:'log-15', cat:'Bitácora', icon:'📚', name:'Diario fiel', points:40, desc:'Guarda 15 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 15 },
-  { id:'log-50', cat:'Bitácora', icon:'🏛️', name:'Archivo viviente', points:90, desc:'Guarda 50 entradas.', check:(s)=> (s.counts.logbook_entries||0) >= 50 },
+  { id:'log-1', cat:'Bitácora', icon:'📔', name:'Primera raíz', points:10, desc:'Crea o registra tu primer avance de bitácora.', check:(s)=> (s.counts.logbook_entries||0) >= 1 },
+  { id:'log-3', cat:'Bitácora', icon:'✍️', name:'Manos que anotan', points:15, desc:'Registra 3 avances.', check:(s)=> (s.counts.logbook_entries||0) >= 3 },
+  { id:'log-5', cat:'Bitácora', icon:'📒', name:'Buena racha', points:20, desc:'Registra 5 avances.', check:(s)=> (s.counts.logbook_entries||0) >= 5 },
+  { id:'log-10', cat:'Bitácora', icon:'🗃️', name:'Coleccionista de cambios', points:30, desc:'Registra 10 avances.', check:(s)=> (s.counts.logbook_entries||0) >= 10 },
+  { id:'log-15', cat:'Bitácora', icon:'📚', name:'Diario fiel', points:40, desc:'Registra 15 avances.', check:(s)=> (s.counts.logbook_entries||0) >= 15 },
+  { id:'log-50', cat:'Bitácora', icon:'🏛️', name:'Archivo viviente', points:90, desc:'Registra 50 avances.', check:(s)=> (s.counts.logbook_entries||0) >= 50 },
 
-  // ---- Apoyo a la comunidad ----
   { id:'like-1', cat:'Apoyo a la comunidad', icon:'💚', name:'Primer abrazo verde', points:5, desc:'Da tu primer "me gusta" a otra persona.', check:(s)=> (s.counts.likes_given||0) >= 1 },
   { id:'like-5', cat:'Apoyo a la comunidad', icon:'💚', name:'Apoyo mutuo', points:10, desc:'Da "me gusta" 5 veces.', check:(s)=> (s.counts.likes_given||0) >= 5 },
   { id:'like-20', cat:'Apoyo a la comunidad', icon:'🌻', name:'Sol para otros', points:25, desc:'Da "me gusta" 20 veces.', check:(s)=> (s.counts.likes_given||0) >= 20 },
@@ -3585,7 +3806,6 @@ const BADGES = [
   { id:'like-100', cat:'Apoyo a la comunidad', icon:'💫', name:'Impulsor verde', points:75, desc:'Da "me gusta" 100 veces.', check:(s)=> (s.counts.likes_given||0) >= 100 },
   { id:'like-150', cat:'Apoyo a la comunidad', icon:'🌟', name:'Alma solidaria', points:100, desc:'Da "me gusta" 150 veces.', check:(s)=> (s.counts.likes_given||0) >= 150 },
 
-  // ---- Conversación ----
   { id:'comment-1', cat:'Conversación', icon:'💬', name:'Rompe el silencio', points:5, desc:'Deja tu primer comentario.', check:(s)=> (s.counts.comments_written||0) >= 1 },
   { id:'comment-3', cat:'Conversación', icon:'🗣️', name:'Voz activa', points:10, desc:'Deja 3 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 3 },
   { id:'comment-5', cat:'Conversación', icon:'🌱', name:'Pregunta y aprende', points:15, desc:'Deja 5 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 5 },
@@ -3593,7 +3813,6 @@ const BADGES = [
   { id:'comment-25', cat:'Conversación', icon:'🌳', name:'Guía del semillero', points:40, desc:'Deja 25 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 25 },
   { id:'comment-50', cat:'Conversación', icon:'🌲', name:'Mentor de la comunidad', points:60, desc:'Deja 50 comentarios.', check:(s)=> (s.counts.comments_written||0) >= 50 },
 
-  // ---- Guardados ----
   { id:'save-1', cat:'Guardados', icon:'🔖', name:'Esto me sirve', points:5, desc:'Guarda tu primera publicación.', check:(s)=> (s.counts.posts_saved||0) >= 1 },
   { id:'save-3', cat:'Guardados', icon:'💡', name:'Cazador de ideas', points:10, desc:'Guarda 3 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 3 },
   { id:'save-5', cat:'Guardados', icon:'🧠', name:'Memoria verde', points:15, desc:'Guarda 5 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 5 },
@@ -3601,7 +3820,6 @@ const BADGES = [
   { id:'save-15', cat:'Guardados', icon:'📚', name:'Bibliotecario personal', points:30, desc:'Guarda 15 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 15 },
   { id:'save-30', cat:'Guardados', icon:'🏷️', name:'Mapa de recursos', points:55, desc:'Guarda 30 publicaciones.', check:(s)=> (s.counts.posts_saved||0) >= 30 },
 
-  // ---- Historias ----
   { id:'story-1', cat:'Historias', icon:'⏱️', name:'Primera huella', points:10, desc:'Publica tu primera historia de 24 horas.', check:(s)=> (s.counts.stories_created||0) >= 1 },
   { id:'story-3', cat:'Historias', icon:'📸', name:'Momento verde', points:15, desc:'Publica 3 historias.', check:(s)=> (s.counts.stories_created||0) >= 3 },
   { id:'story-5', cat:'Historias', icon:'🌿', name:'Diario en movimiento', points:20, desc:'Publica 5 historias.', check:(s)=> (s.counts.stories_created||0) >= 5 },
@@ -3609,7 +3827,6 @@ const BADGES = [
   { id:'story-20', cat:'Historias', icon:'🌱', name:'Historias que germinan', points:45, desc:'Publica 20 historias.', check:(s)=> (s.counts.stories_created||0) >= 20 },
   { id:'story-30', cat:'Historias', icon:'🎬', name:'Historiador de Enraíza', points:60, desc:'Publica 30 historias.', check:(s)=> (s.counts.stories_created||0) >= 30 },
 
-  // ---- Constancia ----
   { id:'streak-3', cat:'Constancia diaria', icon:'🔥', name:'Chispa inicial', points:15, desc:'Entra 3 días seguidos.', check:(s)=> (s.longest_streak||0) >= 3 },
   { id:'streak-5', cat:'Constancia diaria', icon:'🔥', name:'Cinco días con raíz', points:25, desc:'Entra 5 días seguidos.', check:(s)=> (s.longest_streak||0) >= 5 },
   { id:'streak-7', cat:'Constancia diaria', icon:'🔥', name:'Semana encendida', points:35, desc:'Entra 7 días seguidos.', check:(s)=> (s.longest_streak||0) >= 7 },
@@ -3630,14 +3847,14 @@ function getISOWeekKey(date = new Date()){
   return `${year}-W${String(week).padStart(2,'0')}`;
 }
 function weeklyKey(field){ return `week_${getISOWeekKey()}_${field}`; }
-function missionClaimKey(id){ return `mission_${getISOWeekKey()}_${id}`; }
+function missionClaimKey(id){ return `mission_claimed_${getISOWeekKey()}_${id}`; }
 
 const MISSIONS = [
   { id:'post', icon:'🌱', title:'Comparte una acción', desc:'Publica algo que hiciste, aprendiste o estás intentando.', field:'posts_created', target:1, points:45 },
   { id:'comment', icon:'💬', title:'Haz comunidad', desc:'Deja 3 comentarios que aporten una idea o consejo.', field:'comments_written', target:3, points:30 },
   { id:'like', icon:'💚', title:'Deja huella', desc:'Apoya 5 publicaciones de otras personas.', field:'likes_given', target:5, points:20 },
   { id:'save', icon:'🔖', title:'Guarda una idea', desc:'Guarda 2 publicaciones para volver a ellas.', field:'posts_saved', target:2, points:20 },
-  { id:'log', icon:'📔', title:'Documenta tu avance', desc:'Registra 2 cambios, pruebas o aprendizajes en tu bitácora.', field:'logbook_entries', target:2, points:35 },
+  { id:'log', icon:'📔', title:'Documenta tu avance', desc:'Registra 2 avances de bitácora.', field:'logbook_entries', target:2, points:35 },
   { id:'story', icon:'📸', title:'Muéstralo en movimiento', desc:'Comparte 2 historias durante la semana.', field:'stories_created', target:2, points:30 },
   { id:'streak', icon:'🔥', title:'Vuelve a echar raíz', desc:'Entra a Enraíza 3 días seguidos.', field:'current_streak', target:3, points:35, streak:true },
 ];
@@ -3652,16 +3869,20 @@ async function loadUserStatsAndBadges(){
 async function reconcileHistoricalStats(){
   if(!currentUser) return;
   try{
-    const [posts, logs, stories, savedIds] = await Promise.all([
+    const [posts, projects, stories, savedIds] = await Promise.all([
       DB.posts.list(),
-      DB.logbook.listForUser(currentUser.id),
+      DB.projects.listForUser(currentUser.id),
       DB.stories.listActive(),
       DB.saved.listForUser(currentUser.id)
     ]);
     const mine = posts.filter(p => p.authorId === currentUser.id);
+    let logCount = 0;
+    for(const pr of projects){
+      try{ const entries = await DB.logbook.listForProject(pr.id); logCount += entries.length; }catch(err){ /* ignore */ }
+    }
     const observed = {
       posts_created: mine.length,
-      logbook_entries: logs.length,
+      logbook_entries: logCount,
       stories_created: stories.filter(s => s.authorId === currentUser.id).length,
       likes_given: posts.reduce((n,p) => n + ((p.likedBy||[]).includes(currentUser.id) ? 1 : 0), 0),
       comments_written: posts.reduce((n,p) => n + (p.comments||[]).filter(c => c.authorId === currentUser.id).length, 0),
@@ -3698,6 +3919,35 @@ async function addPoints(amount){
   userStats.counts.points_total = (userStats.counts.points_total || 0) + amount;
   try{ await DB.stats.increment('points_total', amount); }
   catch(err){ /* se resincroniza al volver a cargar */ }
+}
+
+function computeCorrectPointsTotal(){
+  let total = 0;
+  BADGES.forEach(b => { if(earnedBadgeIds.has(b.id)) total += b.points; });
+  Object.keys(userStats.counts || {}).forEach(key => {
+    if(key.startsWith('mission_claimed_')){
+      const missionId = key.split('_').pop();
+      const mission = MISSIONS.find(m => m.id === missionId);
+      if(mission && userStats.counts[key]) total += mission.points;
+    }
+  });
+  return total;
+}
+
+async function resyncPointsTotalIfNeeded(){
+  if(!currentUser) return;
+  const correct = computeCorrectPointsTotal();
+  const stored = userStats.counts.points_total || 0;
+  if(stored === correct) return;
+  userStats.counts.points_total = correct;
+  try{
+    const { error } = await sb.from('user_stats')
+      .update({ counts: userStats.counts })
+      .eq('user_id', currentUser.id);
+    if(error) throw error;
+  }catch(err){
+    console.error('No se pudo corregir el total de puntos', err);
+  }
 }
 
 async function incrementStat(field, amount){
@@ -3760,12 +4010,12 @@ function checkAndAwardMissions(){
 
 // ---------- ESTADÍSTICAS "EN VIVO" (solo para la fila de arriba del perfil, no para logros) ----------
 async function computeStats(){
-  if(!currentUser) return { logCount:0, ownPosts:0, ownPostList:[], likedCount:0, savedCount:0, ownComments:0 };
-  let entries = [], savedIds = [];
+  if(!currentUser) return { ownPosts:0, ownPostList:[], likedCount:0, savedCount:0, ownComments:0, projectCount:0 };
+  let savedIds = [], projects = [];
   if(!postsCacheReady){ try{ await loadPostsIntoCache(); }catch(err){ /* ignore */ } }
   try{
-    [entries, savedIds] = await Promise.all([
-      DB.logbook.listForUser(currentUser.id), DB.saved.listForUser(currentUser.id)
+    [savedIds, projects] = await Promise.all([
+      DB.saved.listForUser(currentUser.id), DB.projects.listForUser(currentUser.id)
     ]);
   }catch(err){ /* deja stats en 0 si algo falla */ }
   const myId = currentUser.id;
@@ -3776,7 +4026,7 @@ async function computeStats(){
     if((p.likedBy || []).includes(myId)) likedCount++;
     (p.comments || []).forEach(c => { if(c.authorId === myId) ownComments++; });
   });
-  return { logCount: entries.length, ownPosts: ownPosts.length, ownPostList: ownPosts, likedCount, savedCount: savedIds.length, ownComments };
+  return { ownPosts: ownPosts.length, ownPostList: ownPosts, likedCount, savedCount: savedIds.length, ownComments, projectCount: projects.length };
 }
 
 function renderSettingsPage(){
@@ -3880,7 +4130,6 @@ async function initSettingsSecurity(){
       if(btn) btn.disabled=true;
 
       try{
-        // Reautenticación explícita: una sesión abierta por sí sola no basta.
         const { data, error: signInError } = await sb.auth.signInWithPassword({
           email: currentAuthEmail,
           password: currentPassword
@@ -3904,7 +4153,6 @@ async function initSettingsSecurity(){
     });
   }
 
-  // Verificación por teléfono/SMS desactivada temporalmente.
   await initMfaSecurity();
   initDeleteAccountSecurity();
 }
@@ -4048,7 +4296,6 @@ function initDeleteAccountSecurity(){
 
       btn.disabled=true;
       try{
-        // La contraseña actual crea una sesión recién autenticada.
         const {data,error}=await sb.auth.signInWithPassword({
           email:currentAuthEmail,
           password
@@ -4056,7 +4303,6 @@ function initDeleteAccountSecurity(){
         if(error) throw error;
         if(!data?.session) throw new Error('No se pudo reautenticar la cuenta.');
 
-        // La Edge Function vuelve a validar el JWT y su auth_time.
         const {data:fnData,error:fnError}=await sb.functions.invoke('delete-account',{
           body:{confirmation:'ELIMINAR MI CUENTA'}
         });
@@ -4094,7 +4340,7 @@ async function renderProfile(){
   applyProfileToUI(); renderSettingsPage();
   const stats=await computeStats();
   const verifiedEl=document.getElementById('profileVerifiedBadge'); if(verifiedEl) verifiedEl.style.display=isVerifiedOwner(currentUser)?'inline-flex':'none';
-  document.getElementById('profileStats').innerHTML=`<div><strong>${stats.ownPosts}</strong>publicaciones</div><div><strong>${stats.logCount}</strong>bitácora</div><div><strong>${userStats.counts.points_total||0}</strong>puntos</div><div><strong>🔥 ${userStats.current_streak||0}</strong>racha</div>`;
+  document.getElementById('profileStats').innerHTML=`<div><strong>${stats.ownPosts}</strong>publicaciones</div><div><strong>${stats.projectCount}</strong>bitácoras</div><div><strong>${userStats.counts.points_total||0}</strong>puntos</div><div><strong>🔥 ${userStats.current_streak||0}</strong>racha</div>`;
   document.getElementById('profilePostCountLabel').textContent=stats.ownPosts?`${stats.ownPosts} ${stats.ownPosts===1?'publicación':'publicaciones'}`:'Aún no has publicado';
   const grid=document.getElementById('profilePostGrid');
   if(!currentUser) grid.innerHTML='<p class="profile-empty-grid">Inicia sesión para ver tus publicaciones aquí.</p>';
@@ -4102,10 +4348,9 @@ async function renderProfile(){
   else { grid.innerHTML=stats.ownPostList.map(p=>`<img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0])||placeholderImage(p.id+p.title,p.category)}" alt="${escapeHtml(p.title)}">`).join(''); grid.querySelectorAll('[data-goto]').forEach(img=>attachLongPress(img,img.dataset.goto)); }
   const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id));
   const doneMissions=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;
-  const points=userStats.counts.points_total||0;
   const bs=document.getElementById('profileBadgeSummary'); if(bs) bs.textContent=`${earned.length}/${BADGES.length} logrados · ver todos`;
   const ms=document.getElementById('profileMissionSummary'); if(ms) ms.textContent=`${doneMissions}/${MISSIONS.length} completadas · ver esta semana`;
-  renderProfileLogs();
+  if(!document.getElementById('profileLogsPanel').hidden) renderProfileLogs();
 }
 let currentAuthEmail = '';
 function isVerifiedOwner(user){
@@ -4119,7 +4364,6 @@ function getBadgeProgress(b){
   if(b.id.startsWith('streak-')) return Math.min(Number(b.id.split('-')[1]),userStats.longest_streak||0);
   if(b.id.startsWith('start-')){const total=(c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);return Math.min([1,2,3,5,10,20][Number(b.id.split('-')[1])-1]||0,total)} return 0;
 }
-function completionRatio(b,p){const m=b.id.match(/-(\d+)$/);return Math.min(1,p/(m?Number(m[1]):1));}
 function badgeCardHTML(b,earned){const p=getBadgeProgress(b),m=b.id.match(/-(\d+)$/),t=m?Number(m[1]):null;const txt=earned?'✓ Completado':(t?`${p}/${t} · faltan ${Math.max(0,t-p)}`:'Disponible');return `<article class="achievement-card ${earned?'earned':'locked'}"><div class="badge-icon">${b.icon}</div><div style="min-width:0;flex:1"><h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4><p>${b.desc}</p><div class="achievement-progress">${txt}</div></div>${earned?'<span class="achievement-mark">✓</span>':''}</article>`;}
 function renderAchievementsPage(){
   const score=document.getElementById('achievementsPageScore'),content=document.getElementById('achievementsPageContent');
@@ -4139,203 +4383,6 @@ try{
   if(pref) pref.checked = localStorage.getItem('enraiza:default_private_log') !== '0';
   if(pref) pref.addEventListener('change',()=>localStorage.setItem('enraiza:default_private_log', pref.checked ? '1':'0'));
 }catch(err){}
-
-// La preferencia controla el estado inicial del selector de visibilidad de nuevas entradas.
-try{
-  const pref=document.getElementById('defaultPrivateLog');
-  const share=document.getElementById('logShare');
-  if(pref && share){
-    const sync=()=>{ share.checked=!pref.checked; };
-    sync();
-    pref.addEventListener('change',sync);
-  }
-}catch(err){}
-
-// ---------- BITÁCORA EN EL PERFIL ----------
-function parseLogEntry(e){
-  // Formato nuevo: "Proyecto · Día N · Título". Las entradas antiguas siguen funcionando.
-  const m=(e.title||'').match(/^(.*?) · Día (\\d+) · (.*)$/);
-  if(m) return {projectName:m[1], day:Number(m[2]), title:m[3]};
-  const legacy=(e.title||'').match(/^(.*?) · Día (\\d+)$/);
-  if(legacy) return {projectName:legacy[1], day:Number(legacy[2]), title:'Registro del día'};
-  return {projectName:e.title||'Proyecto', day:null, title:e.title||'Entrada'};
-}
-
-async function renderProfileLogs(){
-  const grid=document.getElementById('profileLogGrid');
-  const projectsWrap=document.getElementById('profileLogProjects');
-  const countLabel=document.getElementById('profileLogCountLabel');
-  if(!projectsWrap) return;
-
-  if(!currentUser){
-    projectsWrap.innerHTML='<div class="profile-log-empty"><strong>Tu bitácora vive aquí</strong>Inicia sesión para crear y guardar tus proyectos.</div>';
-    if(grid) grid.innerHTML='';
-    if(countLabel) countLabel.textContent='';
-    return;
-  }
-
-  let entries=[];
-  try{ entries=await DB.logbook.listForUser(currentUser.id); }
-  catch(err){
-    projectsWrap.innerHTML='<div class="profile-log-empty"><strong>No pudimos cargar tus bitácoras</strong>Inténtalo de nuevo en un momento.</div>';
-    return;
-  }
-
-  if(countLabel) countLabel.textContent=entries.length ? ` ${entries.length}` : '';
-
-  // Group by project. New entries carry "Proyecto · Día N · Título".
-  const groups=new Map();
-  entries.forEach(e=>{
-    const p=parseLogEntry(e);
-    const key=p.projectName || 'Proyecto sin nombre';
-    if(!groups.has(key)) groups.set(key,[]);
-    groups.get(key).push({...e,_parsed:p});
-  });
-
-  if(!groups.size){
-    projectsWrap.innerHTML=`<div class="profile-log-empty">
-      <strong>Empieza tu primera bitácora 🌱</strong>
-      Cada bitácora será un proyecto diferente y dentro de ella podrás guardar Día 1, Día 2, Día 3…
-      <br><button type="button" class="btn btn-primary btn-small" id="profileEmptyNewLog">＋ Nueva bitácora</button>
-    </div>`;
-    document.getElementById('profileEmptyNewLog')?.addEventListener('click',()=>document.getElementById('profileAddLogBtn')?.click());
-    return;
-  }
-
-  projectsWrap.innerHTML=[...groups.entries()].map(([projectName, days])=>{
-    days.sort((a,b)=>(a._parsed.day||999999)-(b._parsed.day||999999));
-    const first=days[0];
-    const cover=first.photo
-      ? `<img src="${escapeHtml(first.photo)}" alt="" onerror="this.style.display='none'">`
-      : `<div class="profile-project-cover-placeholder">🌱</div>`;
-    const isPublic=days.some(d=>d.shared);
-    const daysHtml=days.map(d=>`
-      <button type="button" class="profile-day" data-log-id="${escapeHtml(String(d.id))}">
-        <strong>${d._parsed.day ? `Día ${d._parsed.day}` : 'Registro'}</strong>
-        <small>${escapeHtml(d._parsed.title)}</small>
-      </button>`).join('');
-    return `<article class="profile-project-card">
-      <div class="profile-project-cover">
-        ${cover}
-        <span class="profile-project-private">${isPublic?'🌎 Público':'🔒 Privado'}</span>
-      </div>
-      <div class="profile-project-body">
-        <h3 class="profile-project-title">${escapeHtml(projectName)}</h3>
-        <div class="profile-project-meta">
-          <span>📔 ${days.length} ${days.length===1?'día':'días'}</span>
-          <span>${isPublic?'Visible para todos':'Solo tú'}</span>
-        </div>
-        <div class="profile-day-strip">${daysHtml}</div>
-        <button type="button" class="profile-project-action" data-new-day-project="${escapeHtml(projectName)}">＋ Registrar siguiente día</button>
-      </div>
-    </article>`;
-  }).join('');
-
-  projectsWrap.querySelectorAll('[data-log-id]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const entry=entries.find(x=>String(x.id)===String(btn.dataset.logId));
-      if(entry) openProfileLogModal(entry);
-    });
-  });
-
-  projectsWrap.querySelectorAll('[data-new-day-project]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const projectName=btn.dataset.newDayProject;
-      const select=document.getElementById('logProject');
-      const project=PROJECTS.find(p=>p.title===projectName);
-      if(select && project) select.value=project.id;
-      const days=groups.get(projectName)||[];
-      const maxDay=Math.max(0,...days.map(d=>d._parsed.day||0));
-      document.getElementById('logDay').value=String(maxDay+1);
-      document.getElementById('logTitle').value='';
-      showView('bitacora');
-      document.getElementById('logTitle')?.focus();
-    });
-  });
-}
-function openProfileLogModal(entry){
-  const p=parseLogEntry(entry);
-  modalBox.className='modal';
-  modalContent.innerHTML=`
-    <h3>${escapeHtml(p.projectName)}</h3>
-    <div class="project-meta">
-      ${p.day ? `<span>Día ${p.day}</span>` : ''}
-      <span>${escapeHtml(entry.category)}</span>
-      <span>${entry.shared ? '🌎 Pública' : '🔒 Privada'}</span>
-    </div>
-    <h4 style="font-family:var(--serif);margin:12px 0 4px;">${escapeHtml(p.title)}</h4>
-    <p style="white-space:pre-wrap;color:var(--ink-soft);font-size:.92rem;">${escapeHtml(entry.notes)}</p>
-    ${entry.photo ? `<img src="${escapeHtml(entry.photo)}" alt="" style="width:100%;max-height:420px;object-fit:cover;border-radius:6px;margin-top:12px;">` : ''}
-    <p class="log-date" style="margin-top:12px;">${fmtDate(entry.date)}</p>
-  `;
-  modalBackdrop.classList.add('open');
-}
-
-// Foto de bitácora: se sube al mismo Storage de Enraíza.
-let pendingLogPhotoFile=null;
-const logPhotoPickBtn=document.getElementById('logPhotoPickBtn');
-const logPhotoInput=document.getElementById('logPhotoInput');
-if(logPhotoPickBtn && logPhotoInput){
-  logPhotoPickBtn.addEventListener('click',()=>logPhotoInput.click());
-  logPhotoInput.addEventListener('change',(e)=>{
-    const file=e.target.files[0]; e.target.value='';
-    if(!file) return;
-    pendingLogPhotoFile=file;
-    const preview=document.getElementById('logPhotoPreview');
-    if(preview){
-      preview.innerHTML=`<div class="photo-preview-item"><img src="${URL.createObjectURL(file)}" alt=""><button type="button" id="logPhotoRemove">&times;</button></div>`;
-      document.getElementById('logPhotoRemove').addEventListener('click',()=>{
-        pendingLogPhotoFile=null; preview.innerHTML='';
-      });
-    }
-  });
-}
-
-// ---------- FORM SUBMIT (bitácora privada) ----------
-document.getElementById('logForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  if(!requireLogin('usar tu bitácora')) return;
-  const projectId = document.getElementById('logProject').value;
-  const project = PROJECTS.find(p=>p.id===projectId);
-  const day = Math.max(1, parseInt(document.getElementById('logDay').value,10) || 1);
-  const dayTitle = document.getElementById('logTitle').value.trim();
-  const category = document.getElementById('logCategory').value;
-  const notes = document.getElementById('logNotes').value.trim();
-  const shared = document.getElementById('logShare').checked;
-  if(!project || !dayTitle || !notes) return;
-
-  let photo = document.getElementById('logPhoto').value.trim();
-  try{
-    localStorage.setItem('enraiza:default_private_log', '1');
-    if(pendingLogPhotoFile){
-      photo = await uploadImageFile(pendingLogPhotoFile,'logbook');
-      document.getElementById('logPhoto').value=photo;
-    }
-  }catch(err){
-    alert('No se pudo subir la foto: ' + (err.message || err));
-    return;
-  }
-
-  const title = `${project.title} · Día ${day} · ${dayTitle}`;
-  await DB.logbook.create(currentUser.id, { title, category, notes, photo, shared });
-  incrementStat('logbook_entries');
-  renderLog();
-
-  if(shared){
-    const created = await DB.posts.create({ authorId: currentUser.id, title, category, notes, photos: photo ? [photo] : [] });
-    upsertCachedPost(created);
-    incrementStat('posts_created');
-    renderFeedFromCache();
-  }
-  e.target.reset();
-  pendingLogPhotoFile=null;
-  document.getElementById('logPhoto').value='';
-  document.getElementById('logPhotoPreview').innerHTML='';
-  document.getElementById('logDay').value='1';
-  populateLogProjectSelect();
-  renderProfile();
-  renderProfileLogs();
-});
 
 // =====================================================================
 // MINIJUEGOS DE LOS PANELES LATERALES
@@ -4437,8 +4484,9 @@ sb.auth.onAuthStateChange(async (event, session) => {
   applyProfileToUI();
   await loadUserStatsAndBadges();
   await reconcileHistoricalStats();
-  await Promise.all([renderLog(), reloadFeed(), renderStories()]);
+  await Promise.all([reloadFeed(), renderStories()]);
   if(currentUser) await recordDailyLogin();
+  await resyncPointsTotalIfNeeded();
   renderProfile();
   renderSidePanels();
   setupRealtime();
@@ -4458,7 +4506,3 @@ sb.auth.onAuthStateChange(async (event, session) => {
 </script>
 </body>
 </html>
-Enraiza_mejorado_v3.html
-HTML
-Alcanzaste tu límite de análisis de datos. Actualiza a ChatGPT Go o vuelve a intentarlo mañana después de este horario: 10:37 p.m..
-Mejorar el plan a Go
