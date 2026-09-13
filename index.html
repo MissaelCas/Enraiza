@@ -1799,6 +1799,32 @@ Object.keys(PLANTS).forEach((key, i) => {
 // ---------- CAMBIO DE PANTALLA ----------
 const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora','perfil','logros','misiones','configuracion'];
 const PRIVATE_VIEWS = new Set(['bitacora','perfil','logros','misiones','configuracion','proyectoBitacora']);
+const LAST_VIEW_KEY = 'enraiza:view';
+const VIEW_STACK_KEY = 'enraiza:viewStack';
+
+function getViewStack(){
+  try {
+    const raw = sessionStorage.getItem(VIEW_STACK_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter(v => PERSISTABLE_VIEWS.includes(v)) : [];
+  } catch(err){ return []; }
+}
+function saveViewStack(stack){
+  try{ sessionStorage.setItem(VIEW_STACK_KEY, JSON.stringify((stack || []).slice(-12))); }catch(err){ /* ignore */ }
+}
+function pushViewToStack(viewName){
+  const stack = getViewStack();
+  if(!stack.length || stack[stack.length - 1] !== viewName){
+    stack.push(viewName);
+    saveViewStack(stack);
+  }
+}
+function buildViewUrl(viewName){
+  const url = new URL(window.location.href);
+  if(viewName === 'inicio') url.searchParams.delete('view');
+  else url.searchParams.set('view', viewName);
+  return url;
+}
 function getViewFromUrl(){
   try {
     const params = new URLSearchParams(window.location.search);
@@ -1811,9 +1837,22 @@ function getViewFromUrl(){
   }catch(err){ /* ignore */ }
   return 'inicio';
 }
-function showView(name){
+function goBackNavigation(fallbackView='inicio'){
+  const stack = getViewStack();
+  if(stack.length > 1){
+    stack.pop();
+    const previous = stack[stack.length - 1] || fallbackView;
+    saveViewStack(stack);
+    showView(previous, { silentReplace: true, force: true });
+    return;
+  }
+  saveViewStack([]);
+  showView(fallbackView, { silentReplace: true, force: true });
+}
+function showView(name, options = {}){
   const targetView = name || 'inicio';
-  if(PRIVATE_VIEWS.has(targetView) && !currentUser){
+  const { silentReplace = false, force = false } = options;
+  if(PRIVATE_VIEWS.has(targetView) && !currentUser && !force){
     openAuthModal('login', 'ver esta sección');
     const home = document.getElementById('inicio');
     if(home) {
@@ -1821,24 +1860,25 @@ function showView(name){
       home.classList.add('active');
     }
     try {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('view');
-      history.replaceState({}, '', url);
+      const url = buildViewUrl('inicio');
+      if(silentReplace){ history.replaceState({ enraizaView: 'inicio' }, '', url); }
+      else { history.pushState({ enraizaView: 'inicio' }, '', url); }
     }catch(err){ /* ignore */ }
+    try{ sessionStorage.setItem(LAST_VIEW_KEY, 'inicio'); }catch(err){ /* ignore */ }
     return;
   }
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const target = document.getElementById(targetView);
   if(target) target.classList.add('active');
   window.scrollTo({top:0, behavior:'instant'});
+  if(!silentReplace){ pushViewToStack(targetView); }
   try {
-    const url = new URL(window.location.href);
-    if(targetView === 'inicio') url.searchParams.delete('view');
-    else url.searchParams.set('view', targetView);
-    history.replaceState({}, '', url);
+    const url = buildViewUrl(targetView);
+    if(silentReplace){ history.replaceState({ enraizaView: targetView }, '', url); }
+    else { history.pushState({ enraizaView: targetView }, '', url); }
   }catch(err){ /* ignore */ }
   if(PERSISTABLE_VIEWS.includes(targetView)){
-    try{ sessionStorage.setItem('enraiza:view', targetView); }catch(err){ /* ignore */ }
+    try{ sessionStorage.setItem(LAST_VIEW_KEY, targetView); }catch(err){ /* ignore */ }
   }
   if(targetView === 'perfil') renderProfile();
   if(targetView === 'logros') renderAchievementsPage();
@@ -1847,9 +1887,22 @@ function showView(name){
   if(targetView === 'perfilVisita') renderUserProfileVisit();
   if(targetView === 'bitacora') renderBitacoraProjectList();
 }
+window.addEventListener('popstate', (event) => {
+  const nextView = event.state && event.state.enraizaView ? event.state.enraizaView : getViewFromUrl();
+  if(nextView && PERSISTABLE_VIEWS.includes(nextView)){
+    showView(nextView, { silentReplace: true, force: true });
+  } else {
+    showView('inicio', { silentReplace: true, force: true });
+  }
+});
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', (e) => {
   e.preventDefault();
-  showView(el.dataset.view);
+  const targetView = el.dataset.view;
+  if(el.classList.contains('back-link')){
+    goBackNavigation(targetView || 'inicio');
+    return;
+  }
+  showView(targetView);
 }));
 
 // ---------- ICONS ----------
@@ -5469,16 +5522,18 @@ pingKeepAlive(); // uno al cargar, además del que ya hace loadPostsIntoCache()
     setupRealtime();
     authReady = true;
 
-    let savedView = null;
-    try{ savedView = sessionStorage.getItem('enraiza:view'); }catch(err){ /* ignore */ }
+    const savedView = sessionStorage.getItem(LAST_VIEW_KEY);
     const requestedView = getViewFromUrl();
-    const initialView = (savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)) ? savedView : requestedView;
+    const stack = getViewStack();
+    const initialView = (savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)) ? savedView : (
+      stack.length ? stack[stack.length - 1] : requestedView
+    );
     if(initialView && initialView !== 'inicio' && PRIVATE_VIEWS.has(initialView) && !currentUser){
-      showView('inicio');
+      showView('inicio', { silentReplace: true, force: true });
     } else if(initialView && PERSISTABLE_VIEWS.includes(initialView)){
-      showView(initialView);
+      showView(initialView, { silentReplace: true, force: true });
     } else {
-      showView('inicio');
+      showView('inicio', { silentReplace: true, force: true });
     }
 
     try{
