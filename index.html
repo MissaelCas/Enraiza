@@ -674,6 +674,46 @@
   .profile-log-head strong{display:block;font-family:var(--serif);font-size:.98rem}
   .profile-log-head small{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}
   .profile-log-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:6px}
+  .profile-visit-shell{ max-width:760px; margin:0 auto; }
+  .profile-visit-head{
+    display:grid; grid-template-columns:96px minmax(0,1fr); gap:22px; align-items:center;
+    margin:8px auto 14px; padding:6px 0 10px;
+  }
+  .profile-visit-head .avatar-big{ width:96px; height:96px; font-size:1.9rem; }
+  .profile-visit-meta{ min-width:0; }
+  .profile-visit-name-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin-bottom:12px;
+  }
+  .profile-visit-name-row .profile-ig-name{ margin:0; font-size:1.3rem; }
+  .profile-visit-badge{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--moss); color:#fff; font-size:.66rem; font-weight:900; }
+  .profile-visit-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+  .profile-visit-actions .btn{ padding:10px 16px; font-size:0.82rem; }
+  .profile-visit-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:10px; }
+  .profile-visit-stats div{ font-size:0.8rem; color:var(--ink-soft); }
+  .profile-visit-stats strong{ display:block; font-size:1rem; color:var(--ink); font-family:var(--serif); }
+  .profile-visit-bio{ max-width:54ch; color:var(--ink-soft); font-size:0.9rem; line-height:1.5; }
+  .profile-visit-bio strong{ display:block; color:var(--ink); margin-bottom:3px; }
+  .profile-visit-section{ margin-top:26px; }
+  .profile-visit-section-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .profile-visit-section-head h3{ margin:0; font-family:var(--serif); font-size:1.1rem; }
+  .profile-visit-section-head span{ color:var(--ink-soft); font-size:0.72rem; }
+  .profile-visit-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3px; }
+  .profile-visit-grid .profile-post-thumb, .profile-visit-grid .profile-log-thumb-wrap{ border-radius:0; }
+  @media(max-width:700px){
+    .profile-visit-head{ grid-template-columns:74px minmax(0,1fr); gap:15px; }
+    .profile-visit-head .avatar-big{ width:74px; height:74px; }
+    .profile-visit-stats{ gap:10px; }
+    .profile-visit-section-head h3{ font-size:1rem; }
+  }
+  @media(max-width:480px){
+    .profile-visit-head{ grid-template-columns:64px minmax(0,1fr); gap:12px; }
+    .profile-visit-head .avatar-big{ width:64px; height:64px; }
+    .profile-visit-name-row .profile-ig-name{ font-size:1.1rem; }
+    .profile-visit-stats div{ font-size:0.72rem; }
+    .profile-visit-bio{ font-size:0.82rem; }
+    .profile-visit-section-head span{ display:none; }
+  }
   .profile-log-empty{
     border:1px dashed var(--line);border-radius:14px;padding:28px 18px;text-align:center;
     color:var(--ink-soft);background:var(--paper)
@@ -1383,20 +1423,40 @@
 
   <!-- ===================== PERFIL DE OTRA PERSONA (estilo IG, solo lectura) ===================== -->
   <section id="perfilVisita" class="view">
-    <div class="back-row"><button class="back-link" data-view="inicio">← Volver</button></div>
-    <div class="profile-ig-head">
-      <div class="avatar-big-wrap">
-        <div class="avatar-big" id="profileVisitAvatar">?</div>
+    <div class="profile-visit-shell">
+      <div class="back-row"><button class="back-link" data-view="inicio">← Volver</button></div>
+      <div class="profile-visit-head">
+        <div class="avatar-big-wrap">
+          <div class="avatar-big" id="profileVisitAvatar">?</div>
+        </div>
+        <div class="profile-visit-meta">
+          <div class="profile-visit-name-row">
+            <p class="profile-ig-name" id="profileVisitName">Cargando…</p>
+            <span class="profile-visit-badge" aria-label="Cuenta verificada">✓</span>
+          </div>
+          <div class="profile-visit-actions">
+            <button type="button" class="btn btn-primary btn-small">Seguir</button>
+            <button type="button" class="btn btn-outline btn-small">Mensaje</button>
+          </div>
+          <div class="profile-visit-stats" id="profileVisitStats"></div>
+          <div class="profile-visit-bio" id="profileVisitBio"><strong>Enraíza</strong>Construyendo un cambio sostenible, proyecto a proyecto.</div>
+        </div>
       </div>
-      <div class="profile-ig-right">
-        <p class="profile-ig-name" id="profileVisitName">Cargando…</p>
-        <div class="profile-stats-row" id="profileVisitStats"></div>
+      <div class="profile-visit-section">
+        <div class="profile-visit-section-head">
+          <h3>Publicaciones</h3>
+          <span id="profileVisitPostCountLabel">0</span>
+        </div>
+        <div class="profile-visit-grid profile-post-grid" id="profileVisitPostGrid"></div>
+      </div>
+      <div class="profile-visit-section">
+        <div class="profile-visit-section-head">
+          <h3>Bitácoras públicas</h3>
+          <span id="profileVisitLogCountLabel">0</span>
+        </div>
+        <div class="profile-visit-grid profile-log-grid" id="profileVisitLogGrid"></div>
       </div>
     </div>
-    <h3 class="profile-sub-title">Publicaciones</h3>
-    <div class="profile-post-grid" id="profileVisitPostGrid"></div>
-    <h3 class="profile-sub-title">Bitácoras públicas</h3>
-    <div class="profile-log-grid" id="profileVisitLogGrid"></div>
   </section>
 </div>
 
@@ -2264,23 +2324,43 @@ function openUserProfile(userId, name){
 async function renderUserProfileVisit(){
   if(!viewingUserId) return;
   const uid = viewingUserId;
-  document.getElementById('profileVisitName').textContent = usersCache[uid]?.name || 'Cargando…';
-  document.getElementById('profileVisitAvatar').innerHTML = avatarHTML(usersCache[uid]);
+  const nameEl = document.getElementById('profileVisitName');
+  const avatarEl = document.getElementById('profileVisitAvatar');
+  const bioEl = document.getElementById('profileVisitBio');
+  nameEl.textContent = usersCache[uid]?.name || 'Cargando…';
+  avatarEl.innerHTML = avatarHTML(usersCache[uid]);
+
   const freshUser = await getUserCached(uid);
   if(freshUser && uid === viewingUserId){
     usersCache[uid] = freshUser;
-    document.getElementById('profileVisitName').textContent = freshUser.name;
-    document.getElementById('profileVisitAvatar').innerHTML = avatarHTML(freshUser);
+    nameEl.textContent = freshUser.name;
+    avatarEl.innerHTML = avatarHTML(freshUser);
+    if(bioEl) {
+      const bioText = freshUser.bio || 'Construyendo un cambio sostenible, proyecto a proyecto.';
+      bioEl.innerHTML = `<strong>${escapeHtml(freshUser.name || 'Enraíza')}</strong>${escapeHtml(bioText)}`;
+    }
+  } else if(bioEl) {
+    bioEl.innerHTML = '<strong>Enraíza</strong>Construyendo un cambio sostenible, proyecto a proyecto.';
   }
+
   if(!postsCacheReady) await loadPostsIntoCache();
   if(uid !== viewingUserId) return;
-  // solo lo público: publicaciones de la comunidad (ya son todas públicas) + proyectos de bitácora marcados como públicos
   const posts = postsCache.filter(p => p.authorId === uid);
   const totalLikes = posts.reduce((sum, p) => sum + (p.likedBy || []).length, 0);
-  document.getElementById('profileVisitStats').innerHTML = `
-    <div><strong>${posts.length}</strong>publicaciones</div>
-    <div><strong>${totalLikes}</strong>me gusta recibidos</div>
-  `;
+  const publicLogs = await DB.projects.listPublicForUser(uid).catch(() => []);
+  const statEl = document.getElementById('profileVisitStats');
+  if(statEl){
+    statEl.innerHTML = `
+      <div><strong>${posts.length}</strong>publicaciones</div>
+      <div><strong>${totalLikes}</strong>me gusta</div>
+      <div><strong>${publicLogs.length}</strong>bitácoras</div>
+    `;
+  }
+  const postCountEl = document.getElementById('profileVisitPostCountLabel');
+  if(postCountEl) postCountEl.textContent = `${posts.length}`;
+  const logCountEl = document.getElementById('profileVisitLogCountLabel');
+  if(logCountEl) logCountEl.textContent = `${publicLogs.length}`;
+
   const grid = document.getElementById('profileVisitPostGrid');
   if(!posts.length){
     grid.innerHTML = '<p class="profile-empty-grid">Esta persona todavía no ha publicado nada.</p>';
@@ -2290,10 +2370,11 @@ async function renderUserProfileVisit(){
     `).join('');
     grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
   }
+
   const logGrid = document.getElementById('profileVisitLogGrid');
   if(logGrid){
     try{
-      const projects = await DB.projects.listPublicForUser(uid);
+      const projects = publicLogs;
       if(uid !== viewingUserId) return;
       logGrid.innerHTML = projects.length ? projects.map(pr => `
         <div class="profile-log-thumb-wrap" data-openproject="${pr.id}">
