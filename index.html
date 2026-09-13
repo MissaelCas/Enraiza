@@ -543,7 +543,13 @@
   .story-owner-dropdown button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.85rem; cursor:pointer; color:var(--ink); }
   .story-owner-dropdown button:hover{ background: var(--paper-alt); }
   .story-owner-dropdown button.danger{ color:#a3392c; }
-  .story-viewers-list{ padding:16px; background:var(--white-ish); }
+  .story-viewers-list{
+    position:absolute; left:0; right:0; bottom:0; z-index:15;
+    max-height:70%; overflow-y:auto;
+    padding:16px 16px 20px; background:var(--white-ish);
+    border-radius:16px 16px 0 0;
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.35);
+  }
   .story-viewers-list h4{ font-family: var(--serif); margin:0 0 10px; }
   .viewer-row{ display:flex; align-items:center; gap:8px; padding:6px 0; font-size:0.88rem; }
 
@@ -1746,9 +1752,8 @@ async function uploadImageFile(file, folder){
 
 // =====================================================================
 // CAPA DE DATOS (DB.*) — contra Supabase real (Postgres + Auth + Storage)
-// Ver schema.sql (incluye ahora logbook_projects: cada proyecto de
-// bitácora es su propio registro, con visibilidad pública/privada y,
-// opcionalmente, una publicación enlazada en la comunidad).
+// Ver schema.sql (incluye ahora logbook_projects, post_views y la función
+// recommend_feed para el algoritmo de recomendación).
 // =====================================================================
 const DB = {
   users: {
@@ -1887,6 +1892,25 @@ const DB = {
       }
       await sb.from('saved_posts').insert({ user_id: userId, post_id: postId });
       return true;
+    },
+  },
+
+  recommend: {
+    async rankedIds(viewerId){
+      const { data, error } = await sb.rpc('recommend_feed', { viewer_id: viewerId || null });
+      if(error) throw error;
+      return (data || []).map(r => r.post_id);
+    },
+  },
+
+  views: {
+    async record(userId, postId, dwellMs){
+      const { data: existing } = await sb.from('post_views').select('dwell_ms').eq('user_id', userId).eq('post_id', postId).maybeSingle();
+      if(existing){
+        await sb.from('post_views').update({ dwell_ms: existing.dwell_ms + dwellMs }).eq('user_id', userId).eq('post_id', postId);
+      } else {
+        await sb.from('post_views').insert({ user_id: userId, post_id: postId, dwell_ms: dwellMs });
+      }
     },
   },
 
@@ -2542,6 +2566,24 @@ const expandedComments = new Set();
 let openMenuId = null;
 let openShareId = null;
 
+// ---------- SEGUIMIENTO DE VISTAS (señal implícita real: cuánto tiempo te detienes) ----------
+const viewTimers = {};
+const postViewObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const id = entry.target.dataset.id;
+    if(!id) return;
+    if(entry.isIntersecting){
+      viewTimers[id] = Date.now();
+    } else if(viewTimers[id]){
+      const dwell = Date.now() - viewTimers[id];
+      delete viewTimers[id];
+      if(currentUser && dwell >= 1200){
+        DB.views.record(currentUser.id, id, dwell).catch(() => {});
+      }
+    }
+  });
+}, { threshold: 0.6 });
+
 function carouselHTML(post){
   const photos = (post.photos && post.photos.length) ? post.photos : [placeholderImage(post.id + post.title, post.category)];
   const multi = photos.length > 1;
@@ -2701,6 +2743,7 @@ function updateSaveUI(id, saved){
 function bindPostCard(article){
   if(!article) return;
   const id = article.dataset.id;
+  postViewObserver.observe(article);
 
   article.querySelectorAll('[data-comment-author]').forEach(el => {
     const uid = el.dataset.commentAuthor;
@@ -2811,6 +2854,7 @@ function rerenderCardFromCache(postId){
     if(oldCarousel && newCarouselSlot && oldCarousel.dataset.carousel === newCarouselSlot.dataset.carousel){
       newCarouselSlot.replaceWith(oldCarousel);
     }
+    postViewObserver.unobserve(article);
     article.replaceWith(newArticle);
     bindPostCard(newArticle);
   });
@@ -2832,14 +2876,37 @@ async function loadPostsIntoCache(){
       postsCache.forEach(p => { p._savedLocal = savedSet.has(p.id); });
     }catch(err){ /* ignore */ }
   }
+  // Orden real: le pedimos al servidor el ranking de recommend_feed()
+  // (afinidad por tus interacciones + colaborativo + popularidad) y
+  // reordenamos la caché según ese resultado. Si la función todavía no
+  // existe en Supabase (o falla), seguimos con el orden cronológico
+  // normal — el feed nunca se debe quedar vacío por esto.
+  try{
+    const rankedIds = await DB.recommend.rankedIds(currentUser ? currentUser.id : null);
+    if(rankedIds.length){
+      const order = new Map(rankedIds.map((id, i) => [id, i]));
+      postsCache.sort((a, b) => {
+        const ra = order.has(a.id) ? order.get(a.id) : Infinity;
+        const rb = order.has(b.id) ? order.get(b.id) : Infinity;
+        return ra - rb;
+      });
+    }
+  }catch(err){
+    console.warn('No se pudo aplicar el ranking de recomendación, se usa orden cronológico:', err);
+  }
   return postsCache;
 }
 
 // ---------- RENDER DEL FEED DIRECTO DESDE LA CACHÉ (sin pedir nada a la red) ----------
+// *** ESTA FUNCIÓN ESTABA ROTA: calculaba "posts" pero nunca los pintaba
+// en pantalla, así que el feed se quedaba para siempre en "Cargando
+// publicaciones…". Ya vuelve a construir el HTML y a enlazar cada tarjeta. ***
 function renderFeedFromCache(){
   renderSearchFilterBanner();
-  let posts = postsCache;
-  if(activeAuthorFilter) posts = posts.filter(p => p.authorId === activeAuthorFilter.id);
+  let posts = postsCache; // ya viene ordenado por recommend_feed() al cargarse
+  if(activeAuthorFilter){
+    posts = posts.filter(p => p.authorId === activeAuthorFilter.id).sort((a,b) => b.date - a.date);
+  }
   if(!posts.length){
     feedEntriesEl.innerHTML = activeAuthorFilter
       ? '<p class="feed-empty">Esta persona todavía no ha publicado nada.</p>'
@@ -3588,16 +3655,6 @@ async function openActivityModal(){
 
 // =====================================================================
 // BITÁCORA COMO PROYECTOS
-// - Crear un proyecto NO exige notas: solo elegir el proyecto/nombre y
-//   si será público o privado. Si es público, se genera automáticamente
-//   una publicación con la imagen predeterminada y el mensaje
-//   "Inicié un nuevo proyecto: <título>".
-// - En el perfil, cada proyecto se ve como una foto normal (miniatura).
-// - Al abrir un proyecto: el dueño puede agregar entradas (día, notas,
-//   foto); cualquier otra persona solo ve, comenta, da like y comparte
-//   (a través de la publicación enlazada, si el proyecto es público).
-// - Solo lo público se muestra fuera del perfil del dueño: perfiles de
-//   visita y el feed jamás listan proyectos privados ni sus entradas.
 // =====================================================================
 let selectedNewProjectRef = null; // referencia a PROJECTS o null (proyecto libre)
 function openNewProjectModal(prefill){
@@ -3677,7 +3734,6 @@ function openNewProjectModal(prefill){
   });
 }
 
-// Genera la publicación "Inicié un nuevo proyecto: <título>" para que aparezca en el feed y sea visible/interactuable para todos.
 async function createLinkedPostForProject(project){
   const created = await DB.posts.create({
     authorId: currentUser.id, title: project.title, category: project.category,
@@ -3692,7 +3748,6 @@ async function createLinkedPostForProject(project){
   return created;
 }
 
-// ---------- LISTA DE MIS PROYECTOS (pantalla Bitácora) ----------
 async function renderBitacoraProjectList(){
   const grid = document.getElementById('bitacoraProjectGrid');
   if(!currentUser){
@@ -3720,7 +3775,6 @@ async function renderBitacoraProjectList(){
   grid.querySelectorAll('[data-openproject]').forEach(el => attachLongPressProject(el, el.dataset.openproject));
 }
 
-// ---------- BITÁCORA EN EL PERFIL (miniaturas, como fotos normales) ----------
 async function renderProfileLogs(){
   const grid = document.getElementById('profileLogGrid');
   const countLabel = document.getElementById('profileLogCountLabel');
@@ -3747,7 +3801,6 @@ async function renderProfileLogs(){
   grid.querySelectorAll('[data-openproject]').forEach(el => attachLongPressProject(el, el.dataset.openproject));
 }
 
-// ---------- PANTALLA COMPLETA DE UN PROYECTO DE BITÁCORA (adaptada a móvil y PC) ----------
 let currentProjectView = null;
 async function openProjectView(projectId){
   currentProjectView = projectId;
@@ -3763,7 +3816,6 @@ async function renderProjectView(){
   catch(err){ wrap.innerHTML = '<p class="empty-note">No se pudo cargar este proyecto.</p>'; return; }
   if(!project){ wrap.innerHTML = '<p class="empty-note">Este proyecto ya no existe o es privado.</p>'; return; }
   const isOwner = currentUser && project.ownerId === currentUser.id;
-  // regla de privacidad: nadie más que el dueño puede ver un proyecto privado, ni modificar uno público
   if(!project.shared && !isOwner){ wrap.innerHTML = '<p class="empty-note">Este proyecto es privado.</p>'; return; }
 
   let entries = [];
@@ -3838,7 +3890,6 @@ async function renderProjectView(){
     document.getElementById('projectSaveBtn').addEventListener('click', (e) => { handleSave(linkedPost.id); e.currentTarget.classList.toggle('saved'); });
   }
 }
-// abre la vista de comentarios reutilizando la lógica existente, sin necesitar la tarjeta en el feed
 async function openCommentsViewForProject(postId){
   if(!postsCacheReady) await loadPostsIntoCache();
   let post = getCachedPost(postId);
@@ -3922,10 +3973,7 @@ function openAddProjectEntryModal(project){
 }
 
 // =====================================================================
-// LOGROS — permanentes: una vez ganados, nunca se pierden aunque borres
-// publicaciones, comentarios o likes. Se basan en contadores acumulados
-// (userStats.counts) y en la racha de días seguidos (longest_streak),
-// que jamás bajan aunque el estado actual sí cambie.
+// LOGROS
 // =====================================================================
 let userStats = { counts: {}, current_streak: 0, longest_streak: 0 };
 let earnedBadgeIds = new Set();
@@ -4626,42 +4674,55 @@ function renderSidePanels(){
 
 // ---------- ARRANQUE ----------
 let authReady = false;
+
 sb.auth.onAuthStateChange(async (event, session) => {
   if(!authReady) return;
+
   if(session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
     await loadCurrentUserFromSession(session);
     await refreshAppAfterAuthChange();
-  } else if(event === 'SIGNED_OUT'){
+    return;
+  }
+
+  if(event === 'SIGNED_OUT'){
     currentUser = null;
     await refreshAppAfterAuthChange();
   }
 });
 
 (async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if(session){ await loadCurrentUserFromSession(session); }
-  applyProfileToUI();
-  await loadUserStatsAndBadges();
-  await reconcileHistoricalStats();
-  await Promise.all([reloadFeed(), renderStories()]);
-  if(currentUser) await recordDailyLogin();
-  await resyncPointsTotalIfNeeded();
-  renderProfile();
-  renderSidePanels();
-  setupRealtime();
-  authReady = true;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if(session){ await loadCurrentUserFromSession(session); }
 
-  let savedView = null;
-  try{ savedView = sessionStorage.getItem('enraiza:view'); }catch(err){ /* ignore */ }
-  if(savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)){
-    showView(savedView);
+    applyProfileToUI();
+    await loadUserStatsAndBadges();
+    await reconcileHistoricalStats();
+    await Promise.all([reloadFeed(), renderStories()]);
+
+    if(currentUser) await recordDailyLogin();
+    await resyncPointsTotalIfNeeded();
+
+    renderProfile();
+    renderSidePanels();
+    setupRealtime();
+    authReady = true;
+
+    let savedView = null;
+    try{ savedView = sessionStorage.getItem('enraiza:view'); }catch(err){ /* ignore */ }
+    if(savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)){
+      showView(savedView);
+    }
+
+    try{
+      const sharedPostId = new URLSearchParams(window.location.search).get('post');
+      if(sharedPostId) openPostModal(sharedPostId);
+    }catch(err){ /* ignore */ }
+  } catch(err) {
+    console.error('Error al iniciar Enraíza:', err);
   }
-
-  try{
-    const sharedPostId = new URLSearchParams(window.location.search).get('post');
-    if(sharedPostId) openPostModal(sharedPostId);
-  }catch(err){ /* ignore */ }
 })();
+
 </script>
 </body>
 </html>
