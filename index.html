@@ -1692,20 +1692,54 @@ Object.keys(PLANTS).forEach((key, i) => {
 
 // ---------- CAMBIO DE PANTALLA ----------
 const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora','perfil','logros','misiones','configuracion'];
+const PRIVATE_VIEWS = new Set(['bitacora','perfil','logros','misiones','configuracion','proyectoBitacora']);
+function getViewFromUrl(){
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const direct = params.get('view');
+    if(direct && PERSISTABLE_VIEWS.includes(direct)) return direct;
+    const hash = (window.location.hash || '').replace(/^#\/?/, '').replace(/^!\//, '').split('/')[0];
+    if(hash && PERSISTABLE_VIEWS.includes(hash)) return hash;
+    const pathName = (window.location.pathname || '').split('/').filter(Boolean).pop();
+    if(pathName && PERSISTABLE_VIEWS.includes(pathName)) return pathName;
+  }catch(err){ /* ignore */ }
+  return 'inicio';
+}
 function showView(name){
+  const targetView = name || 'inicio';
+  if(PRIVATE_VIEWS.has(targetView) && !currentUser){
+    openAuthModal('login', 'ver esta sección');
+    const home = document.getElementById('inicio');
+    if(home) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      home.classList.add('active');
+    }
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('view');
+      history.replaceState({}, '', url);
+    }catch(err){ /* ignore */ }
+    return;
+  }
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const target = document.getElementById(name);
+  const target = document.getElementById(targetView);
   if(target) target.classList.add('active');
   window.scrollTo({top:0, behavior:'instant'});
-  if(PERSISTABLE_VIEWS.includes(name)){
-    try{ sessionStorage.setItem('enraiza:view', name); }catch(err){ /* ignore */ }
+  try {
+    const url = new URL(window.location.href);
+    if(targetView === 'inicio') url.searchParams.delete('view');
+    else url.searchParams.set('view', targetView);
+    history.replaceState({}, '', url);
+  }catch(err){ /* ignore */ }
+  if(PERSISTABLE_VIEWS.includes(targetView)){
+    try{ sessionStorage.setItem('enraiza:view', targetView); }catch(err){ /* ignore */ }
   }
-  if(name === 'perfil') renderProfile();
-  if(name === 'logros') renderAchievementsPage();
-  if(name === 'misiones') renderMissionsPage();
-  if(name === 'configuracion'){ renderSettingsPage(); if(window.settingsResetToMenu) window.settingsResetToMenu(); }
-  if(name === 'perfilVisita') renderUserProfileVisit();
-  if(name === 'bitacora') renderBitacoraProjectList();
+  if(targetView === 'perfil') renderProfile();
+  if(targetView === 'logros') renderAchievementsPage();
+  if(targetView === 'misiones') renderMissionsPage();
+  if(targetView === 'configuracion'){ renderSettingsPage(); if(window.settingsResetToMenu) window.settingsResetToMenu(); }
+  if(targetView === 'perfilVisita') renderUserProfileVisit();
+  if(targetView === 'bitacora') renderBitacoraProjectList();
 }
 document.querySelectorAll('[data-view]').forEach(el => el.addEventListener('click', (e) => {
   e.preventDefault();
@@ -2626,9 +2660,15 @@ async function refreshAppAfterAuthChange(){
   renderSidePanels();
 }
 async function logout(){
-  await sb.auth.signOut();
+  try{
+    await sb.auth.signOut();
+  }catch(err){
+    console.warn('Logout error:', err);
+  }
   currentUser = null;
+  closeAuthModal();
   await refreshAppAfterAuthChange();
+  showView('inicio');
 }
 
 function applyProfileToUI(){
@@ -5034,8 +5074,14 @@ pingKeepAlive(); // uno al cargar, además del que ya hace loadPostsIntoCache()
 
     let savedView = null;
     try{ savedView = sessionStorage.getItem('enraiza:view'); }catch(err){ /* ignore */ }
-    if(savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)){
-      showView(savedView);
+    const requestedView = getViewFromUrl();
+    const initialView = (savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)) ? savedView : requestedView;
+    if(initialView && initialView !== 'inicio' && PRIVATE_VIEWS.has(initialView) && !currentUser){
+      showView('inicio');
+    } else if(initialView && PERSISTABLE_VIEWS.includes(initialView)){
+      showView(initialView);
+    } else {
+      showView('inicio');
     }
 
     try{
