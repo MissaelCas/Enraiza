@@ -62,7 +62,7 @@
   </div>
 
   <p class="hint">Enraíza se reconectará sola en cuanto vuelva tu internet.</p>
-  <button class="btn" id="retryBtn">Reintentar ahora</button>
+  <button class="btn" id="restartBtn" type="button">Reiniciar juego</button>
 
 <script>
   // ---------- Detección de conexión ----------
@@ -75,7 +75,10 @@
     }
   }
   window.addEventListener('online', updateStatus);
-  document.getElementById('retryBtn').addEventListener('click', () => { window.location.href = './'; });
+  document.getElementById('restartBtn').addEventListener('click', () => {
+    resetGame();
+    startGame();
+  });
   updateStatus();
 
   // ---------- Minijuego: la semillita saltarina ----------
@@ -98,14 +101,16 @@
     speed = 4.2;
     gravity = 0.85;
     score = 0;
-    running = true;
+    running = false;
     gameOverFlag = false;
     spawnTimer = 0;
     document.getElementById('overlay').classList.add('hidden');
+    draw();
   }
 
   function jump(){
-    if(gameOverFlag){ resetGame(); loop(); return; }
+    if(!player) return;
+    if(gameOverFlag){ resetGame(); startGame(); return; }
     if(player.onGround){ player.vy = -13.5; player.onGround = false; }
   }
 
@@ -218,21 +223,21 @@
 
   best = loadBest();
   resetGame();
-  draw();
   document.getElementById('bestVal').textContent = best;
 
   function startGame(){
     if(!running && !gameOverFlag){ running = true; loop(); }
   }
+
   window.addEventListener('keydown', (e) => {
     if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); startGame(); jump(); }
   });
   canvas.addEventListener('pointerdown', () => { startGame(); jump(); });
   document.getElementById('overlay').addEventListener('pointerdown', () => {
-    if(gameOverFlag){ resetGame(); loop(); } else { startGame(); jump(); }
+    if(gameOverFlag){ resetGame(); startGame(); } else { startGame(); jump(); }
   });
 
-  running = false; // esperamos el primer toque/tecla para arrancar el loop
+  startGame();
 </script>
 </body>
 </html>
