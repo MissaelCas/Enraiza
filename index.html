@@ -547,6 +547,15 @@
   .story-view-head .avatar{ width:28px; height:28px; font-size:0.75rem; }
   .story-view-head span{ font-size:0.82rem; }
   .story-view-text{ position:absolute; left:12px; right:12px; bottom:12px; padding:8px 10px 0; font-size:0.95rem; color:#fff; text-align:center; background:none; border:none; z-index:6; text-shadow:0 2px 10px rgba(0,0,0,0.6); }
+  .story-unavailable{
+    padding: 12px 10px 0; width: 110px; opacity: 0.8;
+  }
+  .story-unavailable .story-ring{
+    width: 62px; height: 62px; border-radius: 50%; background: var(--paper-alt); border: 1px dashed var(--line);
+  }
+  .story-unavailable .story-ring .story-avatar{ width: 54px; height: 54px; font-size: 0.8rem; background: var(--paper); }
+  .story-unavailable .story-label{ max-width: 92px; text-align:center; }
+  .story-unavailable .story-meta{ display:block; font-size:0.62rem; color:var(--ink-soft); margin-top:2px; }
   .story-tap-zone{ position:absolute; top:0; bottom:0; width:35%; z-index:4; background:none; border:none; cursor:pointer; }
   .story-tap-zone.left{ left:0; }
   .story-tap-zone.right{ right:0; }
@@ -973,17 +982,74 @@
   .messages-chat{ flex:1; display:flex; flex-direction:column; min-width:0; background: var(--white-ish); }
   .message-thread-header{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line); min-height:68px; }
   .message-thread-header strong{ font-size:0.96rem; }
-  .message-thread-body{ flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:10px; background: linear-gradient(180deg, rgba(132,170,101,0.04), rgba(132,170,101,0)); }
-  .message-row{ max-width:78%; }
+  .message-thread-body{ flex:1; overflow-y:auto; overflow-x:hidden; padding:12px 16px; display:flex; flex-direction:column; gap:10px; background: linear-gradient(180deg, rgba(132,170,101,0.04), rgba(132,170,101,0)); }
+  .message-row{ max-width:78%; min-width:0; width:fit-content; }
   .message-row.me{ margin-left:auto; }
   .message-row.them{ margin-right:auto; }
-  .message-bubble{ padding:10px 12px; border-radius:16px; line-height:1.45; font-size:0.85rem; }
-  .message-row.me .message-bubble{ background: var(--moss); color:#fff; border-bottom-right-radius:6px; }
-  .message-row.them .message-bubble{ background: var(--paper-alt); color: var(--ink); border-bottom-left-radius:6px; }
-  .message-meta{ display:block; font-size:0.62rem; opacity:0.7; margin-top:4px; }
+  .message-group{ display:flex; align-items:flex-end; gap:8px; width:100%; margin-bottom:2px; }
+  .message-group.me{ justify-content:flex-end; }
+  .message-group.them{ justify-content:flex-start; }
+  .message-group-avatar{ width:28px; height:28px; flex-shrink:0; display:flex; align-items:flex-end; }
+  .message-group-avatar .avatar{ width:28px; height:28px; border-radius:50%; overflow:hidden; flex-shrink:0; }
+  .message-group-avatar .avatar img{ width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
+  .message-group-bubbles{ display:flex; flex-direction:column; gap:3px; max-width:78%; }
+  .message-bubble-shell{ position:relative; max-width:100%; min-width:0; }
+  .message-bubble{
+    padding:10px 14px 12px; border-radius:18px; line-height:1.5; font-size:0.88rem;
+    overflow-wrap:anywhere; word-break:break-word; white-space:normal; min-width:0; max-width:100%;
+    box-shadow: 0 1px 1px rgba(35,48,29,0.06);
+    cursor:pointer; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  }
+  /* Estilo por defecto: todas las burbujas redondeadas de las 4 esquinas */
+  .message-row.me .message-bubble{ background: var(--moss); color:#fff; }
+  .message-row.them .message-bubble{ background: #fff; color: var(--ink); border:1px solid var(--line); }
+
+  /* Solo la última burbuja de cada grupo consecutivo tiene la esquina "de cola", como WhatsApp/IG */
+  .message-group-bubbles .message-row:not(:last-child) .message-bubble{ border-bottom-right-radius:18px; border-bottom-left-radius:18px; }
+  .message-group.me .message-group-bubbles .message-row:last-child .message-bubble{ border-bottom-right-radius:4px; }
+  .message-group.them .message-group-bubbles .message-row:last-child .message-bubble{ border-bottom-left-radius:4px; }
+  /* Y solo la primera burbuja del grupo tiene la esquina superior más cerrada (agrupación visual) */
+  .message-group-bubbles .message-row:not(:first-child) .message-bubble{ border-top-right-radius:18px; border-top-left-radius:18px; }
+  .message-group.me .message-group-bubbles .message-row:first-child .message-bubble{ border-top-right-radius:18px; }
+  .message-group.them .message-group-bubbles .message-row:first-child .message-bubble{ border-top-left-radius:18px; }
+
+  .message-bubble.deleted{ font-style:italic; opacity:0.65; }
+
+  .message-reply-quote{
+    display:block; margin-bottom:6px; padding:6px 8px; border-left:3px solid rgba(255,255,255,0.55);
+    background:rgba(255,255,255,0.12); border-radius:6px; font-size:0.76rem; opacity:0.9; cursor:pointer;
+  }
+  .message-row.them .message-reply-quote{ border-left-color:var(--moss); background:rgba(63,107,74,0.08); }
+  .message-thread-header{ position:relative; }
+  .thread-menu-btn{ margin-left:auto; background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:1.1rem; padding:4px 8px; }
+  .thread-menu-dropdown{
+    position:absolute; top:56px; right:14px; background:var(--white-ish); border:1px solid var(--line);
+    border-radius:8px; box-shadow:0 8px 22px rgba(35,48,29,0.16); z-index:30; overflow:hidden; min-width:200px;
+  }
+  .thread-menu-dropdown button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.84rem; cursor:pointer; color:var(--ink); }
+  .thread-menu-dropdown button:hover{ background:var(--paper-alt); }
+  .thread-menu-dropdown button.danger{ color:#a3392c; }
+
+  .message-menu{
+    position:absolute; bottom:calc(100% + 6px); background:var(--white-ish); border:1px solid var(--line);
+    border-radius:12px; box-shadow:0 12px 28px rgba(35,48,29,0.18); padding:6px; display:none; z-index:30;
+    min-width:150px; opacity:0; transform:translateY(4px); transition:opacity .12s ease, transform .12s ease;
+    pointer-events:none;
+  }
+  .message-row.me .message-menu{ right:0; }
+  .message-row.them .message-menu{ left:0; }
+  .message-bubble-shell.open .message-menu{ display:block; opacity:1; transform:translateY(0); pointer-events:auto; }
+
+.message-menu button{ display:block; width:100%; text-align:left; background:none; border:none; color:var(--ink); padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.78rem; }
+  .message-menu button:hover{ background:var(--paper-alt); }
+  .message-meta{ display:block; font-size:0.62rem; opacity:0.7; margin-top:6px; }
   .message-composer{ display:flex; gap:8px; padding:12px 16px; border-top:1px solid var(--line); }
   .message-composer input{ flex:1; min-width:0; border:1px solid var(--line); border-radius:999px; background:var(--paper); padding:10px 14px; font:inherit; }
   .message-composer button{ border:none; border-radius:999px; background:var(--moss); color:#fff; padding:10px 14px; font-weight:700; cursor:pointer; }
+  .message-composer button:disabled{ opacity:0.7; cursor:wait; }
+  .message-reply-preview{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 16px 0; font-size:0.76rem; color:var(--ink-soft); }
+  .message-reply-preview strong{ color:var(--ink); }
+  .message-reply-preview button{ border:none; background:none; color:var(--ink-soft); cursor:pointer; }
   .message-item{ display:flex; align-items:center; gap:10px; width:100%; background:none; border:none; padding:12px 14px; text-align:left; cursor:pointer; color:var(--ink); border-bottom:1px solid var(--line); }
   .message-item:hover{ background: var(--paper-alt); }
   .message-item.active{ background: rgba(132,170,101,0.08); }
@@ -2140,6 +2206,24 @@ function showToast(msg){
   toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 
+function showConfirmDialog({ title, message, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger = false, onConfirm }){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>${escapeHtml(title)}</h3>
+    <p class="section-desc" style="margin-bottom:18px;">${escapeHtml(message)}</p>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" class="btn btn-outline btn-small" id="confirmDialogCancel">${escapeHtml(cancelLabel)}</button>
+      <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'} btn-small" id="confirmDialogOk">${escapeHtml(confirmLabel)}</button>
+    </div>
+  `;
+  modalBackdrop.classList.add('open');
+  document.getElementById('confirmDialogCancel').addEventListener('click', closeModal);
+  document.getElementById('confirmDialogOk').addEventListener('click', async () => {
+    closeModal();
+    await onConfirm();
+  });
+}
+
 function initCookieConsent(){
   const banner = document.getElementById('cookieBanner');
   if(!banner) return;
@@ -2480,38 +2564,103 @@ const DB = {
       if(error) throw error;
       return data;
     },
-    async listMessages(conversationId){
+    async listMessages(conversationId, viewerId){
       const { data, error } = await sb
         .from('direct_messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending:true });
       if(error) throw error;
-      return (data || []).map(row => ({
-        id: row.id,
-        conversationId: row.conversation_id,
-        senderId: row.sender_id,
-        text: row.text,
-        createdAt: new Date(row.created_at).getTime()
-      }));
+
+      let clearedAt = 0;
+      if(viewerId){
+        try{
+          const { data: conv } = await sb
+            .from('direct_conversations')
+            .select('participant_a, cleared_at_a, cleared_at_b')
+            .eq('id', conversationId)
+            .maybeSingle();
+          if(conv){
+            const mine = conv.participant_a === viewerId ? conv.cleared_at_a : conv.cleared_at_b;
+            clearedAt = mine ? new Date(mine).getTime() : 0;
+          }
+        }catch(err){ /* si falla, simplemente no se recorta nada */ }
+      }
+
+      return (data || [])
+        .filter(row => new Date(row.created_at).getTime() > clearedAt)
+        .filter(row => !viewerId || !(row.deleted_for || []).includes(viewerId))
+        .map(row => ({
+          id: row.id,
+          conversationId: row.conversation_id,
+          senderId: row.sender_id,
+          text: row.deleted_for_everyone ? '' : row.text,
+          createdAt: new Date(row.created_at).getTime(),
+          replyToId: row.reply_to_id || null,
+          deletedForEveryone: !!row.deleted_for_everyone
+        }));
     },
-    async send(conversationId, senderId, text){
+    async send(conversationId, senderId, text, replyToId){
       const clean = (text || '').trim();
       if(!conversationId || !senderId || !clean) return null;
-      const { data, error } = await sb
-        .from('direct_messages')
-        .insert({ conversation_id: conversationId, sender_id: senderId, text: clean })
-        .select()
-        .single();
+      const payload = { conversation_id: conversationId, sender_id: senderId, text: clean };
+      if(replyToId) payload.reply_to_id = replyToId;
+      const { data, error } = await sb.from('direct_messages').insert(payload).select().single();
       if(error) throw error;
       await sb.from('direct_conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId);
       return {
-        id: data.id,
-        conversationId: data.conversation_id,
-        senderId: data.sender_id,
-        text: data.text,
-        createdAt: new Date(data.created_at).getTime()
+        id: data.id, conversationId: data.conversation_id, senderId: data.sender_id,
+        text: data.text, createdAt: new Date(data.created_at).getTime(), replyToId: data.reply_to_id || null
       };
+    },
+    async updateMessage(messageId, senderId, nextText){
+      const clean = (nextText || '').trim();
+      if(!messageId || !senderId || !clean) return null;
+      const { data, error } = await sb
+        .from('direct_messages')
+        .update({ text: clean })
+        .eq('id', messageId)
+        .eq('sender_id', senderId)
+        .select()
+        .single();
+      if(error) throw error;
+      if(data?.conversation_id){
+        await sb.from('direct_conversations').update({ updated_at: new Date().toISOString() }).eq('id', data.conversation_id);
+      }
+      return {
+        id: data.id, conversationId: data.conversation_id, senderId: data.sender_id,
+        text: data.text, createdAt: new Date(data.created_at).getTime()
+      };
+    },
+    async deleteForMe(messageId, userId){
+      if(!messageId || !userId) return false;
+      const { data: existing, error: fetchErr } = await sb.from('direct_messages').select('deleted_for').eq('id', messageId).maybeSingle();
+      if(fetchErr) throw fetchErr;
+      if(!existing) return false;
+      const nextDeletedFor = Array.from(new Set([...(existing.deleted_for || []), userId]));
+      const { error } = await sb.from('direct_messages').update({ deleted_for: nextDeletedFor }).eq('id', messageId);
+      if(error) throw error;
+      return true;
+    },
+    async deleteForEveryone(messageId, userId, windowMs = 15 * 60 * 1000){
+      const { data: existing, error: fetchErr } = await sb.from('direct_messages').select('sender_id, created_at').eq('id', messageId).maybeSingle();
+      if(fetchErr) throw fetchErr;
+      if(!existing) throw new Error('Este mensaje ya no existe.');
+      if(existing.sender_id !== userId) throw new Error('Solo puedes eliminar para todos los mensajes que tú enviaste.');
+      if(Date.now() - new Date(existing.created_at).getTime() > windowMs) throw new Error('Ya pasó el tiempo permitido para eliminarlo para todos (15 minutos).');
+      const { error } = await sb.from('direct_messages').update({ deleted_for_everyone: true }).eq('id', messageId);
+      if(error) throw error;
+      return true;
+    },
+    async clearConversationForMe(conversationId, userId){
+      if(!conversationId || !userId) return false;
+      const { data: conv, error: fetchErr } = await sb.from('direct_conversations').select('participant_a').eq('id', conversationId).maybeSingle();
+      if(fetchErr) throw fetchErr;
+      if(!conv) return false;
+      const field = conv.participant_a === userId ? 'cleared_at_a' : 'cleared_at_b';
+      const { error } = await sb.from('direct_conversations').update({ [field]: new Date().toISOString() }).eq('id', conversationId);
+      if(error) throw error;
+      return true;
     }
   },
 
@@ -4410,24 +4559,34 @@ async function renderStories(){
 
   const viewed = getViewedStoryIds();
   const row = document.getElementById('storiesRow');
+  const storyThumbs = storyGroups.map((g, i) => {
+    const authorObj = usersCache[g.authorId];
+    const name = authorObj?.name || 'Comunidad Enraíza';
+    const allSeen = g.stories.every(s => viewed.has(s.id));
+    const seenCount = g.stories.filter(s => viewed.has(s.id)).length;
+    const cover = g.stories.find(s => !viewed.has(s.id) && (s.photo || s.text)) || g.stories.find(s => s.photo || s.text) || g.stories[g.stories.length - 1];
+    const segmentStyle = `--story-segments:${g.stories.length};`;
+    const avatarMarkup = cover?.photo ? `<img src="${cover.photo}" alt="">` : avatarHTML(authorObj);
+    return `
+      <button class="story-item" data-groupindex="${i}">
+        <div class="story-ring ${allSeen ? 'seen' : 'story-ring-partial'}" style="${segmentStyle}"><div class="story-avatar">${avatarMarkup}</div></div>
+        <span class="story-label">${escapeHtml(name)}${g.stories.length > 1 ? ` · ${seenCount}/${g.stories.length}` : ''}${g.stories.some(s=>s.demo) ? ' · ej.' : ''}</span>
+      </button>
+    `;
+  }).join('');
+
   row.innerHTML = `
     <button class="story-item story-add" id="storyAddBtn">
       <div class="story-ring"><div class="story-avatar">${currentUser ? avatarHTML(currentUser) : '<span>+</span>'}</div></div>
       <span class="story-label">Tu historia</span>
     </button>
-    ${storyGroups.map((g, i) => {
-      const authorObj = usersCache[g.authorId];
-      const name = authorObj?.name || 'Comunidad Enraíza';
-      const allSeen = g.stories.every(s => viewed.has(s.id));
-      const seenCount = g.stories.filter(s => viewed.has(s.id)).length;
-      const cover = g.stories.find(s => !viewed.has(s.id)) || g.stories[g.stories.length-1];
-      const segmentStyle = `--story-segments:${g.stories.length};`;
-      return `
-      <button class="story-item" data-groupindex="${i}">
-        <div class="story-ring ${allSeen ? 'seen' : 'story-ring-partial'}" style="${segmentStyle}"><div class="story-avatar">${cover.photo ? `<img src="${cover.photo}" alt="">` : avatarHTML(authorObj)}</div></div>
-        <span class="story-label">${escapeHtml(name)}${g.stories.length > 1 ? ` · ${seenCount}/${g.stories.length}` : ''}${g.stories.some(s=>s.demo) ? ' · ej.' : ''}</span>
-      </button>
-    `;}).join('')}
+    ${storyGroups.length ? storyThumbs : `
+      <div class="story-item story-unavailable" aria-label="Historia no disponible">
+        <div class="story-ring"><div class="story-avatar">⏳</div></div>
+        <span class="story-label">Historia no disponible</span>
+        <span class="story-meta">Vuelve pronto</span>
+      </div>
+    `}
   `;
   document.getElementById('storyAddBtn').addEventListener('click', openAddStoryModal);
   row.querySelectorAll('[data-groupindex]').forEach(btn => btn.addEventListener('click', () => openStoryViewer(parseInt(btn.dataset.groupindex, 10))));
@@ -4487,6 +4646,24 @@ let storyRemainingMs = STORY_DURATION_MS;
 let storyTickStart = 0;
 
 function openStoryViewer(groupIndex){
+  if(!storyGroups.length || !storyGroups[groupIndex]){
+    modalBox.className = 'modal story-view-backdrop';
+    modalContent.innerHTML = `
+      <div class="story-view" style="display:flex; align-items:center; justify-content:center; background:#000; color:#fff; text-align:center;">
+        <div style="padding:32px 22px;">
+          <div style="font-size:2.1rem; margin-bottom:18px;">⏳</div>
+          <div style="font-size:1.1rem; font-weight:700; margin-bottom:6px;">Historia no disponible</div>
+          <div style="font-size:0.85rem; color:rgba(255,255,255,0.7);">No hay historias activas en este momento.</div>
+        </div>
+      </div>
+    `;
+    document.body.classList.add('story-open');
+    setViewportZoomLocked(true);
+    modalBackdrop.classList.add('open');
+    modalOnClose = () => { if(storyTimer) clearTimeout(storyTimer); storyTimer = null; setViewportZoomLocked(false); };
+    document.getElementById('storyCloseBtn')?.addEventListener('click', closeModal);
+    return;
+  }
   currentGroupIndex = groupIndex;
   const group = storyGroups[groupIndex];
   const viewed = getViewedStoryIds();
@@ -4591,15 +4768,35 @@ function renderStoryViewer(){
   const replyForm = document.getElementById('storyReplyForm');
   if(replyForm){
     const replyInput = document.getElementById('storyReplyInput');
-    replyInput.addEventListener('focus', pauseStory);
-    replyInput.addEventListener('blur', () => { if(!replyInput.value.trim()) resumeStory(); });
-    replyForm.addEventListener('submit', (e) => {
+    const pauseReplyInput = () => { pauseStory(); };
+    const resumeReplyInput = () => { if(!replyInput.value.trim()) resumeStory(); };
+    replyInput.addEventListener('focus', pauseReplyInput);
+    replyInput.addEventListener('pointerdown', pauseReplyInput);
+    replyInput.addEventListener('blur', resumeReplyInput);
+    replyInput.addEventListener('change', resumeReplyInput);
+    replyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        replyInput.blur();
+      }
+    });
+    replyForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = replyInput.value.trim();
-      if(!text) return;
-      replyInput.value = '';
-      showToast('Los mensajes directos aún no están disponibles — muy pronto podrás responder historias así.');
-      resumeStory();
+      if(!text || !currentUser || !s || s.authorId === currentUser.id) return;
+      try{
+        const conversation = await DB.messages.findOrCreateConversation(currentUser.id, s.authorId);
+        if(!conversation) throw new Error('No se pudo abrir la conversación.');
+        const sent = await DB.messages.send(conversation.id, currentUser.id, text);
+        if(!sent) throw new Error('No se pudo enviar el mensaje.');
+        replyInput.value = '';
+        closeModal();
+        showView('mensajes');
+        await renderMessagesScreen(conversation.id);
+        await updateMessagesBadge();
+      }catch(err){
+        showToast(err?.message || 'No se pudo responder la historia.');
+        resumeStory();
+      }
     });
   }
 
@@ -4839,7 +5036,7 @@ async function renderDmPanel(){
       `;
     }).join('');
 
-    const msgs = activeConversation ? await DB.messages.listMessages(activeConversation.id) : [];
+const msgs = activeConversation ? await DB.messages.listMessages(activeConversation.id, currentUser.id) : [];
     const activeUser = activeConversation ? usersCache[activeConversation.otherUserId] || await getUserCached(activeConversation.otherUserId) : null;
     panel.dataset.activeConversationId = activeConversation ? activeConversation.id : '';
     panel.innerHTML = `
@@ -4939,6 +5136,42 @@ function markConversationRead(conversationId){
   if(!currentUser || !conversationId) return;
   try{ localStorage.setItem(getMessageReadKey(conversationId), String(Date.now())); }catch(err){ /* ignore */ }
 }
+let activeReplyTarget = null;
+
+function closeMessageMenu(){
+  document.querySelectorAll('.message-bubble-shell.open').forEach(el => el.classList.remove('open'));
+}
+
+function clearActiveReplyTarget(){
+  activeReplyTarget = null;
+  const preview = document.getElementById('messageReplyPreview');
+  if(preview) preview.remove();
+}
+
+function renderReplyPreview(){
+  const composer = document.getElementById('messageComposerForm');
+  if(!composer) return;
+  const preview = document.getElementById('messageReplyPreview');
+  if(activeReplyTarget && activeReplyTarget.name){
+    if(preview) preview.remove();
+    const el = document.createElement('div');
+    el.id = 'messageReplyPreview';
+    el.className = 'message-reply-preview';
+    el.innerHTML = `<span>Respondiendo a <strong>${escapeHtml(activeReplyTarget.name)}</strong></span><button type="button" id="cancelReplyTargetBtn">Cancelar</button>`;
+    composer.parentNode.insertBefore(el, composer);
+    const cancelBtn = document.getElementById('cancelReplyTargetBtn');
+    cancelBtn?.addEventListener('click', () => clearActiveReplyTarget());
+  } else if(preview){
+    preview.remove();
+  }
+}
+
+function scrollMessagesThreadToBottom(threadBodyEl){
+  if(!threadBodyEl) return;
+  requestAnimationFrame(() => {
+    threadBodyEl.scrollTop = threadBodyEl.scrollHeight;
+  });
+}
 
 async function renderMessagesScreen(activeConversationId = null){
   const listEl = document.getElementById('messagesList');
@@ -4960,7 +5193,7 @@ async function renderMessagesScreen(activeConversationId = null){
     const conversations = await DB.messages.listConversations(currentUser.id);
     const enriched = await Promise.all(conversations.map(async (conv) => {
       const otherUser = await getUserCached(conv.otherUserId);
-      const msgs = await DB.messages.listMessages(conv.id);
+const msgs = await DB.messages.listMessages(conv.id, currentUser.id);
       const lastMessage = msgs[msgs.length - 1] || null;
       const lastReadAt = getConversationLastReadAt(conv.id);
       const unreadCount = msgs.filter(msg => msg.senderId !== currentUser.id && msg.createdAt > lastReadAt).length;
@@ -5006,7 +5239,9 @@ async function renderMessagesScreen(activeConversationId = null){
     listEl.querySelectorAll('[data-msg-conversation]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-msg-conversation');
+        if(!id) return;
         screen.classList.add('chat-open');
+        closeMessageMenu();
         await renderMessagesScreen(id);
       });
     });
@@ -5027,39 +5262,228 @@ async function renderMessagesScreen(activeConversationId = null){
     }
 
     const threadUser = activeConversation.otherUser || { id: activeConversation.otherUserId, name: 'Usuario' };
-    const msgs = await DB.messages.listMessages(activeConversation.id);
+const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.id);
     markConversationRead(activeConversation.id);
     threadHeaderEl.innerHTML = `
       <button class="btn btn-outline btn-small messages-mobile-back" id="messagesMobileBackBtn" type="button">←</button>
       <div class="avatar" style="width:32px;height:32px;font-size:0.68rem;">${avatarHTML(threadUser)}</div>
       <strong>${escapeHtml(threadUser.name || 'Usuario')}</strong>
+      <button type="button" class="thread-menu-btn" id="threadMenuBtn" aria-label="Opciones de la conversación">${ICONS.dots}</button>
     `;
-    threadBodyEl.innerHTML = msgs.map((msg) => `
-      <div class="message-row ${msg.senderId === currentUser.id ? 'me' : 'them'}">
-        <div class="message-bubble">${escapeHtml(msg.text)}<span class="message-meta">${fmtRelative(msg.createdAt)}</span></div>
+    document.getElementById('threadMenuBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const existing = document.querySelector('.thread-menu-dropdown');
+      if(existing){ existing.remove(); return; }
+      const dd = document.createElement('div');
+      dd.className = 'thread-menu-dropdown';
+      dd.innerHTML = `<button type="button" class="danger" id="deleteConversationBtn">Eliminar conversación (solo para mí)</button>`;
+      threadHeaderEl.appendChild(dd);
+      document.getElementById('deleteConversationBtn').addEventListener('click', () => {
+        dd.remove();
+        showConfirmDialog({
+          title: 'Eliminar conversación',
+          message: `Vas a borrar esta conversación con ${threadUser.name || 'esta persona'} solo para ti. La otra persona seguirá viendo sus mensajes, y si te vuelve a escribir, la conversación aparecerá vacía desde ese momento.`,
+          confirmLabel: 'Eliminar para mí',
+          danger: true,
+          onConfirm: async () => {
+            try{
+              await DB.messages.clearConversationForMe(activeConversation.id, currentUser.id);
+              showToast('Conversación eliminada para ti.');
+              await renderMessagesScreen();
+            }catch(err){ showToast('No se pudo eliminar la conversación.'); }
+          }
+        });
+      });
+      setTimeout(() => document.addEventListener('click', function outside(ev){
+        if(!dd.contains(ev.target)){ dd.remove(); document.removeEventListener('click', outside); }
+      }), 0);
+    });
+
+    const groupedMessages = [];
+    let currentGroup = null;
+    msgs.forEach((msg) => {
+      const sender = msg.senderId === currentUser.id ? 'me' : 'them';
+      if(!currentGroup || currentGroup.sender !== sender){
+        currentGroup = { sender, items: [msg] };
+        groupedMessages.push(currentGroup);
+      }else{
+        currentGroup.items.push(msg);
+      }
+    });
+
+    const msgById = new Map(msgs.map(m => [m.id, m]));
+    const DELETE_EVERYONE_WINDOW_MS = 15 * 60 * 1000;
+    const bubbleHTML = (msg) => {
+      const isMine = msg.senderId === currentUser.id;
+      const quoted = msg.replyToId ? msgById.get(msg.replyToId) : null;
+      const quotedAuthor = quoted ? (quoted.senderId === currentUser.id ? 'Tú' : (threadUser.name || 'Usuario')) : '';
+      const canDeleteForEveryone = isMine && (Date.now() - msg.createdAt) <= DELETE_EVERYONE_WINDOW_MS;
+      return `
+        <div class="message-row ${isMine ? 'me' : 'them'}">
+          <div class="message-bubble-shell ${isMine ? 'mine' : 'theirs'}" data-message-id="${msg.id}" data-msg-sender="${msg.senderId}">
+            <div class="message-bubble ${msg.deletedForEveryone ? 'deleted' : ''}">
+              ${quoted ? `<span class="message-reply-quote" data-scroll-to="${quoted.id}"><strong>${escapeHtml(quotedAuthor)}:</strong> ${escapeHtml((quoted.text || '').slice(0,60))}</span>` : ''}
+              ${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(msg.text)}
+              <span class="message-meta">${fmtRelative(msg.createdAt)}</span>
+            </div>
+            ${!msg.deletedForEveryone ? `
+              <div class="message-menu">
+                <button type="button" data-message-action="reply" data-message-id="${msg.id}">Responder</button>
+                ${isMine ? `<button type="button" data-message-action="edit" data-message-id="${msg.id}">Editar</button>` : ''}
+                <button type="button" data-message-action="delete-me" data-message-id="${msg.id}">Eliminar para mí</button>
+                ${canDeleteForEveryone ? `<button type="button" class="danger" data-message-action="delete-everyone" data-message-id="${msg.id}">Eliminar para todos</button>` : ''}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    };
+    threadBodyEl.innerHTML = groupedMessages.length ? groupedMessages.map((group) => `
+      <div class="message-group ${group.sender === 'me' ? 'me' : 'them'}">
+        ${group.sender !== 'me' ? `<div class="message-group-avatar">${avatarHTML(threadUser)}</div>` : ''}
+        <div class="message-group-bubbles">
+          ${group.items.map(bubbleHTML).join('')}
+        </div>
       </div>
-    `).join('') || '<div class="messages-empty-state">Aún no hay mensajes en esta conversación.</div>';
+    `).join('') : '<div class="messages-empty-state">Aún no hay mensajes en esta conversación.</div>';
+
+    threadBodyEl.querySelectorAll('[data-scroll-to]').forEach(el => el.addEventListener('click', () => {
+      const target = threadBodyEl.querySelector(`[data-message-id="${el.dataset.scrollTo}"]`);
+      if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+    }));
+
+    let msgHoldTimer = null;
+    let msgDidHold = false;
+    threadBodyEl.querySelectorAll('.message-bubble').forEach((bubble) => {
+      const openThisMenu = () => {
+        const shell = bubble.closest('.message-bubble-shell');
+        if(!shell) return;
+        document.querySelectorAll('.message-bubble-shell.open').forEach(el => {
+          if(el !== shell) el.classList.remove('open');
+        });
+        shell.classList.toggle('open');
+        msgDidHold = true;
+      };
+      bubble.addEventListener('pointerdown', (event) => {
+        if(event.target.closest('.message-reply-quote')) return;
+        msgDidHold = false;
+        clearTimeout(msgHoldTimer);
+        msgHoldTimer = setTimeout(openThisMenu, 380);
+      });
+      bubble.addEventListener('contextmenu', (event) => { event.preventDefault(); openThisMenu(); });
+      ['pointerup','pointerleave','pointercancel'].forEach(evt => bubble.addEventListener(evt, () => clearTimeout(msgHoldTimer)));
+      bubble.addEventListener('click', (event) => {
+        if(msgDidHold){ event.preventDefault(); event.stopPropagation(); msgDidHold = false; }
+      });
+    });
+
+    threadBodyEl.querySelectorAll('[data-message-action]').forEach((actionBtn) => {
+      actionBtn.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const messageId = actionBtn.dataset.messageId;
+        const action = actionBtn.dataset.messageAction;
+        if(!messageId || !action) return;
+        const message = msgs.find(item => item.id === messageId);
+        if(!message) return;
+
+        if(action === 'reply'){
+          const senderUser = message.senderId === currentUser.id ? currentUser : threadUser;
+          activeReplyTarget = { messageId, name: senderUser.name || 'Usuario' };
+          renderReplyPreview();
+          const inputEl = document.getElementById('messageComposerInput');
+          if(inputEl){ inputEl.focus(); inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length); }
+          closeMessageMenu();
+          return;
+        }
+
+        if(action === 'edit'){
+          const nextText = window.prompt('Editar mensaje:', message.text);
+          if(nextText === null) return;
+          const clean = nextText.trim();
+          if(!clean){ showToast('El mensaje no puede quedar vacío.'); return; }
+          try{
+            await DB.messages.updateMessage(messageId, currentUser.id, clean);
+            closeMessageMenu();
+            await renderMessagesScreen(activeConversation.id);
+          }catch(err){ showToast('No se pudo editar el mensaje: ' + (err.message || '')); }
+          return;
+        }
+
+        if(action === 'delete-me'){
+          closeMessageMenu();
+          showConfirmDialog({
+            title: 'Eliminar mensaje',
+            message: 'Este mensaje se eliminará solo para ti. La otra persona lo seguirá viendo.',
+            confirmLabel: 'Eliminar para mí',
+            danger: true,
+            onConfirm: async () => {
+              try{
+                await DB.messages.deleteForMe(messageId, currentUser.id);
+                await renderMessagesScreen(activeConversation.id);
+                await updateMessagesBadge();
+              }catch(err){ showToast('No se pudo eliminar el mensaje: ' + (err.message || '')); }
+            }
+          });
+          return;
+        }
+
+        if(action === 'delete-everyone'){
+          closeMessageMenu();
+          showConfirmDialog({
+            title: 'Eliminar para todos',
+            message: 'Este mensaje se eliminará para ambos. Solo puedes hacerlo dentro de los primeros 15 minutos después de enviarlo.',
+            confirmLabel: 'Eliminar para todos',
+            danger: true,
+            onConfirm: async () => {
+              try{
+                await DB.messages.deleteForEveryone(messageId, currentUser.id);
+                await renderMessagesScreen(activeConversation.id);
+                await updateMessagesBadge();
+              }catch(err){ showToast(err.message || 'No se pudo eliminar el mensaje.'); }
+            }
+          });
+        }
+      });
+    });
+
+    document.addEventListener('click', closeMessageMenu, { once: true });
 
     if(composer) composer.style.display = 'flex';
+    renderReplyPreview();
     const composerInput = document.getElementById('messageComposerInput');
     if(composerInput){ composerInput.value = ''; }
     const form = document.getElementById('messageComposerForm');
     if(form){
+      let isSendingMessage = false;
       form.onsubmit = async (e) => {
         e.preventDefault();
-        const val = (document.getElementById('messageComposerInput') || {}).value || '';
+        if(e.repeat || isSendingMessage) return;
+        const inputEl = document.getElementById('messageComposerInput');
+        const val = (inputEl || {}).value || '';
         const text = val.trim();
         if(!text) return;
-        const sent = await DB.messages.send(activeConversation.id, currentUser.id, text).catch(() => null);
-        if(sent){
-          document.getElementById('messageComposerInput').value = '';
-          await renderMessagesScreen(activeConversation.id);
-          await updateMessagesBadge();
-        } else {
-          showToast('No se pudo enviar el mensaje.');
+        isSendingMessage = true;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Enviando...'; }
+        try{
+          const replyId = activeReplyTarget ? activeReplyTarget.messageId : null;
+          const sent = await DB.messages.send(activeConversation.id, currentUser.id, text, replyId).catch(() => null);          if(sent){
+            if(inputEl) inputEl.value = '';
+            clearActiveReplyTarget();
+            await renderMessagesScreen(activeConversation.id);
+            await updateMessagesBadge();
+            scrollMessagesThreadToBottom(threadBodyEl);
+          } else {
+            showToast('No se pudo enviar el mensaje.');
+          }
+        } finally {
+          isSendingMessage = false;
+          if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Enviar'; }
         }
       };
     }
+
+    scrollMessagesThreadToBottom(threadBodyEl);
 
     document.getElementById('messagesMobileBackBtn')?.addEventListener('click', () => {
       screen.classList.remove('chat-open');
@@ -5087,11 +5511,15 @@ async function updateMessagesBadge(){
     const conversations = await DB.messages.listConversations(currentUser.id);
     let unread = 0;
     for(const conversation of conversations){
-      const msgs = await DB.messages.listMessages(conversation.id);
+const msgs = await DB.messages.listMessages(conversation.id, currentUser.id);
       const lastReadAt = getConversationLastReadAt(conversation.id);
       unread += msgs.filter(msg => msg.senderId !== currentUser.id && msg.createdAt > lastReadAt).length;
     }
     dot.style.display = unread > 0 ? 'block' : 'none';
+    if(unread > 0 && dot.textContent.trim() !== String(unread)) {
+      dot.textContent = String(unread > 9 ? '9+' : unread);
+    }
+    if(unread <= 0){ dot.textContent = ''; }
   }catch(err){
     dot.style.display = 'none';
   }
