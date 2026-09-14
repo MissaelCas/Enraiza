@@ -39,7 +39,7 @@
   img,svg{
     max-width:100%; display:block;
     -webkit-user-select:none; -moz-user-select:none; user-select:none;
-    -webkit-user-drag:none; user-drag:none;
+    -webkit-user-drag:none;
     -webkit-touch-callout:none;
   }
 
@@ -510,7 +510,17 @@
 .story-nav-arrow[disabled]{ opacity:0 !important; pointer-events:none; }
 @media (hover:none), (pointer:coarse){ .story-nav-arrow{ display:none; } }
   body.story-open{ overflow:hidden; height:100%; position:fixed; width:100%; }
-  .story-view-backdrop{ background: rgba(0,0,0,0.9); padding:0; overflow:hidden; max-height:none; box-shadow:none; }
+  body.story-open #modalBackdrop{ background: rgba(0,0,0,0.92); }
+  .story-view-backdrop{
+    background: transparent;
+    width: 100%;
+    max-width: 420px;
+    padding: 0;
+    overflow: visible;
+    max-height: none;
+    box-shadow: none;
+    margin: 0 auto;
+  }
   .story-view-backdrop .modal-close{ display:none; }
   .story-view{
     background:#000; border-radius: 10px; padding:0; max-width:420px; width:100%;
@@ -518,24 +528,25 @@
     display:flex; align-items:center; justify-content:center; margin: 0 auto;
     touch-action: pan-y;
   }
+  .story-view-with-reply .story-view-text{ bottom:74px; }
   @media (max-width: 640px){
-    .story-view-backdrop{ align-items:stretch; justify-content:stretch; }
+    .story-view-backdrop{ align-items:stretch; justify-content:stretch; max-width:none; width:100%; }
     .story-view-backdrop .modal{ max-width:none; width:100%; height:100%; max-height:none; padding:0; border-radius:0; background:#000; }
     .story-view{ max-width:none; width:100%; height:100%; max-height:none; aspect-ratio: auto; border-radius:0; }
   }
-  .story-progress-row{ position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; z-index:5; }
+  .story-progress-row{ position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; z-index:8; padding:2px 2px 0; background: rgba(0,0,0,0.28); border-radius:8px; }
   .story-progress-track{ flex:1; height:3px; background: rgba(255,255,255,0.35); border-radius:3px; overflow:hidden; }
   .story-progress-fill{ height:100%; width:0%; background:#fff; }
   .story-progress-fill.filled{ width:100%; }
   .story-progress-fill.animating{ animation: storyFill linear forwards; }
   .story-progress-fill.paused{ animation-play-state: paused; }
   @keyframes storyFill{ from{ width:0%; } to{ width:100%; } }
-  .story-view-img-wrap{ width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
-  .story-view-img-wrap img{ max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; }
-  .story-view-head{ display:flex; align-items:center; gap:8px; padding: 20px 44px 10px 14px; position:absolute; top:0; left:0; right:0; color:#fff; z-index:6; }
+  .story-view-img-wrap{ position:absolute; inset:0; width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .story-view-img-wrap img{ width:100%; height:100%; object-fit:contain; display:block; background:#000; }
+  .story-view-head{ display:flex; align-items:center; gap:8px; padding: 18px 46px 12px 12px; position:absolute; top:0; left:0; right:0; color:#fff; z-index:7; background: linear-gradient(180deg, rgba(0,0,0,0.58), rgba(0,0,0,0.06)); }
   .story-view-head .avatar{ width:28px; height:28px; font-size:0.75rem; }
   .story-view-head span{ font-size:0.82rem; }
-  .story-view-text{ position:absolute; left:0; right:0; bottom:0; padding: 14px; font-size:0.95rem; color:#fff; background: linear-gradient(transparent, rgba(0,0,0,0.55)); z-index:5; }
+  .story-view-text{ position:absolute; left:12px; right:12px; bottom:12px; padding:8px 10px 0; font-size:0.95rem; color:#fff; text-align:center; background:none; border:none; z-index:6; text-shadow:0 2px 10px rgba(0,0,0,0.6); }
   .story-tap-zone{ position:absolute; top:0; bottom:0; width:35%; z-index:4; background:none; border:none; cursor:pointer; }
   .story-tap-zone.left{ left:0; }
   .story-tap-zone.right{ right:0; }
@@ -909,8 +920,8 @@
   .toast{
     position:fixed; bottom:24px; left:50%; transform: translateX(-50%) translateY(20px);
     background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 6px;
-    font-size: 0.85rem; z-index: 300; opacity:0; pointer-events:none; transition: opacity 0.2s, transform 0.2s;
-    max-width: 90vw; text-align:center;
+    font-size: 0.85rem; z-index: 900; opacity:0; pointer-events:none; transition: opacity 0.2s, transform 0.2s;
+    max-width: min(92vw, 420px); text-align:center; box-shadow: 0 12px 30px rgba(35,48,29,0.25);
   }
   .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
   .cookie-banner{
@@ -929,6 +940,45 @@
   }
   .share-menu button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.85rem; cursor:pointer; color:var(--ink); }
   .share-menu button:hover{ background: var(--paper-alt); }
+
+  /* ---------- PANEL DE NOTIFICACIONES ANCLADO (no modal centrado) ---------- */
+  .notif-anchor{ position:relative; }
+  .notif-panel, .dm-panel{
+    position:absolute; top:calc(100% + 10px); right:0; width:360px; max-width:90vw;
+    max-height:70vh; overflow-y:auto; background:var(--white-ish); border:1px solid var(--line);
+    border-radius:10px; box-shadow:0 10px 30px rgba(35,48,29,0.2); z-index:140;
+    display:none;
+  }
+  .notif-panel.open, .dm-panel.open{ display:block; }
+  @media (max-width:600px){
+    .notif-panel, .dm-panel{ position:fixed; top:66px; left:8px; right:8px; width:auto; max-width:none; }
+  }
+  .notif-panel-head{ font-family:var(--serif); font-weight:700; padding:14px 16px; border-bottom:1px solid var(--line); }
+  .notif-section-label{ padding:10px 16px 4px; font-size:0.72rem; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.04em; }
+  .notif-row{ display:flex; align-items:center; gap:10px; padding:10px 16px; cursor:pointer; }
+  .notif-row:hover{ background:var(--paper-alt); }
+  .notif-row.notif-reminder{ cursor:default; background:var(--paper-alt); }
+  .notif-row.notif-reminder:hover{ background:var(--paper-alt); }
+  .notif-icon{ font-size:1.2rem; width:36px; text-align:center; flex-shrink:0; }
+  .notif-text{ flex:1; min-width:0; font-size:0.85rem; line-height:1.4; }
+  .notif-text strong{ color:var(--ink); }
+  .notif-text em{ font-style:normal; color:var(--ink-soft); }
+  .notif-when{ display:block; font-size:0.7rem; color:var(--ink-soft); margin-top:2px; }
+  .notif-thumb{ width:40px; height:40px; border-radius:4px; object-fit:cover; flex-shrink:0; background:var(--paper-alt); }
+  .dm-panel-empty{ padding:24px 16px; text-align:center; color:var(--ink-soft); font-size:0.88rem; }
+
+  /* ---------- BARRA DE RESPONDER HISTORIA (estilo IG) ---------- */
+  .story-reply-row{
+    position:absolute; left:12px; right:12px; bottom:12px; z-index:8;
+    display:flex; gap:8px; padding:0; background:none; border:none;
+  }
+  .story-reply-row input{
+    flex:1; min-width:0; border:1.5px solid rgba(255,255,255,0.7); background:rgba(0,0,0,0.22);
+    color:#fff; border-radius:20px; padding:9px 14px; font-size:0.85rem; font-family:var(--sans);
+  }
+  .story-reply-row input::placeholder{ color:rgba(255,255,255,0.8); }
+  .story-reply-row button{ background:none; border:none; color:#fff; cursor:pointer; padding:4px; }
+  .story-reply-row svg{ width:24px; height:24px; }
 
   .explore-menu a{display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;color:var(--ink);padding:12px 2px;border-bottom:1px solid var(--line);cursor:pointer}
   .explore-menu a:last-child{border-bottom:0}
@@ -1023,10 +1073,23 @@
       <button class="ig-icon-btn" id="btnNewPost" title="Nueva publicación" aria-label="Nueva publicación">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg>
       </button>
-      <button class="ig-icon-btn" id="btnActivity" title="Actividad" aria-label="Actividad">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7.2-4.6-9.7-9.1C.6 8.6 2 5 5.4 4.2 7.7 3.6 10 4.6 12 7c2-2.4 4.3-3.4 6.6-2.8C22 5 23.4 8.6 21.7 11.9 19.2 16.4 12 21 12 21Z"/></svg>
-        <span class="ig-dot" id="activityDot" style="display:none;"></span>
-      </button>
+      <div class="notif-anchor">
+        <button class="ig-icon-btn" id="btnActivity" title="Notificaciones" aria-label="Notificaciones">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7.2-4.6-9.7-9.1C.6 8.6 2 5 5.4 4.2 7.7 3.6 10 4.6 12 7c2-2.4 4.3-3.4 6.6-2.8C22 5 23.4 8.6 21.7 11.9 19.2 16.4 12 21 12 21Z"/></svg>
+          <span class="ig-dot" id="activityDot" style="display:none;"></span>
+        </button>
+        <div class="notif-panel" id="notifPanel"></div>
+      </div>
+
+      <div class="notif-anchor">
+        <button class="ig-icon-btn" id="btnMessages" title="Mensajes" aria-label="Mensajes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
+        </button>
+        <div class="dm-panel" id="dmPanel">
+          <div class="notif-panel-head">Mensajes</div>
+          <div class="dm-panel-empty">💬 Los mensajes directos llegarán pronto a Enraíza.<br>Este espacio ya está listo para cuando estén disponibles.</div>
+        </div>
+      </div>
 
       <div id="authButtonsWrap" style="display:none; align-items:center; gap:8px;">
         <button type="button" class="btn btn-outline btn-small" id="topbarLoginBtn">Iniciar sesión</button>
@@ -3168,9 +3231,19 @@ document.getElementById('btnNewPost').addEventListener('click', () => {
   showView('inicio');
   openComposer();
 });
-document.getElementById('btnActivity').addEventListener('click', () => {
-  if(!requireLogin('ver tu actividad')) return;
-  openActivityModal();
+document.getElementById('btnActivity').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if(!requireLogin('ver tus notificaciones')) return;
+  toggleNotifPanel();
+});
+document.getElementById('btnMessages').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if(!requireLogin('ver tus mensajes')) return;
+  toggleDmPanel();
+});
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#notifPanel') && !e.target.closest('#btnActivity')) closeNotifPanel();
+  if(!e.target.closest('#dmPanel') && !e.target.closest('#btnMessages')) document.getElementById('dmPanel')?.classList.remove('open');
 });
 
 // ---------- FEED DE INICIO ----------
@@ -3515,6 +3588,7 @@ let feedRenderedCount = 0;
 let feedSentinelObserver = null;
 
 function renderFeedFromCache(){
+  checkNotifDot();
   renderSearchFilterBanner();
   let posts = postsCache;
   if(activeAuthorFilter){
@@ -4153,7 +4227,7 @@ function renderStoryViewer(){
   if(!isMine && currentUser) DB.storyViews.record(s.id, currentUser.id);
 
   modalContent.innerHTML = `
-    <div class="story-view" id="storyViewBox">
+    <div class="story-view ${!isMine ? 'story-view-with-reply' : ''}" id="storyViewBox">
       <div class="story-progress-row">
         ${group.stories.map((_,i) => `
           <div class="story-progress-track">
@@ -4172,6 +4246,11 @@ function renderStoryViewer(){
       <button type="button" class="story-nav-arrow story-nav-next" id="storyNavNext" aria-label="Siguiente historia">›</button>
       <button type="button" class="story-tap-zone left" id="storyPrevZone" aria-label="Historia anterior"></button>
       <button type="button" class="story-tap-zone right" id="storyNextZone" aria-label="Siguiente historia"></button>
+      ${!isMine ? `
+      <form class="story-reply-row" id="storyReplyForm">
+        <input type="text" id="storyReplyInput" placeholder="Responder a ${escapeHtml(name)}…" autocomplete="off">
+        <button type="submit" aria-label="Enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg></button>
+      </form>` : ''}
     </div>
   `;
 
@@ -4204,6 +4283,21 @@ function renderStoryViewer(){
   box.addEventListener('click', (e) => {
     if(didHoldPause){ e.preventDefault(); e.stopPropagation(); didHoldPause = false; }
   }, true);
+
+  const replyForm = document.getElementById('storyReplyForm');
+  if(replyForm){
+    const replyInput = document.getElementById('storyReplyInput');
+    replyInput.addEventListener('focus', pauseStory);
+    replyInput.addEventListener('blur', () => { if(!replyInput.value.trim()) resumeStory(); });
+    replyForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = replyInput.value.trim();
+      if(!text) return;
+      replyInput.value = '';
+      showToast('Los mensajes directos aún no están disponibles — muy pronto podrás responder historias así.');
+      resumeStory();
+    });
+  }
 
   setupStorySwipeToClose();
   storyRemainingMs = STORY_DURATION_MS;
@@ -4291,29 +4385,137 @@ function setupStorySwipeToClose(){
   });
 }
 
-// ---------- ACTIVIDAD ----------
-async function openActivityModal(){
-  if(!postsCacheReady) await loadPostsIntoCache();
+// =====================================================================
+// NOTIFICACIONES — agrupadas como IG (Hoy/Ayer/Últimos 7 días/Anteriores),
+// nunca muestran tus propias acciones, e incluyen un recordatorio si
+// llevas varios días sin compartir nada. Se calculan de la caché de
+// publicaciones ya cargada (sin pedir nada nuevo a Supabase).
+// Nota: los "me gusta" no tienen fecha individual guardada en la caché,
+// así que usan la fecha de la publicación/comentario como aproximación.
+// =====================================================================
+function buildNotifications(){
+  if(!currentUser) return [];
   const myId = currentUser.id;
   const items = [];
-  postsCache.filter(p => p.authorId === myId).forEach(p => {
+  postsCache.forEach(p => {
+    const thumb = (p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category);
+    if(p.authorId === myId){
+      (p.comments || []).forEach(c => {
+        if(c.authorId !== myId){
+          items.push({ type:'comment', actorId:c.authorId, postId:p.id, postTitle:p.title, postThumb:thumb, text:c.text, date:c.date });
+        }
+      });
+      (p.likedBy || []).forEach(uid => {
+        if(uid !== myId) items.push({ type:'like', actorId:uid, postId:p.id, postTitle:p.title, postThumb:thumb, date:p.date });
+      });
+    }
     (p.comments || []).forEach(c => {
-      if(c.authorId !== myId) items.push({ post: p.title, authorId: c.authorId, text: c.text, date: c.date });
+      if(c.authorId === myId){
+        (c.likedBy || []).forEach(uid => {
+          if(uid !== myId) items.push({ type:'commentLike', actorId:uid, postId:p.id, postTitle:p.title, postThumb:thumb, text:c.text, date:c.date });
+        });
+      }
+      if(c.parentId){
+        const parent = (p.comments || []).find(x => x.id === c.parentId);
+        if(parent && parent.authorId === myId && c.authorId !== myId){
+          items.push({ type:'reply', actorId:c.authorId, postId:p.id, postTitle:p.title, postThumb:thumb, text:c.text, date:c.date });
+        }
+      }
     });
   });
   items.sort((a,b) => b.date - a.date);
-  modalBox.className = 'modal';
-  modalContent.innerHTML = `
-    <h3>Actividad</h3>
-    ${!items.length ? '<p class="empty-note">Todavía no hay comentarios en tus publicaciones.</p>' : ''}
-    ${items.map(it => `
-      <div class="activity-item">
-        <span><strong>${escapeHtml(usersCache[it.authorId]?.name || 'Alguien')}</strong> comentó en "${escapeHtml(it.post)}": ${escapeHtml(it.text)}</span>
-        <span class="when">${fmtRelative(it.date)}</span>
+  return items;
+}
+function buildReminders(){
+  if(!currentUser) return [];
+  const mine = postsCache.filter(p => p.authorId === currentUser.id);
+  if(!mine.length) return [];
+  const lastDate = Math.max(...mine.map(p => p.date));
+  const days = Math.floor((Date.now() - lastDate) / 86400000);
+  if(days >= 3){
+    return [{ text: `Llevas ${days} días sin compartir algo nuevo — ¿qué tal registrar un avance rápido en tu bitácora?` }];
+  }
+  return [];
+}
+function groupNotifications(items){
+  const startOfDay = (ts) => { const d = new Date(ts); d.setHours(0,0,0,0); return d.getTime(); };
+  const todayStart = startOfDay(Date.now());
+  const yesterdayStart = todayStart - 86400000;
+  const weekStart = todayStart - 7 * 86400000;
+  const groups = { hoy:[], ayer:[], semana:[], antes:[] };
+  items.forEach(it => {
+    if(it.date >= todayStart) groups.hoy.push(it);
+    else if(it.date >= yesterdayStart) groups.ayer.push(it);
+    else if(it.date >= weekStart) groups.semana.push(it);
+    else groups.antes.push(it);
+  });
+  return groups;
+}
+const NOTIF_VERBS = { comment:'comentó en', like:'le dio me gusta a', reply:'respondió tu comentario en', commentLike:'le dio me gusta a tu comentario en' };
+function notifRowHTML(it){
+  const actor = usersCache[it.actorId];
+  return `
+    <div class="notif-row" data-goto="${it.postId}">
+      <div class="avatar" style="width:36px;height:36px;font-size:0.8rem;">${avatarHTML(actor)}</div>
+      <div class="notif-text">
+        <strong>${escapeHtml(actor?.name || 'Alguien')}</strong> ${NOTIF_VERBS[it.type]} <em>${escapeHtml(it.postTitle)}</em>${it.text ? `: "${escapeHtml(it.text.slice(0,60))}${it.text.length>60?'…':''}"` : ''}
+        <span class="notif-when">${fmtRelative(it.date)}</span>
       </div>
-    `).join('')}
+      <img class="notif-thumb" src="${it.postThumb}" alt="">
+    </div>
   `;
-  modalBackdrop.classList.add('open');
+}
+function reminderRowHTML(it){
+  return `<div class="notif-row notif-reminder"><div class="notif-icon">🌱</div><div class="notif-text">${escapeHtml(it.text)}</div></div>`;
+}
+async function renderNotificationsPanel(){
+  const panel = document.getElementById('notifPanel');
+  if(!panel || !currentUser) return;
+  if(!postsCacheReady) await loadPostsIntoCache();
+  const items = buildNotifications();
+  await Promise.all([...new Set(items.map(it => it.actorId))].map(id => getUserCached(id)));
+  const reminders = buildReminders();
+  const groups = groupNotifications(items);
+  const section = (label, arr) => arr.length ? `<div class="notif-section-label">${label}</div>${arr.map(notifRowHTML).join('')}` : '';
+  panel.innerHTML = `
+    <div class="notif-panel-head">Notificaciones</div>
+    ${reminders.length ? `<div class="notif-section-label">Recordatorios</div>${reminders.map(reminderRowHTML).join('')}` : ''}
+    ${section('Hoy', groups.hoy)}
+    ${section('Ayer', groups.ayer)}
+    ${section('Últimos 7 días', groups.semana)}
+    ${section('Anteriores', groups.antes)}
+    ${(!items.length && !reminders.length) ? '<p class="empty-note" style="padding:16px;">Todavía no tienes notificaciones.</p>' : ''}
+  `;
+  panel.querySelectorAll('[data-goto]').forEach(row => row.addEventListener('click', () => {
+    closeNotifPanel();
+    openPostOrProject(row.dataset.goto);
+  }));
+  try{ localStorage.setItem(`enraiza:notif_seen_${currentUser.id}`, String(Date.now())); }catch(err){ /* ignore */ }
+  const dot = document.getElementById('activityDot');
+  if(dot) dot.style.display = 'none';
+}
+function toggleNotifPanel(){
+  const panel = document.getElementById('notifPanel');
+  if(!panel) return;
+  document.getElementById('dmPanel')?.classList.remove('open');
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  if(!isOpen) renderNotificationsPanel();
+}
+function closeNotifPanel(){ document.getElementById('notifPanel')?.classList.remove('open'); }
+function toggleDmPanel(){
+  document.getElementById('notifPanel')?.classList.remove('open');
+  document.getElementById('dmPanel')?.classList.toggle('open');
+}
+function checkNotifDot(){
+  const dot = document.getElementById('activityDot');
+  if(!dot || !currentUser) return;
+  const items = buildNotifications();
+  if(!items.length){ dot.style.display = 'none'; return; }
+  const latest = Math.max(...items.map(i => i.date));
+  let lastSeen = 0;
+  try{ lastSeen = Number(localStorage.getItem(`enraiza:notif_seen_${currentUser.id}`) || 0); }catch(err){ /* ignore */ }
+  dot.style.display = latest > lastSeen ? 'block' : 'none';
 }
 
 // =====================================================================
