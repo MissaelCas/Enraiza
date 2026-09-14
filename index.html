@@ -958,12 +958,15 @@
     .notif-panel, .dm-panel{ position:fixed; top:66px; left:8px; right:8px; width:auto; max-width:none; }
   }
   .notif-panel-head{ font-family:var(--serif); font-weight:700; padding:14px 16px; border-bottom:1px solid var(--line); }
+  #mensajes.view{
+    position: fixed; inset: 78px 0 0 0; padding: 0; z-index: 90; background: var(--paper);
+  }
   .messages-screen {
     background: var(--white-ish); border: 1px solid var(--line); border-radius: 18px; overflow: hidden;
-    box-shadow: 0 10px 28px rgba(35,48,29,0.08); min-height: 680px; height: calc(100vh - 180px);
+    box-shadow: 0 10px 28px rgba(35,48,29,0.08); height: calc(100vh - 78px); width: min(1200px, calc(100vw - 32px)); margin: 0 auto;
   }
-  .messages-layout{ display:flex; min-height:100%; }
-  .messages-sidebar{ width: 340px; border-right:1px solid var(--line); background: var(--paper); display:flex; flex-direction:column; }
+  .messages-layout{ display:flex; min-height:100%; height:100%; }
+  .messages-sidebar{ width: 340px; border-right:1px solid var(--line); background: var(--paper); display:flex; flex-direction:column; min-height:0; }
   .messages-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 16px 10px; border-bottom:1px solid var(--line); }
   .messages-header h2{ margin:0; font-family:var(--serif); font-size:1.12rem; }
   .messages-list{ flex:1; overflow-y:auto; background: var(--paper); }
@@ -997,7 +1000,8 @@
   .messages-empty-state{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-soft); font-size:0.9rem; text-align:center; padding:32px; }
   .messages-mobile-back{ display:none; }
   @media (max-width:840px){
-    .messages-screen{ min-height:72vh; height: calc(100vh - 120px); }
+    #mensajes.view{ inset: 78px 0 0 0; }
+    .messages-screen{ width: calc(100vw - 16px); height: calc(100vh - 78px); border-radius: 12px; }
     .messages-layout{ display:block; height:100%; }
     .messages-sidebar, .messages-chat{ width:100%; height:100%; }
     .messages-chat{ display:none; }
@@ -2046,6 +2050,7 @@ function showView(name, options = {}){
   if(PERSISTABLE_VIEWS.includes(targetView)){
     try{ sessionStorage.setItem(LAST_VIEW_KEY, targetView); }catch(err){ /* ignore */ }
   }
+  if(targetView !== 'mensajes') updateMessagesBadge();
   if(targetView === 'perfil') renderProfile();
   if(targetView === 'logros') renderAchievementsPage();
   if(targetView === 'misiones') renderMissionsPage();
@@ -3386,6 +3391,7 @@ async function refreshAppAfterAuthChange(){
   if(currentUser) await recordDailyLogin();
   renderProfile();
   renderSidePanels();
+  await updateMessagesBadge();
 }
 async function logout(){
   try{
@@ -4919,13 +4925,27 @@ function toggleDmPanel(){
   if(!isOpen && currentUser){ renderDmPanel(); }
 }
 
+function getMessageReadKey(conversationId){
+  return `enraiza:dm-read:${currentUser ? currentUser.id : 'guest'}:${conversationId}`;
+}
+function getConversationLastReadAt(conversationId){
+  if(!currentUser || !conversationId) return 0;
+  try{
+    const raw = localStorage.getItem(getMessageReadKey(conversationId));
+    return raw ? Number(raw) || 0 : 0;
+  }catch(err){ return 0; }
+}
+function markConversationRead(conversationId){
+  if(!currentUser || !conversationId) return;
+  try{ localStorage.setItem(getMessageReadKey(conversationId), String(Date.now())); }catch(err){ /* ignore */ }
+}
+
 async function renderMessagesScreen(activeConversationId = null){
   const listEl = document.getElementById('messagesList');
   const threadHeaderEl = document.getElementById('messageThreadHeader');
   const threadBodyEl = document.getElementById('messageThreadBody');
   const screen = document.getElementById('messagesScreen');
   const composer = document.getElementById('messageComposerForm');
-  const input = document.getElementById('messageComposerInput');
 
   if(!listEl || !threadHeaderEl || !threadBodyEl || !screen){ return; }
   if(!currentUser){
@@ -4941,12 +4961,13 @@ async function renderMessagesScreen(activeConversationId = null){
     const enriched = await Promise.all(conversations.map(async (conv) => {
       const otherUser = await getUserCached(conv.otherUserId);
       const msgs = await DB.messages.listMessages(conv.id);
-      const lastMessage = msgs[msgs.length - 1];
-      const unreadCount = msgs.filter(m => m.senderId !== currentUser.id).length;
+      const lastMessage = msgs[msgs.length - 1] || null;
+      const lastReadAt = getConversationLastReadAt(conv.id);
+      const unreadCount = msgs.filter(msg => msg.senderId !== currentUser.id && msg.createdAt > lastReadAt).length;
       return {
         ...conv,
         otherUser: otherUser || { id: conv.otherUserId, name: 'Usuario' },
-        lastMessage: lastMessage || null,
+        lastMessage,
         unreadCount,
         pinned: false,
         sortTs: conv.updatedAt || 0
@@ -4959,10 +4980,9 @@ async function renderMessagesScreen(activeConversationId = null){
       return (b.sortTs || 0) - (a.sortTs || 0);
     });
 
-    const activeConversation = sorted.find(c => c.id === activeConversationId) || sorted[0] || null;
-    if(activeConversationId && !activeConversation){
-      screen.classList.remove('chat-open');
-    }
+    const activeConversation = activeConversationId
+      ? sorted.find(c => c.id === activeConversationId) || null
+      : null;
 
     const listHtml = sorted.length ? sorted.map((conv) => {
       const selected = activeConversation && activeConversation.id === conv.id;
@@ -4991,15 +5011,24 @@ async function renderMessagesScreen(activeConversationId = null){
       });
     });
 
-    if(!activeConversation){
+    if(!sorted.length){
       threadHeaderEl.innerHTML = '';
-      threadBodyEl.innerHTML = '<div class="messages-empty-state">💬 Aún no tienes conversaciones.</div>';
+      threadBodyEl.innerHTML = '<div class="messages-empty-state">💬 Aún no tienes conversaciones.<br>Abre el perfil de alguien y empieza a chatear.</div>';
       if(composer) composer.style.display = 'none';
+      return;
+    }
+
+    if(!activeConversation){
+      threadHeaderEl.innerHTML = '<div class="messages-empty-state" style="width:100%; justify-content:center;">Selecciona una conversación para ver el chat.</div>';
+      threadBodyEl.innerHTML = '<div class="messages-empty-state">💬 Ningún chat seleccionado todavía.<br>Elige una conversación desde la lista.</div>';
+      if(composer) composer.style.display = 'none';
+      await updateMessagesBadge();
       return;
     }
 
     const threadUser = activeConversation.otherUser || { id: activeConversation.otherUserId, name: 'Usuario' };
     const msgs = await DB.messages.listMessages(activeConversation.id);
+    markConversationRead(activeConversation.id);
     threadHeaderEl.innerHTML = `
       <button class="btn btn-outline btn-small messages-mobile-back" id="messagesMobileBackBtn" type="button">←</button>
       <div class="avatar" style="width:32px;height:32px;font-size:0.68rem;">${avatarHTML(threadUser)}</div>
@@ -5025,7 +5054,7 @@ async function renderMessagesScreen(activeConversationId = null){
         if(sent){
           document.getElementById('messageComposerInput').value = '';
           await renderMessagesScreen(activeConversation.id);
-          updateMessagesBadge();
+          await updateMessagesBadge();
         } else {
           showToast('No se pudo enviar el mensaje.');
         }
@@ -5039,7 +5068,7 @@ async function renderMessagesScreen(activeConversationId = null){
     document.getElementById('messagesBackToHomeBtn')?.addEventListener('click', () => {
       showView('inicio');
     });
-    updateMessagesBadge();
+    await updateMessagesBadge();
   }catch(err){
     listEl.innerHTML = '<div class="message-item-empty">No se pudieron cargar los mensajes.</div>';
     threadBodyEl.innerHTML = '<div class="messages-empty-state">No se pudieron cargar los mensajes.</div>';
@@ -5059,7 +5088,8 @@ async function updateMessagesBadge(){
     let unread = 0;
     for(const conversation of conversations){
       const msgs = await DB.messages.listMessages(conversation.id);
-      unread += msgs.filter(msg => msg.senderId !== currentUser.id).length;
+      const lastReadAt = getConversationLastReadAt(conversation.id);
+      unread += msgs.filter(msg => msg.senderId !== currentUser.id && msg.createdAt > lastReadAt).length;
     }
     dot.style.display = unread > 0 ? 'block' : 'none';
   }catch(err){
