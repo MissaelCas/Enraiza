@@ -672,8 +672,10 @@
   .profile-stats-row{ display:flex; gap: 26px; margin-bottom: 12px; flex-wrap:wrap; }
   .profile-stats-row div{ font-size: 0.85rem; color: var(--ink-soft); }
   .profile-stats-row strong{ display:block; font-size: 1.05rem; color: var(--ink); font-family: var(--serif); }
-  .profile-bio{ font-size: 0.88rem; color: var(--ink-soft); max-width: 46ch; }
-  .profile-bio strong{ display:block; color: var(--ink); font-family: var(--serif); font-size: 1rem; margin-bottom: 2px; }
+  .profile-bio{ font-size: 0.9rem; color: var(--ink-soft); max-width: 52ch; line-height:1.55; white-space:pre-wrap; }
+  .profile-bio strong{ color: var(--ink); font-family: var(--serif); font-size: 1rem; }
+  .profile-visit-bio{ max-width:54ch; color:var(--ink-soft); font-size:0.9rem; line-height:1.5; white-space:pre-wrap; }
+  .profile-visit-bio strong{ color:var(--ink); margin-bottom:3px; }
   .settings-bio-wrap{ display:flex; flex-direction:column; gap:12px; margin-top:18px; padding-top:16px; border-top:1px solid var(--line); }
   .settings-bio-wrap textarea{ width:100%; max-width:420px; min-height:88px; resize:vertical; border:1px solid var(--line); border-radius:6px; background:var(--paper); font:inherit; padding:10px 11px; }
   .bio-presets{ display:flex; flex-wrap:wrap; gap:8px; }
@@ -694,9 +696,10 @@
   .search-result-row{ display:flex; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; }
   .search-result-row:hover{ background:var(--paper-alt); }
 
-  .profile-post-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 6px; }
+  .profile-post-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 3px; margin-top: 6px; transition: opacity .22s ease, transform .22s ease; }
   .profile-post-thumb{ aspect-ratio: 1/1; object-fit:cover; width:100%; cursor:pointer; background: var(--paper-alt); }
   .profile-empty-grid{ color: var(--ink-soft); font-style: italic; font-size: 0.88rem; padding: 20px 0; }
+  .profile-post-grid[hidden], .profile-log-grid[hidden], .profile-visit-feed[hidden], .profile-visit-grid[hidden]{ display:none !important; }
   .profile-log-head{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
     margin:14px 0 10px;
@@ -728,8 +731,9 @@
   .profile-visit-section-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
   .profile-visit-section-head h3{ margin:0; font-family:var(--serif); font-size:1.1rem; }
   .profile-visit-section-head span{ color:var(--ink-soft); font-size:0.72rem; }
-  .profile-visit-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3px; }
+  .profile-visit-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:3px; transition: opacity .22s ease, transform .22s ease; }
   .profile-visit-grid .profile-post-thumb, .profile-visit-grid .profile-log-thumb-wrap{ border-radius:0; }
+  .profile-visit-feed{ display:flex; flex-direction:column; gap:18px; margin-top:18px; opacity:1; transform:translateY(0); transition: opacity .22s ease, transform .22s ease; }
   @media(max-width:700px){
     .profile-visit-head{ grid-template-columns:74px minmax(0,1fr); gap:15px; }
     .profile-visit-head .avatar-big{ width:74px; height:74px; }
@@ -1514,6 +1518,7 @@
 
       <div id="profilePostsPanel">
         <div class="profile-post-grid" id="profilePostGrid"></div>
+        <div class="profile-visit-feed" id="profileOwnFeed" hidden></div>
       </div>
 
       <div id="profileLogsPanel" hidden>
@@ -1556,6 +1561,7 @@
           <span id="profileVisitPostCountLabel">0</span>
         </div>
         <div class="profile-visit-grid profile-post-grid" id="profileVisitPostGrid"></div>
+        <div class="profile-visit-feed" id="profileVisitFeed" hidden></div>
       </div>
       <div class="profile-visit-section">
         <div class="profile-visit-section-head">
@@ -1864,6 +1870,7 @@ const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora'
 const PRIVATE_VIEWS = new Set(['bitacora','perfil','logros','misiones','configuracion','proyectoBitacora']);
 const LAST_VIEW_KEY = 'enraiza:view';
 const VIEW_STACK_KEY = 'enraiza:viewStack';
+let activeInlineFeedClose = null; // si hay una publicación ampliada abierta, el botón "atrás" la cierra en vez de cambiar de pantalla
 
 function getViewStack(){
   try {
@@ -1913,6 +1920,11 @@ function goBackNavigation(fallbackView='inicio'){
   showView(fallbackView, { silentReplace: true, force: true });
 }
 function showView(name, options = {}){
+  if(activeInlineFeedClose){
+    const closeFn = activeInlineFeedClose;
+    activeInlineFeedClose = null;
+    closeFn();
+  }
   const targetView = name || 'inicio';
   const { silentReplace = false, force = false } = options;
   if(PRIVATE_VIEWS.has(targetView) && !currentUser && !force){
@@ -1951,6 +1963,12 @@ function showView(name, options = {}){
   if(targetView === 'bitacora') renderBitacoraProjectList();
 }
 window.addEventListener('popstate', (event) => {
+  if(activeInlineFeedClose){
+    const closeFn = activeInlineFeedClose;
+    activeInlineFeedClose = null;
+    closeFn();
+    return;
+  }
   const nextView = event.state && event.state.enraizaView ? event.state.enraizaView : getViewFromUrl();
   if(nextView && PERSISTABLE_VIEWS.includes(nextView)){
     showView(nextView, { silentReplace: true, force: true });
@@ -2644,12 +2662,23 @@ function openUserProfile(userId, name){
   showView('perfilVisita');
 }
 async function renderUserProfileVisit(){
+  if(activeInlineFeedClose){
+    const closeFn = activeInlineFeedClose;
+    activeInlineFeedClose = null;
+    closeFn();
+  }
   if(!viewingUserId) return;
   const uid = viewingUserId;
   const nameEl = document.getElementById('profileVisitName');
   const avatarEl = document.getElementById('profileVisitAvatar');
   const bioEl = document.getElementById('profileVisitBio');
   const followBtn = document.getElementById('profileVisitFollowBtn');
+  const grid = document.getElementById('profileVisitPostGrid');
+  const feed = document.getElementById('profileVisitFeed');
+  const logGrid = document.getElementById('profileVisitLogGrid');
+  if(feed){ feed.innerHTML = ''; feed.hidden = true; }
+  if(grid) grid.hidden = false;
+  if(logGrid) logGrid.hidden = false;
   nameEl.textContent = usersCache[uid]?.name || 'Cargando…';
   avatarEl.innerHTML = avatarHTML(usersCache[uid]);
 
@@ -2660,10 +2689,10 @@ async function renderUserProfileVisit(){
     avatarEl.innerHTML = avatarHTML(freshUser);
     if(bioEl) {
       const bioText = (freshUser.bio || '').trim() || 'Construyendo un cambio sostenible, proyecto a proyecto.';
-      bioEl.innerHTML = `<strong>${escapeHtml(freshUser.name || 'Enraíza')}</strong>${escapeHtml(bioText)}`;
+      bioEl.textContent = bioText;
     }
   } else if(bioEl) {
-    bioEl.innerHTML = '<strong>Enraíza</strong>Construyendo un cambio sostenible, proyecto a proyecto.';
+    bioEl.textContent = 'Construyendo un cambio sostenible, proyecto a proyecto.';
   }
 
   if(followBtn){
@@ -2714,17 +2743,18 @@ async function renderUserProfileVisit(){
   const logCountEl = document.getElementById('profileVisitLogCountLabel');
   if(logCountEl) logCountEl.textContent = `${publicLogs.length}`;
 
-  const grid = document.getElementById('profileVisitPostGrid');
   if(!posts.length){
-    grid.innerHTML = '<p class="profile-empty-grid">Esta persona todavía no ha publicado nada.</p>';
+    if(grid) grid.innerHTML = '<p class="profile-empty-grid">Esta persona todavía no ha publicado nada.</p>';
+    if(feed) feed.innerHTML = '';
   } else {
-    grid.innerHTML = posts.map(p => `
-      <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
-    `).join('');
-    grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
+    if(grid){
+      grid.innerHTML = posts.map(p => `
+        <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
+      `).join('');
+      grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
+    }
   }
 
-  const logGrid = document.getElementById('profileVisitLogGrid');
   if(logGrid){
     try{
       const projects = publicLogs;
@@ -2740,52 +2770,144 @@ async function renderUserProfileVisit(){
   }
 }
 
-// ---------- VISTA PREVIA RÁPIDA AL MANTENER PRESIONADA UNA IMAGEN (estilo IG) ----------
-function attachLongPress(imgEl, postId){
-  let pressTimer = null;
-  let longPressed = false;
-  const start = () => {
-    longPressed = false;
-    pressTimer = setTimeout(() => {
-      longPressed = true;
-      showQuickPreview(postId);
-    }, 350);
-  };
-  const cancel = () => {
-    clearTimeout(pressTimer);
-    if(longPressed) hideQuickPreview();
-  };
-  imgEl.addEventListener('pointerdown', start);
-  imgEl.addEventListener('pointerup', cancel);
-  imgEl.addEventListener('pointerleave', cancel);
-  imgEl.addEventListener('pointercancel', cancel);
-  imgEl.addEventListener('click', (e) => {
-    if(longPressed){ e.preventDefault(); e.stopPropagation(); longPressed = false; return; }
-    openPostOrProject(postId);
-  });
+function closeInlineProfileFeed(ctx){
+  if(!ctx) return;
+  if(ctx.feed){
+    ctx.feed.style.opacity = '0';
+    ctx.feed.style.transform = 'translateY(12px)';
+    ctx.feed.style.pointerEvents = 'none';
+    setTimeout(() => {
+      ctx.feed.innerHTML = '';
+      ctx.feed.hidden = true;
+      ctx.feed.style.opacity = '1';
+      ctx.feed.style.transform = 'translateY(0)';
+      ctx.feed.style.pointerEvents = '';
+    }, 180);
+  }
+  if(ctx.grid){
+    ctx.grid.hidden = false;
+    ctx.grid.style.opacity = '1';
+    ctx.grid.style.transform = 'translateY(0)';
+    ctx.grid.style.pointerEvents = '';
+  }
+  if(ctx.logGrid){
+    ctx.logGrid.hidden = false;
+    ctx.logGrid.style.opacity = '1';
+    ctx.logGrid.style.transform = 'translateY(0)';
+    ctx.logGrid.style.pointerEvents = '';
+    const logSection = ctx.logGrid.closest('.profile-visit-section');
+    if(logSection) logSection.hidden = false;
+  }
+  if(ctx.postsPanel){ ctx.postsPanel.hidden = !ctx.postsWasVisible; }
+  if(ctx.logsPanel){ ctx.logsPanel.hidden = !ctx.logsWasVisible; }
 }
 
-// ---------- VISTA PREVIA RÁPIDA PARA MINIATURAS DE BITÁCORA/PROYECTO (mismo gesto, contenido de proyecto) ----------
+function openInlineProfileFeed(postId, ctx){
+  if(!postsCacheReady || !ctx || !ctx.feed) return;
+  const post = getCachedPost(postId);
+  if(!post) return;
+  const authorId = post.authorId;
+  const authorPosts = postsCache.filter(p => p.authorId === authorId).sort((a,b) => (b.date || 0) - (a.date || 0));
+  if(ctx.postsPanel){ ctx.postsWasVisible = !ctx.postsPanel.hidden; }
+  if(ctx.logsPanel){ ctx.logsWasVisible = !ctx.logsPanel.hidden; }
+  if(ctx.grid){
+    ctx.grid.hidden = true;
+    ctx.grid.style.opacity = '0';
+    ctx.grid.style.transform = 'translateY(10px)';
+    ctx.grid.style.pointerEvents = 'none';
+  }
+  if(ctx.logGrid){
+    ctx.logGrid.hidden = true;
+    ctx.logGrid.style.opacity = '0';
+    ctx.logGrid.style.transform = 'translateY(10px)';
+    ctx.logGrid.style.pointerEvents = 'none';
+    const logSection = ctx.logGrid.closest('.profile-visit-section');
+    if(logSection) logSection.hidden = true;
+  }
+  if(ctx.postsPanel){ ctx.postsPanel.hidden = false; }
+  if(ctx.logsPanel){ ctx.logsPanel.hidden = true; }
+  const authorObj = usersCache[authorId] || { id: authorId, name: 'Alguien de la comunidad' };
+  ctx.feed.hidden = false;
+  ctx.feed.style.opacity = '0';
+  ctx.feed.style.transform = 'translateY(12px)';
+  ctx.feed.style.pointerEvents = 'none';
+  ctx.feed.innerHTML = authorPosts.map(p => {
+    const liked = currentUser ? (p.likedBy || []).includes(currentUser.id) : false;
+    const saved = currentUser ? !!p._savedLocal : false;
+    return postCardHTML(p, authorObj.name || 'Alguien de la comunidad', authorObj, liked, saved);
+  }).join('');
+  ctx.feed.querySelectorAll('.ig-post').forEach(article => bindPostCard(article));
+  requestAnimationFrame(() => {
+    ctx.feed.style.opacity = '1';
+    ctx.feed.style.transform = 'translateY(0)';
+    ctx.feed.style.pointerEvents = '';
+  });
+
+  history.pushState({ inlineProfileFeed: true }, '', location.href);
+  activeInlineFeedClose = () => closeInlineProfileFeed(ctx);
+}
+
+// ---------- VISTA PREVIA RÁPIDA AL MANTENER PRESIONADA UNA IMAGEN (estilo IG) ----------
+let qpTimer = null;
+let qpJustLongPressed = false;
+
+function attachLongPress(imgEl, postId){
+  imgEl.addEventListener('pointerdown', (e) => {
+    if(e.button !== undefined && e.button !== 0) return;
+    qpJustLongPressed = false;
+    clearTimeout(qpTimer);
+    qpTimer = setTimeout(() => {
+      qpJustLongPressed = true;
+      showQuickPreview(postId);
+    }, 350);
+  });
+  imgEl.addEventListener('click', (e) => {
+    if(qpJustLongPressed){ e.preventDefault(); e.stopPropagation(); qpJustLongPressed = false; return; }
+    if(imgEl.closest('#profileVisitPostGrid')){
+      e.preventDefault(); e.stopPropagation();
+      openInlineProfileFeed(postId, {
+        grid: document.getElementById('profileVisitPostGrid'),
+        logGrid: document.getElementById('profileVisitLogGrid'),
+        feed: document.getElementById('profileVisitFeed'),
+      });
+      return;
+    }
+    if(imgEl.closest('#profilePostGrid')){
+      e.preventDefault(); e.stopPropagation();
+      openInlineProfileFeed(postId, {
+        grid: document.getElementById('profilePostGrid'),
+        logGrid: null,
+        feed: document.getElementById('profileOwnFeed'),
+      });
+      return;
+    }
+    openAuthorFeedFromPost(postId);
+  });
+}
+['pointerup','pointercancel'].forEach(evt => {
+  document.addEventListener(evt, () => { clearTimeout(qpTimer); hideQuickPreview(); }, true);
+});
+
+async function openAuthorFeedFromPost(postId){
+  if(!postsCacheReady) await loadPostsIntoCache();
+  const post = getCachedPost(postId);
+  if(!post) return;
+  const authorObj = await getUserCached(post.authorId) || usersCache[post.authorId];
+  openUserProfile(post.authorId, authorObj?.name || 'Alguien de la comunidad');
+}
+
 function attachLongPressProject(tileEl, projectId){
-  let pressTimer = null;
-  let longPressed = false;
-  const start = () => {
-    longPressed = false;
-    pressTimer = setTimeout(() => {
-      longPressed = true;
+  tileEl.addEventListener('pointerdown', (e) => {
+    if(e.button !== undefined && e.button !== 0) return;
+    qpJustLongPressed = false;
+    clearTimeout(qpTimer);
+    qpTimer = setTimeout(() => {
+      qpJustLongPressed = true;
       showQuickPreviewProject(projectId);
     }, 350);
-  };
-  const cancel = () => {
-    clearTimeout(pressTimer);
-    if(longPressed) hideQuickPreview();
-  };
-  tileEl.addEventListener('pointerdown', start);
-  tileEl.addEventListener('pointerup', cancel);
-  tileEl.addEventListener('pointerleave', cancel);
-  tileEl.addEventListener('pointercancel', cancel);
+  });
   tileEl.addEventListener('click', (e) => {
-    if(longPressed){ e.preventDefault(); e.stopPropagation(); longPressed = false; return; }
+    if(qpJustLongPressed){ e.preventDefault(); e.stopPropagation(); qpJustLongPressed = false; return; }
     openProjectView(projectId);
   });
 }
@@ -5496,7 +5618,7 @@ async function renderProfile(){
   const bioTextEl=document.getElementById('profileBioText');
   const myBio = (currentUser && currentUser.bio) ? currentUser.bio.trim() : '';
   const formattedBio = myBio || '🌱 Por una vida más sostenible, una raíz a la vez.';
-  if(bioTextEl){ bioTextEl.innerHTML = `<strong>${escapeHtml(currentUser ? currentUser.name : 'Enraíza')}</strong>${escapeHtml(formattedBio)}`; }
+  if(bioTextEl){ bioTextEl.textContent = formattedBio; }
 
   let followCounts = { followersCount: 0, followingCount: 0 };
   if(currentUser){
