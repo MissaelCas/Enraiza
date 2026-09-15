@@ -106,14 +106,14 @@
       h: rand(16, 28),
       speed: rand(0.3, 0.8) + i * 0.05
     }));
-    speed = 4.3;
-    gravity = 0.82;
+    speed = 3.0;
+    gravity = 0.62;
     score = 0;
     running = false;
     gameOverFlag = false;
-    spawnTimer = 75;
+    spawnTimer = 105;
     document.getElementById('overlayTitle').textContent = '⏱️ Presiona espacio para comenzar';
-    document.getElementById('overlaySub').textContent = 'Empieza lento, luego cada vez llega más lejos y más rápido.';
+    document.getElementById('overlaySub').textContent = 'Empieza tranquilo, como el dinosaurio de Chrome. La velocidad aumenta poco a poco.';
     document.getElementById('overlay').classList.remove('hidden');
     draw();
   }
@@ -121,7 +121,7 @@
   function jump(){
     if(!player) return;
     if(gameOverFlag){ resetGame(); startGame(); return; }
-    if(player.onGround){ player.vy = -13.5; player.onGround = false; }
+    if(player.onGround){ player.vy = -10.8; player.onGround = false; }
   }
 
   function spawnObstacle(){
@@ -166,7 +166,7 @@
     if(player.y >= GROUND_Y - player.h){ player.y = GROUND_Y - player.h; player.vy = 0; player.onGround = true; }
 
     clouds.forEach(c => {
-      c.x -= c.speed * (0.85 + speed / 9);
+      c.x -= c.speed;
       if(c.x + c.w < -10){
         c.x = W + 10;
         c.y = rand(18, 82);
@@ -178,8 +178,8 @@
     spawnTimer--;
     if(spawnTimer <= 0){
       spawnObstacle();
-      const base = Math.max(22, 68 - Math.floor(score / 7));
-      spawnTimer = rand(base * 0.62, base + 10);
+      const base = Math.max(72, 112 - Math.floor(score / 18));
+      spawnTimer = rand(base, base + 34);
     }
 
     obstacles.forEach(o => {
@@ -193,8 +193,8 @@
       if(rectsOverlap(player, o)){ endGame(); return; }
     }
 
-    score += 0.28 + speed * 0.04;
-    speed = Math.min(18, 4.3 + score / 18);
+    score += 0.16;
+    speed = Math.min(7.2, 3.0 + score / 120);
   }
 
   function endGame(){
@@ -344,10 +344,6 @@
     if(gameOverFlag){ resetGame(); startGame(); } else { startGame(); jump(); }
   });
 
-  document.getElementById('restartBtn').addEventListener('click', () => {
-    resetGame();
-    startGame();
-  });
 </script>
 </body>
 </html>
