@@ -113,7 +113,7 @@
     gameOverFlag = false;
     spawnTimer = 105;
     document.getElementById('overlayTitle').textContent = '⏱️ Presiona espacio para comenzar';
-    document.getElementById('overlaySub').textContent = 'Empieza muy tranquilo. La velocidad y el reto aumentan poco a poco con el tiempo.';
+    document.getElementById('overlaySub').textContent = 'Empieza tranquilo, como el dinosaurio de Chrome. La velocidad aumenta poco a poco.';
     document.getElementById('overlay').classList.remove('hidden');
     draw();
   }
@@ -178,7 +178,7 @@
     spawnTimer--;
     if(spawnTimer <= 0){
       spawnObstacle();
-      const base = Math.max(92, 125 - Math.floor(score / 80));
+      const base = Math.max(88, 125 - Math.floor(score / 500));
       spawnTimer = rand(base, base + 34);
     }
 
@@ -193,8 +193,9 @@
       if(rectsOverlap(player, o)){ endGame(); return; }
     }
 
-    score += 0.055;
-    speed = 3.0 + Math.pow(score / 10000, 1.1) * 1.1;
+    score += 0.10;
+    const progress = Math.min(score / 2500, 1);
+    speed = 3.0 + Math.pow(progress, 2.0) * 3.5;
   }
 
   function endGame(){
