@@ -3417,7 +3417,6 @@ function openAuthModal(mode, actionLabel){
           return;
         }
       }
-      await refreshAppAfterAuthChange();
       closeAuthModal();
     }catch(err){
       const msg = translateAuthError(err.message);
@@ -5996,13 +5995,36 @@ async function reconcileHistoricalStats(){
   }catch(err){ /* si una consulta falla, no bloquea la app */ }
 }
 
+let dailyLoginInProgress = false;
+let dailyLoginRecordedForUser = null;
+
 async function recordDailyLogin(){
   if(!currentUser) return;
+
+  // Evita que dos eventos de Supabase registren el mismo login
+  // simultáneamente durante el arranque o inicio de sesión.
+  if(dailyLoginInProgress) return;
+  if(dailyLoginRecordedForUser === currentUser.id) {
+    checkAndAwardBadges();
+    checkAndAwardMissions();
+    return;
+  }
+
+  dailyLoginInProgress = true;
+
   try{
     const r = await DB.stats.recordDailyLogin();
-    userStats.current_streak = r.current_streak;
-    userStats.longest_streak = r.longest_streak;
-  }catch(err){ /* ignore */ }
+
+    userStats.current_streak = Number(r?.current_streak || 0);
+    userStats.longest_streak = Number(r?.longest_streak || 0);
+
+    dailyLoginRecordedForUser = currentUser.id;
+  }catch(err){
+    console.warn('No se pudo registrar el login diario:', err);
+  }finally{
+    dailyLoginInProgress = false;
+  }
+
   checkAndAwardBadges();
   checkAndAwardMissions();
 }
@@ -6703,7 +6725,18 @@ let authReady = false;
 sb.auth.onAuthStateChange(async (event, session) => {
   if(!authReady) return;
 
-  if(session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
+  if(session && event === 'SIGNED_IN'){
+    await loadCurrentUserFromSession(session);
+    await refreshAppAfterAuthChange();
+
+    if(currentUser){
+      await recordDailyLogin();
+    }
+
+    return;
+  }
+
+  if(session && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
     await loadCurrentUserFromSession(session);
     await refreshAppAfterAuthChange();
     return;
@@ -6711,6 +6744,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
   if(event === 'SIGNED_OUT'){
     currentUser = null;
+    currentAuthEmail = '';
+    dailyLoginRecordedForUser = null;
     await refreshAppAfterAuthChange();
   }
 });
