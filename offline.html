@@ -4,347 +4,1349 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Sin conexión — Enraíza</title>
+
 <style>
   :root{
-    --paper:#EFE9D8; --paper-alt:#E5DFC6; --ink:#23301D; --ink-soft:#4A5A42;
-    --moss:#3F6B4A; --moss-dark:#2C4E35; --clay:#C1793C; --clay-dark:#9C5F2C; --line:#B8AE93;
-    --serif: Georgia, serif; --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --paper:#EFE9D8;
+    --paper-alt:#E5DFC6;
+    --ink:#23301D;
+    --ink-soft:#4A5A42;
+    --moss:#3F6B4A;
+    --moss-dark:#2C4E35;
+    --clay:#C1793C;
+    --clay-dark:#9C5F2C;
+    --line:#B8AE93;
+
+    --serif:Georgia, serif;
+    --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
-  *{ box-sizing:border-box; }
+
+  *{
+    box-sizing:border-box;
+  }
+
   body{
-    margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;
-    -webkit-user-select:none; user-select:none; overscroll-behavior:none;
+    margin:0;
+    min-height:100vh;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    text-align:center;
+    -webkit-user-select:none;
+    user-select:none;
+    overscroll-behavior:none;
   }
-  .logo{ font-family:var(--serif); font-size:1.6rem; font-weight:700; color:var(--moss-dark); margin-bottom:4px; }
-  .logo span{ color:var(--clay-dark); }
-  .status{ color:var(--ink-soft); font-size:0.88rem; margin:0 0 16px; }
-  .status.online{ color:var(--moss-dark); font-weight:700; }
+
+  .logo{
+    font-family:var(--serif);
+    font-size:1.6rem;
+    font-weight:700;
+    color:var(--moss-dark);
+    margin-bottom:4px;
+  }
+
+  .logo span{
+    color:var(--clay-dark);
+  }
+
+  .status{
+    color:var(--ink-soft);
+    font-size:0.88rem;
+    margin:0 0 16px;
+  }
+
+  .status.online{
+    color:var(--moss-dark);
+    font-weight:700;
+  }
+
   #gameWrap{
-    position:relative; width:100%; max-width:640px; border:1px solid var(--line); border-radius:10px;
-    background:var(--paper-alt); overflow:hidden; touch-action:none;
+    position:relative;
+    width:100%;
+    max-width:640px;
+    border:1px solid var(--line);
+    border-radius:10px;
+    background:var(--paper-alt);
+    overflow:hidden;
+    touch-action:none;
   }
-  canvas{ display:block; width:100%; height:auto; }
+
+  canvas{
+    display:block;
+    width:100%;
+    height:auto;
+  }
+
   #scoreRow{
-    display:flex; justify-content:space-between; padding:8px 14px; font-size:0.8rem; color:var(--ink-soft);
-    border-top:1px solid var(--line); background:var(--paper);
+    display:flex;
+    justify-content:space-between;
+    padding:8px 14px;
+    font-size:0.8rem;
+    color:var(--ink-soft);
+    border-top:1px solid var(--line);
+    background:var(--paper);
   }
-  #scoreRow strong{ color:var(--ink); font-family:var(--serif); }
-  .hint{ margin:14px 0 0; font-size:0.8rem; color:var(--ink-soft); max-width:420px; }
+
+  #scoreRow strong{
+    color:var(--ink);
+    font-family:var(--serif);
+  }
+
+  .hint{
+    margin:14px 0 0;
+    font-size:0.8rem;
+    color:var(--ink-soft);
+    max-width:420px;
+  }
+
   .btn{
-    margin-top:14px; padding:10px 20px; border-radius:999px; border:1.5px solid var(--moss);
-    background:var(--moss); color:var(--paper); font-weight:700; font-size:0.88rem; cursor:pointer;
+    margin-top:14px;
+    padding:10px 20px;
+    border-radius:999px;
+    border:1.5px solid var(--moss);
+    background:var(--moss);
+    color:var(--paper);
+    font-weight:700;
+    font-size:0.88rem;
+    cursor:pointer;
   }
-  .btn:active{ background:var(--moss-dark); }
+
+  .btn:active{
+    background:var(--moss-dark);
+  }
+
   #overlay{
-    position:absolute; inset:0; background:rgba(35,48,29,0.55); color:#fff;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
-    font-family:var(--serif); text-align:center; padding:16px;
+    position:absolute;
+    inset:0;
+    background:rgba(35,48,29,0.55);
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-family:var(--serif);
+    text-align:center;
+    padding:16px;
   }
-  #overlay.hidden{ display:none; }
-  #overlay p{ margin:0; font-size:0.85rem; font-family:var(--sans); opacity:0.9; }
+
+  #overlay.hidden{
+    display:none;
+  }
+
+  #overlay p{
+    margin:0;
+    font-size:0.85rem;
+    font-family:var(--sans);
+    opacity:0.9;
+  }
 </style>
 </head>
+
 <body>
+
   <div class="logo">Enra<span>í</span>za</div>
-  <p class="status" id="statusText">Sin conexión a internet</p>
+
+  <p class="status" id="statusText">
+    Sin conexión a internet
+  </p>
 
   <div id="gameWrap">
+
     <div id="overlay">
-      <strong id="overlayTitle">🌱 Toca o presiona espacio para saltar</strong>
-      <p id="overlaySub">Esquiva las piedras y los bichos mientras esperamos la señal.</p>
+      <strong id="overlayTitle">
+        🌱 Toca o presiona espacio para saltar
+      </strong>
+
+      <p id="overlaySub">
+        Esquiva las piedras y los bichos mientras esperamos la señal.
+      </p>
     </div>
+
     <canvas id="gameCanvas" width="640" height="220"></canvas>
+
     <div id="scoreRow">
-      <span>Puntaje: <strong id="scoreVal">0</strong></span>
-      <span>Récord: <strong id="bestVal">0</strong></span>
+      <span>
+        Puntaje:
+        <strong id="scoreVal">0</strong>
+      </span>
+
+      <span>
+        Récord:
+        <strong id="bestVal">0</strong>
+      </span>
     </div>
+
   </div>
 
-  <p class="hint">Enraíza se reconectará sola en cuanto vuelva tu internet.</p>
-  <button class="btn" id="restartBtn" type="button">Reiniciar juego</button>
+  <p class="hint">
+    Enraíza se reconectará sola en cuanto vuelva tu internet.
+  </p>
+
+  <button class="btn" id="restartBtn" type="button">
+    Reiniciar juego
+  </button>
+
 
 <script>
-  // ---------- Detección de conexión ----------
-  const statusText = document.getElementById('statusText');
+
+  // =========================================================
+  // REFERENCIAS DEL DOM
+  // =========================================================
+
+  const statusText   = document.getElementById('statusText');
+  const restartBtn   = document.getElementById('restartBtn');
+  const canvas       = document.getElementById('gameCanvas');
+  const ctx           = canvas.getContext('2d');
+
+  const scoreVal     = document.getElementById('scoreVal');
+  const bestVal      = document.getElementById('bestVal');
+
+  const overlay      = document.getElementById('overlay');
+  const overlayTitle = document.getElementById('overlayTitle');
+  const overlaySub   = document.getElementById('overlaySub');
+
+
+  // =========================================================
+  // DETECCIÓN DE CONEXIÓN
+  // =========================================================
+
   function updateStatus(){
+
     if(navigator.onLine){
-      statusText.textContent = '¡Conexión recuperada! Volviendo a Enraíza…';
+
+      statusText.textContent =
+        '¡Conexión recuperada! Volviendo a Enraíza…';
+
       statusText.classList.add('online');
-      setTimeout(() => { window.location.href = './'; }, 700);
+
+      setTimeout(() => {
+        window.location.href = './';
+      }, 700);
     }
   }
-  window.addEventListener('online', updateStatus);
-  document.getElementById('restartBtn').addEventListener('click', () => {
-    resetGame();
-    startGame();
-  });
-  updateStatus();
 
-  // ---------- Minijuego: la semillita saltarina ----------
-  const canvas = document.getElementById('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
+  window.addEventListener('online', updateStatus);
+
+
+  // =========================================================
+  // CONFIGURACIÓN DEL JUEGO
+  // =========================================================
+
+  const W = canvas.width;
+  const H = canvas.height;
   const GROUND_Y = H - 34;
 
-  const COLORS = { moss:'#3F6B4A', mossDark:'#2C4E35', clay:'#C1793C', clayDark:'#9C5F2C', line:'#B8AE93', paperAlt:'#E5DFC6', ink:'#23301D', sky:'#F4EEDB', cloud:'#FFFFFF' };
+  const COLORS = {
+    moss:'#3F6B4A',
+    mossDark:'#2C4E35',
+    clay:'#C1793C',
+    clayDark:'#9C5F2C',
+    line:'#B8AE93',
+    paperAlt:'#E5DFC6',
+    ink:'#23301D',
+    sky:'#F4EEDB',
+    cloud:'#FFFFFF'
+  };
 
-  let player, obstacles, clouds, speed, gravity, score, best, running, gameOverFlag, spawnTimer, raf;
+
+  // =========================================================
+  // ESTADO DEL JUEGO
+  // =========================================================
+
+  let player;
+  let obstacles;
+  let clouds;
+
+  let speed;
+  let gravity;
+  let score;
+  let best;
+
+  let running;
+  let gameOverFlag;
+
+  let spawnTimer;
+
+  // Último número entero mostrado en pantalla.
+  // Evita actualizar el DOM innecesariamente.
+  let lastDisplayedScore = -1;
+
+
   const BEST_KEY = 'enraiza:offline_highscore';
 
-  function loadBest(){ try{ return parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0; }catch(e){ return 0; } }
-  function saveBest(v){ try{ localStorage.setItem(BEST_KEY, String(v)); }catch(e){} }
-  function rand(min, max){ return Math.random() * (max - min) + min; }
+
+  // =========================================================
+  // UTILIDADES
+  // =========================================================
+
+  function loadBest(){
+
+    try{
+      return parseInt(
+        localStorage.getItem(BEST_KEY) || '0',
+        10
+      ) || 0;
+
+    }catch(e){
+
+      return 0;
+    }
+  }
+
+
+  function saveBest(value){
+
+    try{
+      localStorage.setItem(
+        BEST_KEY,
+        String(value)
+      );
+
+    }catch(e){}
+  }
+
+
+  function rand(min, max){
+    return Math.random() * (max - min) + min;
+  }
+
+
+  // =========================================================
+  // REINICIAR JUEGO
+  // =========================================================
 
   function resetGame(){
-    player = { x:50, y:GROUND_Y-28, w:26, h:28, vy:0, onGround:true };
+
+    player = {
+      x:50,
+      y:GROUND_Y - 28,
+      w:26,
+      h:28,
+      vy:0,
+      onGround:true
+    };
+
+
     obstacles = [];
-    clouds = Array.from({ length: 5 }, (_, i) => ({
-      x: rand(0, W),
-      y: rand(18, 90),
-      w: rand(24, 50),
-      h: rand(16, 28),
-      speed: rand(0.3, 0.8) + i * 0.05
+
+
+    // Las nubes tienen velocidad independiente
+    // de la velocidad del juego.
+    clouds = Array.from({ length:5 }, (_, i) => ({
+
+      x:rand(0, W),
+      y:rand(18, 90),
+
+      w:rand(24, 50),
+      h:rand(16, 28),
+
+      speed:rand(0.3, 0.8) + i * 0.05
+
     }));
+
+
     speed = 3.0;
+
     gravity = 0.62;
+
     score = 0;
+
     running = false;
+
     gameOverFlag = false;
+
     spawnTimer = 105;
-    document.getElementById('overlayTitle').textContent = '⏱️ Presiona espacio para comenzar';
-    document.getElementById('overlaySub').textContent = 'Empieza tranquilo, como el dinosaurio de Chrome. La velocidad aumenta poco a poco.';
-    document.getElementById('overlay').classList.remove('hidden');
+
+    lastDisplayedScore = -1;
+
+
+    overlayTitle.textContent =
+      '⏱️ Presiona espacio para comenzar';
+
+    overlaySub.textContent =
+      'Empieza tranquilo, como el dinosaurio de Chrome. La velocidad aumenta poco a poco.';
+
+    overlay.classList.remove('hidden');
+
+
+    scoreVal.textContent = '0';
+    bestVal.textContent = best;
+
+
     draw();
   }
 
+
+  // =========================================================
+  // SALTO
+  // =========================================================
+
   function jump(){
+
     if(!player) return;
-    if(gameOverFlag){ resetGame(); startGame(); return; }
-    if(player.onGround){ player.vy = -10.8; player.onGround = false; }
+
+
+    if(gameOverFlag){
+
+      resetGame();
+      startGame();
+
+      return;
+    }
+
+
+    if(player.onGround){
+
+      player.vy = -10.8;
+      player.onGround = false;
+    }
   }
+
+
+  // =========================================================
+  // CREAR OBSTÁCULO
+  // =========================================================
 
   function spawnObstacle(){
+
     const roll = Math.random();
+
     let type = 'rock';
-    if(roll < 0.18) type = 'bug';
-    else if(roll < 0.38) type = 'bird';
-    else if(roll < 0.7) type = 'cactus';
-    else type = 'rock';
+
+
+    if(roll < 0.18){
+
+      type = 'bug';
+
+    }else if(roll < 0.38){
+
+      type = 'bird';
+
+    }else if(roll < 0.7){
+
+      type = 'cactus';
+
+    }else{
+
+      type = 'rock';
+    }
+
+
+    // -------------------------
+    // Pájaro
+    // -------------------------
 
     if(type === 'bird'){
+
       obstacles.push({
-        type: 'bird',
-        x: W + 20, y: rand(90, GROUND_Y - 56), w: 26, h: 18,
-        phase: rand(0, Math.PI * 2)
+
+        type:'bird',
+
+        x:W + 20,
+
+        y:rand(
+          90,
+          GROUND_Y - 56
+        ),
+
+        w:26,
+        h:18,
+
+        phase:rand(
+          0,
+          Math.PI * 2
+        )
       });
+
       return;
     }
+
+
+    // -------------------------
+    // Bicho
+    // -------------------------
 
     if(type === 'bug'){
+
       obstacles.push({
-        type: 'bug',
-        x: W + 20, y: GROUND_Y - 18, w: 20, h: 16,
-        phase: rand(0, Math.PI * 2)
+
+        type:'bug',
+
+        x:W + 20,
+
+        y:GROUND_Y - 18,
+
+        w:20,
+        h:16,
+
+        phase:rand(
+          0,
+          Math.PI * 2
+        )
       });
+
       return;
     }
 
-    const h = type === 'cactus' ? rand(26, 44) : rand(18, 30);
-    const w = type === 'cactus' ? rand(14, 18) : rand(12, 18);
-    obstacles.push({ type, x: W + 20, y: GROUND_Y - h, w, h, phase: rand(0, Math.PI * 2) });
+
+    // -------------------------
+    // Piedra / cactus
+    // -------------------------
+
+    const h =
+      type === 'cactus'
+        ? rand(26, 44)
+        : rand(18, 30);
+
+
+    const w =
+      type === 'cactus'
+        ? rand(14, 18)
+        : rand(12, 18);
+
+
+    obstacles.push({
+
+      type,
+
+      x:W + 20,
+
+      y:GROUND_Y - h,
+
+      w,
+      h,
+
+      phase:rand(
+        0,
+        Math.PI * 2
+      )
+    });
   }
 
-  function rectsOverlap(a,b){
-    return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+
+  // =========================================================
+  // COLISIÓN
+  // =========================================================
+
+  function rectsOverlap(a, b){
+
+    return (
+      a.x < b.x + b.w &&
+      a.x + a.w > b.x &&
+      a.y < b.y + b.h &&
+      a.y + a.h > b.y
+    );
   }
+
+
+  // =========================================================
+  // ACTUALIZAR JUEGO
+  // =========================================================
 
   function update(){
+
     if(!running) return;
+
+
+    // -------------------------
+    // Física del jugador
+    // -------------------------
+
     player.vy += gravity;
+
     player.y += player.vy;
-    if(player.y >= GROUND_Y - player.h){ player.y = GROUND_Y - player.h; player.vy = 0; player.onGround = true; }
+
+
+    if(player.y >= GROUND_Y - player.h){
+
+      player.y = GROUND_Y - player.h;
+
+      player.vy = 0;
+
+      player.onGround = true;
+    }
+
+
+    // -------------------------
+    // NUBES
+    // -------------------------
+    // IMPORTANTE:
+    // Las nubes NO utilizan "speed".
+    // Mantienen su velocidad propia.
 
     clouds.forEach(c => {
+
       c.x -= c.speed;
+
+
       if(c.x + c.w < -10){
+
         c.x = W + 10;
+
         c.y = rand(18, 82);
+
         c.w = rand(24, 50);
+
         c.h = rand(16, 28);
       }
     });
 
+
+    // -------------------------
+    // GENERACIÓN DE OBSTÁCULOS
+    // -------------------------
+
     spawnTimer--;
+
+
     if(spawnTimer <= 0){
+
       spawnObstacle();
-      const base = Math.max(88, 125 - Math.floor(score / 500));
-      spawnTimer = rand(base, base + 34);
+
+
+      // La frecuencia de obstáculos
+      // aumenta lentamente con el puntaje.
+
+      const base =
+        Math.max(
+          88,
+          125 - Math.floor(score / 500)
+        );
+
+
+      spawnTimer =
+        rand(
+          base,
+          base + 34
+        );
     }
+
+
+    // -------------------------
+    // MOVIMIENTO DE OBSTÁCULOS
+    // -------------------------
 
     obstacles.forEach(o => {
+
       o.x -= speed;
-      if(o.type === 'bird') o.y += Math.sin((score * 0.45) + o.phase) * 0.9;
-      if(o.type === 'bug') o.y = GROUND_Y - (Math.sin((score * 0.5) + o.phase) * 5 + 18);
+
+
+      if(o.type === 'bird'){
+
+        o.y +=
+          Math.sin(
+            (score * 0.45) + o.phase
+          ) * 0.9;
+      }
+
+
+      if(o.type === 'bug'){
+
+        o.y =
+          GROUND_Y -
+          (
+            Math.sin(
+              (score * 0.5) + o.phase
+            ) * 5 + 18
+          );
+      }
+
     });
-    obstacles = obstacles.filter(o => o.x + o.w > -12);
+
+
+    // Elimina obstáculos que ya salieron
+    // completamente de la pantalla.
+
+    obstacles = obstacles.filter(
+      o => o.x + o.w > -12
+    );
+
+
+    // -------------------------
+    // COLISIONES
+    // -------------------------
 
     for(const o of obstacles){
-      if(rectsOverlap(player, o)){ endGame(); return; }
+
+      if(rectsOverlap(player, o)){
+
+        endGame();
+
+        return;
+      }
     }
+
+
+    // -------------------------
+    // PUNTAJE
+    // -------------------------
+    // El puntaje NO depende de speed.
 
     score += 0.10;
-    const progress = Math.min(score / 2500, 1);
-    speed = 3.0 + Math.pow(progress, 2.0) * 3.5;
+
+
+    // -------------------------
+    // ACELERACIÓN PROGRESIVA
+    // -------------------------
+
+    const progress =
+      Math.min(score / 2500, 1);
+
+
+    speed =
+      3.0 +
+      Math.pow(progress, 2.0) * 3.5;
   }
+
+
+  // =========================================================
+  // FIN DEL JUEGO
+  // =========================================================
 
   function endGame(){
+
     running = false;
+
     gameOverFlag = true;
-    const finalScore = Math.floor(score);
-    if(finalScore > best){ best = finalScore; saveBest(best); }
-    document.getElementById('overlayTitle').textContent = `🌧️ Puntaje: ${finalScore}`;
-    document.getElementById('overlaySub').textContent = 'Toca o presiona espacio para volver a intentar.';
-    document.getElementById('overlay').classList.remove('hidden');
-    document.getElementById('bestVal').textContent = best;
+
+
+    const finalScore =
+      Math.floor(score);
+
+
+    if(finalScore > best){
+
+      best = finalScore;
+
+      saveBest(best);
+    }
+
+
+    overlayTitle.textContent =
+      `🌧️ Puntaje: ${finalScore}`;
+
+
+    overlaySub.textContent =
+      'Toca o presiona espacio para volver a intentar.';
+
+
+    overlay.classList.remove('hidden');
+
+
+    bestVal.textContent = best;
   }
+
+
+  // =========================================================
+  // DIBUJAR SUELO
+  // =========================================================
 
   function drawGround(){
+
     ctx.fillStyle = COLORS.mossDark;
-    ctx.fillRect(0, GROUND_Y + 2, W, H - (GROUND_Y + 2));
+
+    ctx.fillRect(
+      0,
+      GROUND_Y + 2,
+      W,
+      H - (GROUND_Y + 2)
+    );
+
+
     ctx.strokeStyle = COLORS.line;
+
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y + 1);
-    ctx.lineTo(W, GROUND_Y + 1);
-    ctx.stroke();
 
     ctx.beginPath();
-    for(let x = 0; x <= W + 20; x += 18){
-      ctx.moveTo(x, GROUND_Y + 8);
-      ctx.lineTo(x + 8, GROUND_Y + 8);
+
+    ctx.moveTo(
+      0,
+      GROUND_Y + 1
+    );
+
+    ctx.lineTo(
+      W,
+      GROUND_Y + 1
+    );
+
+    ctx.stroke();
+
+
+    ctx.beginPath();
+
+
+    for(
+      let x = 0;
+      x <= W + 20;
+      x += 18
+    ){
+
+      ctx.moveTo(
+        x,
+        GROUND_Y + 8
+      );
+
+      ctx.lineTo(
+        x + 8,
+        GROUND_Y + 8
+      );
     }
-    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+
+
+    ctx.strokeStyle =
+      'rgba(255,255,255,0.22)';
+
     ctx.stroke();
   }
 
+
+  // =========================================================
+  // DIBUJAR NUBES
+  // =========================================================
+
   function drawClouds(){
+
     clouds.forEach(c => {
+
       ctx.fillStyle = COLORS.cloud;
+
       ctx.beginPath();
-      ctx.arc(c.x, c.y, c.h * 0.45, 0, Math.PI * 2);
-      ctx.arc(c.x + c.w * 0.25, c.y - c.h * 0.2, c.h * 0.34, 0, Math.PI * 2);
-      ctx.arc(c.x + c.w * 0.55, c.y - c.h * 0.12, c.h * 0.38, 0, Math.PI * 2);
-      ctx.arc(c.x + c.w, c.y, c.h * 0.42, 0, Math.PI * 2);
+
+
+      ctx.arc(
+        c.x,
+        c.y,
+        c.h * 0.45,
+        0,
+        Math.PI * 2
+      );
+
+
+      ctx.arc(
+        c.x + c.w * 0.25,
+        c.y - c.h * 0.2,
+        c.h * 0.34,
+        0,
+        Math.PI * 2
+      );
+
+
+      ctx.arc(
+        c.x + c.w * 0.55,
+        c.y - c.h * 0.12,
+        c.h * 0.38,
+        0,
+        Math.PI * 2
+      );
+
+
+      ctx.arc(
+        c.x + c.w,
+        c.y,
+        c.h * 0.42,
+        0,
+        Math.PI * 2
+      );
+
+
       ctx.fill();
     });
   }
 
+
+  // =========================================================
+  // DIBUJAR JUGADOR
+  // =========================================================
+
   function drawPlayer(){
-    const x = player.x, y = player.y, w = player.w, h = player.h;
+
+    const x = player.x;
+    const y = player.y;
+    const w = player.w;
+    const h = player.h;
+
+
+    // Maceta / semilla
+
     ctx.fillStyle = COLORS.clay;
+
     ctx.beginPath();
-    ctx.moveTo(x, y+h-14); ctx.lineTo(x+w, y+h-14); ctx.lineTo(x+w-4, y+h); ctx.lineTo(x+4, y+h);
-    ctx.closePath(); ctx.fill();
+
+    ctx.moveTo(
+      x,
+      y + h - 14
+    );
+
+    ctx.lineTo(
+      x + w,
+      y + h - 14
+    );
+
+    ctx.lineTo(
+      x + w - 4,
+      y + h
+    );
+
+    ctx.lineTo(
+      x + 4,
+      y + h
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    // Tallo
 
     ctx.strokeStyle = COLORS.moss;
+
     ctx.lineWidth = 3;
+
     ctx.beginPath();
-    ctx.moveTo(x+w/2, y+h-14);
-    ctx.lineTo(x+w/2, y+6);
+
+    ctx.moveTo(
+      x + w / 2,
+      y + h - 14
+    );
+
+    ctx.lineTo(
+      x + w / 2,
+      y + 6
+    );
+
     ctx.stroke();
 
+
+    // Hojas
+
     ctx.fillStyle = COLORS.moss;
-    ctx.beginPath(); ctx.ellipse(x+w/2-7, y+6, 8, 5, -0.5, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(x+w/2+7, y+10, 8, 5, 0.5, 0, Math.PI*2); ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      x + w / 2 - 7,
+      y + 6,
+      8,
+      5,
+      -0.5,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      x + w / 2 + 7,
+      y + 10,
+      8,
+      5,
+      0.5,
+      0,
+      Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    // Detalle
 
     ctx.fillStyle = COLORS.paperAlt;
-    ctx.fillRect(x + 6, y + 4, 14, 9);
+
+    ctx.fillRect(
+      x + 6,
+      y + 4,
+      14,
+      9
+    );
   }
 
+
+  // =========================================================
+  // DIBUJAR OBSTÁCULOS
+  // =========================================================
+
   function drawObstacles(){
+
     obstacles.forEach(o => {
+
+
+      // -------------------------
+      // PIEDRA
+      // -------------------------
+
       if(o.type === 'rock'){
+
         ctx.fillStyle = COLORS.ink;
+
         ctx.beginPath();
-        ctx.moveTo(o.x, o.y+o.h);
-        ctx.lineTo(o.x+o.w*0.2, o.y);
-        ctx.lineTo(o.x+o.w*0.8, o.y+o.h*0.15);
-        ctx.lineTo(o.x+o.w, o.y+o.h);
-        ctx.closePath(); ctx.fill();
+
+        ctx.moveTo(
+          o.x,
+          o.y + o.h
+        );
+
+        ctx.lineTo(
+          o.x + o.w * 0.2,
+          o.y
+        );
+
+        ctx.lineTo(
+          o.x + o.w * 0.8,
+          o.y + o.h * 0.15
+        );
+
+        ctx.lineTo(
+          o.x + o.w,
+          o.y + o.h
+        );
+
+        ctx.closePath();
+
+        ctx.fill();
       }
+
+
+      // -------------------------
+      // CACTUS
+      // -------------------------
 
       if(o.type === 'cactus'){
+
         ctx.fillStyle = COLORS.moss;
-        ctx.fillRect(o.x, o.y, o.w, o.h);
-        ctx.fillRect(o.x - 4, o.y + 12, 6, 10);
-        ctx.fillRect(o.x + o.w - 2, o.y + 12, 6, 10);
+
+
+        ctx.fillRect(
+          o.x,
+          o.y,
+          o.w,
+          o.h
+        );
+
+
+        ctx.fillRect(
+          o.x - 4,
+          o.y + 12,
+          6,
+          10
+        );
+
+
+        ctx.fillRect(
+          o.x + o.w - 2,
+          o.y + 12,
+          6,
+          10
+        );
+
+
         ctx.fillStyle = COLORS.clayDark;
-        ctx.fillRect(o.x + 3, o.y + 18, 3, 8);
-        ctx.fillRect(o.x + o.w - 6, o.y + 18, 3, 8);
+
+
+        ctx.fillRect(
+          o.x + 3,
+          o.y + 18,
+          3,
+          8
+        );
+
+
+        ctx.fillRect(
+          o.x + o.w - 6,
+          o.y + 18,
+          3,
+          8
+        );
       }
+
+
+      // -------------------------
+      // BICHO
+      // -------------------------
 
       if(o.type === 'bug'){
+
         ctx.fillStyle = COLORS.clayDark;
+
         ctx.beginPath();
-        ctx.ellipse(o.x + o.w/2, o.y + o.h/2, o.w/2, o.h/2, 0, 0, Math.PI * 2);
+
+        ctx.ellipse(
+          o.x + o.w / 2,
+          o.y + o.h / 2,
+          o.w / 2,
+          o.h / 2,
+          0,
+          0,
+          Math.PI * 2
+        );
+
         ctx.fill();
+
+
         ctx.fillStyle = COLORS.paperAlt;
-        ctx.fillRect(o.x + 2, o.y + 4, 4, 4);
-        ctx.fillRect(o.x + o.w - 6, o.y + 4, 4, 4);
+
+
+        ctx.fillRect(
+          o.x + 2,
+          o.y + 4,
+          4,
+          4
+        );
+
+
+        ctx.fillRect(
+          o.x + o.w - 6,
+          o.y + 4,
+          4,
+          4
+        );
       }
 
+
+      // -------------------------
+      // PÁJARO
+      // -------------------------
+
       if(o.type === 'bird'){
-        const wing = Math.sin((score * 0.4) + o.phase) > 0 ? 1 : -1;
-        ctx.fillStyle = COLORS.clayDark;
+
+        const wing =
+          Math.sin(
+            (score * 0.4) + o.phase
+          ) > 0
+            ? 1
+            : -1;
+
+
+        ctx.fillStyle =
+          COLORS.clayDark;
+
+
         ctx.beginPath();
-        ctx.moveTo(o.x, o.y + o.h/2);
-        ctx.quadraticCurveTo(o.x + o.w * 0.3, o.y - wing * 6, o.x + o.w, o.y + o.h/2);
-        ctx.quadraticCurveTo(o.x + o.w * 0.3, o.y + o.h * 0.65, o.x, o.y + o.h/2);
+
+
+        ctx.moveTo(
+          o.x,
+          o.y + o.h / 2
+        );
+
+
+        ctx.quadraticCurveTo(
+          o.x + o.w * 0.3,
+          o.y - wing * 6,
+          o.x + o.w,
+          o.y + o.h / 2
+        );
+
+
+        ctx.quadraticCurveTo(
+          o.x + o.w * 0.3,
+          o.y + o.h * 0.65,
+          o.x,
+          o.y + o.h / 2
+        );
+
+
         ctx.fill();
       }
+
     });
   }
 
+
+  // =========================================================
+  // DIBUJAR TODO
+  // =========================================================
+
   function draw(){
-    ctx.clearRect(0,0,W,H);
+
+    ctx.clearRect(
+      0,
+      0,
+      W,
+      H
+    );
+
+
+    // Cielo
+
     ctx.fillStyle = COLORS.sky;
-    ctx.fillRect(0,0,W,H);
+
+    ctx.fillRect(
+      0,
+      0,
+      W,
+      H
+    );
+
+
     drawClouds();
+
     drawGround();
+
     drawObstacles();
+
     drawPlayer();
-    document.getElementById('scoreVal').textContent = Math.floor(score);
-    document.getElementById('bestVal').textContent = best;
+
+
+    // Actualizar puntaje visual
+    // solo cuando cambia el número entero.
+
+    const currentScore =
+      Math.floor(score);
+
+
+    if(currentScore !== lastDisplayedScore){
+
+      lastDisplayedScore =
+        currentScore;
+
+      scoreVal.textContent =
+        currentScore;
+    }
+
+
+    bestVal.textContent = best;
   }
+
+
+  // =========================================================
+  // LOOP PRINCIPAL
+  // =========================================================
 
   function loop(){
+
     update();
+
     draw();
-    if(running) raf = requestAnimationFrame(loop);
+
+
+    if(running){
+
+      requestAnimationFrame(loop);
+    }
   }
 
-  best = loadBest();
-  resetGame();
-  document.getElementById('bestVal').textContent = best;
+
+  // =========================================================
+  // INICIAR JUEGO
+  // =========================================================
 
   function startGame(){
+
     if(running) return;
-    if(gameOverFlag){ resetGame(); }
+
+
+    if(gameOverFlag){
+
+      resetGame();
+    }
+
+
     running = true;
-    document.getElementById('overlay').classList.add('hidden');
+
+    overlay.classList.add('hidden');
+
+
     requestAnimationFrame(loop);
   }
 
-  window.addEventListener('keydown', (e) => {
-    if(e.code === 'Space' || e.code === 'ArrowUp'){ e.preventDefault(); startGame(); jump(); }
-  });
 
-  canvas.addEventListener('pointerdown', () => { startGame(); jump(); });
-  document.getElementById('overlay').addEventListener('pointerdown', () => {
-    if(gameOverFlag){ resetGame(); startGame(); } else { startGame(); jump(); }
-  });
+  // =========================================================
+  // BOTÓN REINICIAR
+  // =========================================================
+
+  restartBtn.addEventListener(
+    'click',
+    () => {
+
+      resetGame();
+
+      startGame();
+    }
+  );
+
+
+  // =========================================================
+  // TECLADO
+  // =========================================================
+
+  window.addEventListener(
+    'keydown',
+    (e) => {
+
+      if(
+        e.code === 'Space' ||
+        e.code === 'ArrowUp'
+      ){
+
+        e.preventDefault();
+
+        startGame();
+
+        jump();
+      }
+    }
+  );
+
+
+  // =========================================================
+  // TOQUE / MOUSE
+  // =========================================================
+
+  canvas.addEventListener(
+    'pointerdown',
+    () => {
+
+      startGame();
+
+      jump();
+    }
+  );
+
+
+  overlay.addEventListener(
+    'pointerdown',
+    () => {
+
+      if(gameOverFlag){
+
+        resetGame();
+
+        startGame();
+
+      }else{
+
+        startGame();
+
+        jump();
+      }
+    }
+  );
+
+
+  // =========================================================
+  // ARRANQUE
+  // =========================================================
+
+  best = loadBest();
+
+  resetGame();
+
+  bestVal.textContent = best;
+
+  updateStatus();
 
 </script>
+
 </body>
 </html>
