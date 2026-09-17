@@ -536,11 +536,11 @@
   }
   .story-progress-row{ position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; z-index:8; padding:2px 2px 0; background: rgba(0,0,0,0.28); border-radius:8px; }
   .story-progress-track{ flex:1; height:3px; background: rgba(255,255,255,0.35); border-radius:3px; overflow:hidden; }
-  .story-progress-fill{ height:100%; width:0%; background:#fff; }
-  .story-progress-fill.filled{ width:100%; }
+  .story-progress-fill{ height:100%; width:100%; background:#fff; transform-origin:left; transform:scaleX(0); }
+  .story-progress-fill.filled{ transform:scaleX(1); }
   .story-progress-fill.animating{ animation: storyFill linear forwards; }
   .story-progress-fill.paused{ animation-play-state: paused; }
-  @keyframes storyFill{ from{ width:0%; } to{ width:100%; } }
+  @keyframes storyFill{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
   .story-view-img-wrap{ position:absolute; inset:0; width:100%; height:100%; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .story-view-img-wrap img{ width:100%; height:100%; object-fit:contain; display:block; background:#000; }
   .story-view-head{ display:flex; align-items:center; gap:8px; padding: 18px 46px 12px 12px; position:absolute; top:0; left:0; right:0; color:#fff; z-index:7; background: linear-gradient(180deg, rgba(0,0,0,0.58), rgba(0,0,0,0.06)); }
@@ -2303,11 +2303,27 @@ document.addEventListener('dragstart', (e) => {
 // =====================================================================
 // SUBIDA DE IMÁGENES A SUPABASE STORAGE
 // =====================================================================
+async function compressImage(file, maxSize = 1600, quality = 0.82){
+  try{
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+    return blob ? new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type:'image/jpeg' }) : file;
+  }catch(err){
+    return file; // si algo falla (ej. formato raro), sube el original en vez de tronar
+  }
+}
+
 async function uploadImageFile(file, folder){
   const uid = currentUser ? currentUser.id : 'anon';
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const toUpload = file.type.startsWith('image/') ? await compressImage(file) : file;
+  const ext = (toUpload.name.split('.').pop() || 'jpg').toLowerCase();
   const path = `${folder}/${uid}/${Date.now()}_${Math.floor(Math.random()*1e6)}.${ext}`;
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, { cacheControl: '3600', upsert: false });
+  const { error } = await sb.storage.from(BUCKET).upload(path, toUpload, { cacheControl: '3600', upsert: false });
   if(error) throw error;
   const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
@@ -2319,70 +2335,169 @@ async function uploadImageFile(file, folder){
 // recommend_feed para el algoritmo de recomendación).
 // =====================================================================
 const DB = {
+
   users: {
     async findById(id){
-      const { data, error } = await sb.from('profiles').select('*').eq('id', id).maybeSingle();
+      if(!id) return null;
+
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id,name,avatar_url,bio,privacy_settings')
+        .eq('id', id)
+        .maybeSingle();
+
       if(error) throw error;
       if(!data) return null;
+
       return {
         id: data.id,
         name: data.name,
         avatarUrl: data.avatar_url,
         bio: data.bio || '',
-        privacySettings: normalizePrivacySettings(data.privacy_settings || data.profile_privacy || data.privacy || {})
+        privacySettings: normalizePrivacySettings(
+          data.privacy_settings || {}
+        )
       };
     },
+
     async search(query){
-      if(!query || !query.trim()) return [];
-      const { data, error } = await sb.from('profiles').select('*').ilike('name', `%${query.trim()}%`).limit(8);
+      const q = String(query || '').trim();
+      if(!q) return [];
+
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id,name,avatar_url,bio,privacy_settings')
+        .ilike('name', `%${q}%`)
+        .limit(8);
+
       if(error) throw error;
-      return (data||[]).map(d => ({
+
+      return (data || []).map(d => ({
         id: d.id,
         name: d.name,
         avatarUrl: d.avatar_url,
         bio: d.bio || '',
-        privacySettings: normalizePrivacySettings(d.privacy_settings || d.profile_privacy || d.privacy || {})
+        privacySettings: normalizePrivacySettings(
+          d.privacy_settings || {}
+        )
       }));
     },
+
     async updateProfile(id, profile){
+      if(!id) throw new Error('Perfil no válido.');
+
       const patch = {};
-      if('name' in profile) patch.name = profile.name;
-      if('bio' in profile) patch.bio = profile.bio;
-      if('privacySettings' in profile) patch.privacy_settings = profile.privacySettings;
-      if(Object.keys(patch).length === 0) return { id, name: '', avatarUrl: '', bio: '', privacySettings: normalizePrivacySettings({}) };
-      const { data, error } = await sb.from('profiles').update(patch).eq('id', id).select().single();
+
+      if('name' in profile) {
+        patch.name = String(profile.name || '').trim();
+      }
+
+      if('bio' in profile) {
+        patch.bio = String(profile.bio || '').trim();
+      }
+
+      if('privacySettings' in profile) {
+        patch.privacy_settings = profile.privacySettings;
+      }
+
+      if(Object.keys(patch).length === 0){
+        return {
+          id,
+          name: '',
+          avatarUrl: '',
+          bio: '',
+          privacySettings: normalizePrivacySettings({})
+        };
+      }
+
+      const { data, error } = await sb
+        .from('profiles')
+        .update(patch)
+        .eq('id', id)
+        .select('id,name,avatar_url,bio,privacy_settings')
+        .single();
+
       if(error) throw error;
+
       return {
         id: data.id,
         name: data.name,
         avatarUrl: data.avatar_url,
         bio: data.bio || '',
-        privacySettings: normalizePrivacySettings(data.privacy_settings || data.profile_privacy || data.privacy || {})
+        privacySettings: normalizePrivacySettings(
+          data.privacy_settings || {}
+        )
       };
     },
+
     async updateName(id, name){
       return this.updateProfile(id, { name });
     },
+
     async updateBio(id, bio){
       return this.updateProfile(id, { bio });
     },
+
     async updateAvatar(id, avatarUrl){
-      const { data, error } = await sb.from('profiles').update({ avatar_url: avatarUrl }).eq('id', id).select().single();
+      if(!id) throw new Error('Perfil no válido.');
+
+      const { data, error } = await sb
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', id)
+        .select('id,name,avatar_url,bio,privacy_settings')
+        .single();
+
       if(error) throw error;
-      return { id: data.id, name: data.name, avatarUrl: data.avatar_url, bio: data.bio || '' };
-    },
+
+      return {
+        id: data.id,
+        name: data.name,
+        avatarUrl: data.avatar_url,
+        bio: data.bio || '',
+        privacySettings: normalizePrivacySettings(
+          data.privacy_settings || {}
+        )
+      };
+    }
   },
 
   follows: {
     async getCounts(userId){
-      const [{ data: followersData, error: followersError }, { data: followingData, error: followingError }] = await Promise.all([
-        sb.from('user_follows').select('follower_id').eq('followed_id', userId),
-        sb.from('user_follows').select('followed_id').eq('follower_id', userId)
+      if(!userId){
+        return {
+          followersCount: 0,
+          followingCount: 0
+        };
+      }
+
+      const [
+        { count: followersCount, error: followersError },
+        { count: followingCount, error: followingError }
+      ] = await Promise.all([
+        sb
+          .from('user_follows')
+          .select('follower_id', {
+            count: 'exact',
+            head: true
+          })
+          .eq('followed_id', userId),
+
+        sb
+          .from('user_follows')
+          .select('followed_id', {
+            count: 'exact',
+            head: true
+          })
+          .eq('follower_id', userId)
       ]);
-      if(followersError || followingError) throw followersError || followingError;
+
+      if(followersError) throw followersError;
+      if(followingError) throw followingError;
+
       return {
-        followersCount: (followersData || []).length,
-        followingCount: (followingData || []).length
+        followersCount: followersCount || 0,
+        followingCount: followingCount || 0
       };
     },
     async listFollowers(userId){
@@ -2402,22 +2517,45 @@ const DB = {
       return !!data;
     },
     async toggle(followerId, followedId){
-      if(!followerId || !followedId || followerId === followedId) return false;
-      const existing = await this.isFollowing(followerId, followedId).catch(() => false);
-      if(existing){
-        const { error } = await sb.from('user_follows').delete().eq('follower_id', followerId).eq('followed_id', followedId);
-        if(error) throw error;
+      if(!followerId || !followedId || followerId === followedId){
         return false;
       }
-      const { error } = await sb.from('user_follows').insert({ follower_id: followerId, followed_id: followedId });
+
+      const { data, error } = await sb.rpc('toggle_follow', {
+        p_followed_id: followedId
+      });
+
       if(error) throw error;
-      return true;
+
+      return !!data;
     }
   },
 
   posts: {
-    async list(){
-      const { data, error } = await sb.from('posts').select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))').order('created_at', { ascending:false });
+    async listByIds(ids){
+      if(!ids || !ids.length) return [];
+      const { data, error } = await sb.from('posts')
+        .select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))')
+        .in('id', ids);
+      if(error) throw error;
+      const byId = new Map((data||[]).map(mapPostRow).map(p => [p.id, p]));
+      return ids.map(id => byId.get(id)).filter(Boolean); // conserva el orden del ranking
+    },
+    async listRecent(limit = 50){
+      const { data, error } = await sb.from('posts')
+        .select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))')
+        .order('created_at', { ascending:false })
+        .limit(limit);
+      if(error) throw error;
+      return (data||[]).map(mapPostRow);
+    },
+    async listRecentExcluding(excludeIds = [], limit = 20){
+      let q = sb.from('posts')
+        .select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))')
+        .order('created_at', { ascending:false })
+        .limit(limit);
+      if(excludeIds.length) q = q.not('id', 'in', `(${excludeIds.join(',')})`);
+      const { data, error } = await q;
       if(error) throw error;
       return (data||[]).map(mapPostRow);
     },
@@ -2447,14 +2585,19 @@ const DB = {
       if(error) throw error;
       return true;
     },
-    async toggleLike(id, userId){
-      const { data: existing } = await sb.from('post_likes').select('*').eq('post_id', id).eq('user_id', userId).maybeSingle();
-      if(existing){
-        await sb.from('post_likes').delete().eq('post_id', id).eq('user_id', userId);
-      } else {
-        await sb.from('post_likes').insert({ post_id: id, user_id: userId });
-      }
-      return true;
+    async toggleLike(id){
+      if(!id) throw new Error('Publicación no válida.');
+
+      const { data, error } = await sb.rpc('toggle_post_like', {
+        p_post_id: id
+      });
+
+      if(error) throw error;
+
+      return {
+        liked: !!data?.liked,
+        likeCount: Number(data?.like_count || 0)
+      };
     },
     async addComment(id, { authorId, text, parentId }){
       const { data, error } = await sb.from('post_comments').insert({ post_id: id, author_id: authorId, text, parent_id: parentId || null }).select().single();
@@ -2466,14 +2609,21 @@ const DB = {
       if(error) throw error;
       return true;
     },
-    async toggleCommentLike(commentId, userId){
-      const { data: existing } = await sb.from('comment_likes').select('*').eq('comment_id', commentId).eq('user_id', userId).maybeSingle();
-      if(existing){
-        await sb.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', userId);
-      } else {
-        await sb.from('comment_likes').insert({ comment_id: commentId, user_id: userId });
+    async toggleCommentLike(commentId){
+      if(!commentId){
+        throw new Error('Comentario no válido.');
       }
-      return true;
+
+      const { data, error } = await sb.rpc('toggle_comment_like', {
+        p_comment_id: commentId
+      });
+
+      if(error) throw error;
+
+      return {
+        liked: !!data?.liked,
+        likeCount: Number(data?.like_count || 0)
+      };
     },
   },
 
@@ -2665,8 +2815,12 @@ const DB = {
   },
 
   recommend: {
-    async rankedIds(viewerId){
-      const { data, error } = await sb.rpc('recommend_feed', { viewer_id: viewerId || null });
+    async rankedIds(viewerId, excludeIds = [], limit = 20){
+      const { data, error } = await sb.rpc('recommend_feed', {
+        viewer_id: viewerId || null,
+        exclude_ids: excludeIds,
+        p_limit: limit
+      });
       if(error) throw error;
       return (data || []).map(r => r.post_id);
     },
@@ -2886,6 +3040,17 @@ async function getUserCached(id){
   const u = await DB.users.findById(id);
   if(u) usersCache[id] = u;
   return u;
+}
+async function getUsersBatch(ids){
+  const missing = [...new Set(ids)].filter(id => id && !usersCache[id]);
+  if(!missing.length) return;
+  const { data, error } = await sb.from('profiles')
+    .select('id,name,avatar_url,bio,privacy_settings')
+    .in('id', missing);
+  if(error) return; // si falla el lote, resolveAuthorObjs de todos modos cachea uno por uno como respaldo
+  (data||[]).forEach(d => {
+    usersCache[d.id] = { id: d.id, name: d.name, avatarUrl: d.avatar_url, bio: d.bio || '', privacySettings: normalizePrivacySettings(d.privacy_settings || {}) };
+  });
 }
 function initials(name){
   const clean = (name || '').trim();
@@ -3602,6 +3767,9 @@ function openComposer(){
   document.getElementById('createBar').style.display = 'none';
   document.getElementById('postTitle').focus();
 }
+function revokePendingPhotoUrls(){
+  pendingPhotos.forEach(p => { if(p.file && p.url) URL.revokeObjectURL(p.url); });
+}
 function closeComposer(){
   composerForm.classList.remove('open');
   document.getElementById('createBar').style.display = 'flex';
@@ -3609,6 +3777,7 @@ function closeComposer(){
   document.getElementById('postEditId').value = '';
   document.getElementById('composerGreeting').textContent = 'Nueva publicación';
   document.getElementById('composerSubmitBtn').textContent = 'Publicar';
+  revokePendingPhotoUrls();
   pendingPhotos = [];
   renderPhotoPreview();
 }
@@ -3631,7 +3800,10 @@ function renderPhotoPreview(){
     </div>
   `).join('');
   row.querySelectorAll('[data-removeidx]').forEach(btn => btn.addEventListener('click', () => {
-    pendingPhotos.splice(parseInt(btn.dataset.removeidx, 10), 1);
+    const idx = parseInt(btn.dataset.removeidx, 10);
+    const removed = pendingPhotos[idx];
+    if(removed && removed.file && removed.url) URL.revokeObjectURL(removed.url);
+    pendingPhotos.splice(idx, 1);
     renderPhotoPreview();
   }));
 }
@@ -3706,6 +3878,14 @@ let openShareId = null;
 
 // ---------- SEGUIMIENTO DE VISTAS (señal implícita real: cuánto tiempo te detienes) ----------
 const viewTimers = {};
+const pendingViews = {};
+setInterval(() => {
+  if(!currentUser) return;
+  const entries = Object.entries(pendingViews);
+  if(!entries.length) return;
+  entries.forEach(([id]) => delete pendingViews[id]);
+  entries.forEach(([id, ms]) => DB.views.record(currentUser.id, id, ms).catch(() => {}));
+}, 15000);
 const postViewObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     const id = entry.target.dataset.id;
@@ -3716,7 +3896,7 @@ const postViewObserver = new IntersectionObserver((entries) => {
       const dwell = Date.now() - viewTimers[id];
       delete viewTimers[id];
       if(currentUser && dwell >= 1200){
-        DB.views.record(currentUser.id, id, dwell).catch(() => {});
+        pendingViews[id] = (pendingViews[id] || 0) + dwell; // se acumula, no se manda todavía
       }
     }
   });
@@ -3794,7 +3974,7 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
 async function resolveAuthorObjs(posts){
   const ids = new Set();
   posts.forEach(p => { ids.add(p.authorId); (p.comments||[]).forEach(c => ids.add(c.authorId)); });
-  await Promise.all([...ids].map(id => getUserCached(id)));
+  await getUsersBatch([...ids]);
 }
 
 // ---------- COMPARTIR PUBLICACIÓN (enlace directo + Web Share si está disponible) ----------
@@ -4001,38 +4181,56 @@ function rerenderCardFromCache(postId){
   }
 }
 
-// ---------- CARGAR TODAS LAS PUBLICACIONES UNA VEZ Y GUARDARLAS EN LA CACHÉ ----------
+// ---------- PAGINACIÓN REAL DEL FEED (scroll infinito de verdad) ----------
+const FEED_SERVER_PAGE = 20;     // cuántas se piden al servidor cada vez
+let loadedPostIds = [];          // todo lo que ya se le pidió a esta sesión (para no repetir)
+let feedExhausted = false;       // true cuando el servidor ya no tiene nada nuevo que dar
+let feedLoadingMore = false;     // evita pedir dos páginas a la vez si el scroll dispara rápido
+let mySavedIdsSet = new Set();
+
 async function loadPostsIntoCache(){
-  const posts = await DB.posts.list();
-  postsCache = posts;
-  postsCacheReady = true;
-  await resolveAuthorObjs(posts);
+  postsCache = [];
+  loadedPostIds = [];
+  feedExhausted = false;
+  postsCacheReady = false;
+
   if(currentUser){
-    try{
-      const savedIds = await DB.saved.listForUser(currentUser.id);
-      const savedSet = new Set(savedIds);
-      postsCache.forEach(p => { p._savedLocal = savedSet.has(p.id); });
-    }catch(err){ /* ignore */ }
+    try{ mySavedIdsSet = new Set(await DB.saved.listForUser(currentUser.id)); }
+    catch(err){ mySavedIdsSet = new Set(); }
+  } else {
+    mySavedIdsSet = new Set();
   }
-  // Orden real: le pedimos al servidor el ranking de recommend_feed()
-  // (afinidad por tus interacciones + colaborativo + popularidad) y
-  // reordenamos la caché según ese resultado. Si la función todavía no
-  // existe en Supabase (o falla), seguimos con el orden cronológico
-  // normal — el feed nunca se debe quedar vacío por esto.
-  try{
-    const rankedIds = await DB.recommend.rankedIds(currentUser ? currentUser.id : null);
-    if(rankedIds.length){
-      const order = new Map(rankedIds.map((id, i) => [id, i]));
-      postsCache.sort((a, b) => {
-        const ra = order.has(a.id) ? order.get(a.id) : Infinity;
-        const rb = order.has(b.id) ? order.get(b.id) : Infinity;
-        return ra - rb;
-      });
-    }
-  }catch(err){
-    console.warn('No se pudo aplicar el ranking de recomendación, se usa orden cronológico:', err);
-  }
+
+  await loadNextFeedPage(); // trae la primera página (igual que antes, pero ahora es solo el primer bloque)
+  postsCacheReady = true;
   return postsCache;
+}
+
+async function loadNextFeedPage(){
+  if(feedLoadingMore || feedExhausted) return [];
+  feedLoadingMore = true;
+  let batch = [];
+  try{
+    const rankedIds = await DB.recommend.rankedIds(currentUser ? currentUser.id : null, loadedPostIds, FEED_SERVER_PAGE);
+    batch = rankedIds.length ? await DB.posts.listByIds(rankedIds) : [];
+  }catch(err){
+    console.warn('No se pudo pedir más publicaciones rankeadas, se intenta cronológico:', err);
+    try{ batch = await DB.posts.listRecentExcluding(loadedPostIds, FEED_SERVER_PAGE); }
+    catch(err2){ batch = []; }
+  }
+  feedLoadingMore = false;
+
+  if(!batch.length){ feedExhausted = true; return []; }
+
+  batch.forEach(p => {
+    if(!getCachedPost(p.id)){
+      p._savedLocal = mySavedIdsSet.has(p.id);
+      postsCache.push(p);       // al final, para respetar el orden del ranking
+      loadedPostIds.push(p.id);
+    }
+  });
+  await resolveAuthorObjs(batch);
+  return batch;
 }
 
 const FEED_PAGE_SIZE = 12;
@@ -4065,7 +4263,7 @@ function paintFeedBatch(posts, count){
     const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
     const saved = currentUser ? !!post._savedLocal : false;
     return postCardHTML(post, authorName, authorObj, liked, saved);
-  }).join('') + (count < posts.length
+  }).join('') + ((count < posts.length || (!activeAuthorFilter && !feedExhausted))
     ? '<div id="feedSentinel" style="height:1px;"></div>'
     : '<p class="feed-empty" style="text-align:center;padding:18px 0;">Ya viste todo por ahora 🌱</p>');
   feedEntriesEl.querySelectorAll('.ig-post').forEach(article => bindPostCard(article));
@@ -4076,8 +4274,16 @@ function setupFeedInfiniteScroll(posts){
   const sentinel = document.getElementById('feedSentinel');
   if(!sentinel) return;
   feedSentinelObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if(entry.isIntersecting && feedRenderedCount < posts.length){
+    entries.forEach(async entry => {
+      if(!entry.isIntersecting) return;
+      if(feedRenderedCount < posts.length){
+        // todavía hay publicaciones ya cargadas en caché que no se han mostrado
+        feedRenderedCount = Math.min(feedRenderedCount + FEED_PAGE_SIZE, posts.length);
+        paintFeedBatch(posts, feedRenderedCount);
+        setupFeedInfiniteScroll(posts);
+      } else if(!activeAuthorFilter && !feedExhausted && !feedLoadingMore){
+        // ya se mostró todo lo que había en caché: pide una página nueva al servidor
+        await loadNextFeedPage();
         feedRenderedCount = Math.min(feedRenderedCount + FEED_PAGE_SIZE, posts.length);
         paintFeedBatch(posts, feedRenderedCount);
         setupFeedInfiniteScroll(posts);
@@ -4619,7 +4825,13 @@ function openAddStoryModal(){
     document.getElementById('storyPhotoPreview').innerHTML = `
       <div class="photo-preview-item"><img src="${URL.createObjectURL(file)}" alt=""><button type="button" id="storyPhotoRemove">&times;</button></div>
     `;
-    document.getElementById('storyPhotoRemove').addEventListener('click', () => { storyFile = null; document.getElementById('storyPhotoPreview').innerHTML = ''; });
+    const previewImg = document.querySelector('#storyPhotoPreview img');
+    const previewUrl = previewImg ? previewImg.src : null;
+    document.getElementById('storyPhotoRemove').addEventListener('click', () => {
+      storyFile = null;
+      if(previewUrl) URL.revokeObjectURL(previewUrl);
+      document.getElementById('storyPhotoPreview').innerHTML = '';
+    });
   });
   document.getElementById('storyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -5830,7 +6042,13 @@ function openAddProjectEntryModal(project){
     document.getElementById('entryPhotoPreview').innerHTML = `
       <div class="photo-preview-item"><img src="${URL.createObjectURL(file)}" alt=""><button type="button" id="entryPhotoRemove">&times;</button></div>
     `;
-    document.getElementById('entryPhotoRemove').addEventListener('click', () => { entryFile = null; document.getElementById('entryPhotoPreview').innerHTML = ''; });
+    const entryPreviewImg = document.querySelector('#entryPhotoPreview img');
+    const entryPreviewUrl = entryPreviewImg ? entryPreviewImg.src : null;
+    document.getElementById('entryPhotoRemove').addEventListener('click', () => {
+      entryFile = null;
+      if(entryPreviewUrl) URL.revokeObjectURL(entryPreviewUrl);
+      document.getElementById('entryPhotoPreview').innerHTML = '';
+    });
   });
   document.getElementById('addEntryForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -6529,7 +6747,8 @@ function initSettingsNavigation(){
 initSettingsNavigation();
 
 async function renderProfile(){
-  applyProfileToUI(); renderSettingsPage();
+  applyProfileToUI();
+  if(document.getElementById('configuracion')?.classList.contains('active')) renderSettingsPage();
   const stats=await computeStats();
   const verifiedEl=document.getElementById('profileVerifiedBadge'); if(verifiedEl) verifiedEl.style.display=isVerifiedOwner(currentUser)?'inline-flex':'none';
   const bioTextEl=document.getElementById('profileBioText');
