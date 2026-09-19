@@ -2184,13 +2184,6 @@ function escapeHtml(str){
   d.textContent = str || '';
   return d.innerHTML;
 }
-// Fecha local del usuario en formato YYYY-MM-DD, sin pasar por UTC — para que
-// la racha se calcule según SU día calendario real, sin importar dónde esté.
-function localDateString(){
-  const d = new Date();
-  const offsetMs = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 10);
-}
 function fmtDate(ts){
   return new Date(ts).toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
 }
@@ -3072,7 +3065,7 @@ const DB = {
       return data;
     },
     async recordDailyLogin(){
-      const { data, error } = await sb.rpc('record_daily_login', { p_local_date: localDateString() });
+      const { data, error } = await sb.rpc('record_daily_login');
       if(error) throw error;
       return (data && data[0]) ? data[0] : { current_streak:0, longest_streak:0 };
     },
