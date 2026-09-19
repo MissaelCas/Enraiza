@@ -2960,7 +2960,7 @@ const DB = {
       if(!existing) throw new Error('Este mensaje ya no existe.');
       if(existing.sender_id !== userId) throw new Error('Solo puedes eliminar para todos los mensajes que tú enviaste.');
       if(Date.now() - new Date(existing.created_at).getTime() > windowMs) throw new Error('Ya pasó el tiempo permitido para eliminarlo para todos (15 minutos).');
-      const { error } = await sb.from('direct_messages').update({ deleted_for_everyone: true }).eq('id', messageId);
+      const { error } = await sb.from('direct_messages').update({ deleted_for_everyone: true }).eq('id', messageId).eq('sender_id', userId);
       if(error) throw error;
       return true;
     },
@@ -3024,12 +3024,12 @@ const DB = {
       if(error) throw error;
       return mapProjectRow(data);
     },
-    async setLinkedPost(id, postId){
-      const { error } = await sb.from('logbook_projects').update({ linked_post_id: postId }).eq('id', id);
+    async setLinkedPost(id, ownerId, postId){
+      const { error } = await sb.from('logbook_projects').update({ linked_post_id: postId }).eq('id', id).eq('owner_id', ownerId);
       if(error) throw error;
     },
-    async setShared(id, shared){
-      const { data, error } = await sb.from('logbook_projects').update({ shared: !!shared }).eq('id', id).select().single();
+    async setShared(id, ownerId, shared){
+      const { data, error } = await sb.from('logbook_projects').update({ shared: !!shared }).eq('id', id).eq('owner_id', ownerId).select().single();
       if(error) throw error;
       return mapProjectRow(data);
     },
@@ -3278,8 +3278,8 @@ function initials(name){
   return clean.slice(0, 2).toUpperCase();
 }
 function avatarHTML(user){
-  if(user && user.avatarUrl){
-    return `<img src="${user.avatarUrl}" alt="">`;
+  if(user && user.avatarUrl && /^https?:\/\//i.test(user.avatarUrl)){
+    return `<img src="${escapeHtml(user.avatarUrl)}" alt="">`;
   }
   return initials(user ? user.name : '');
 }
@@ -4779,9 +4779,11 @@ async function openCommentsView(postId){
       </div>
     </div>
   `;
-  modalBackdrop.classList.add('open');
-  renderCommentsList(post);
-  document.getElementById('commentsViewForm').addEventListener('submit', async (e) => {
+    modalBackdrop.classList.add('open');
+    subscribeToPostComments(post.id);
+    modalOnClose = () => unsubscribeFromPostComments();
+    renderCommentsList(post);
+    document.getElementById('commentsViewForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     if(!requireLogin('comentar')) return;
     const input = e.target.querySelector('input');
@@ -4949,12 +4951,24 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 // Alcance reducido a propósito: ya NO escuchamos post_likes ni comment_likes
 // en vivo (cada like ya se ve al instante para quien lo dio via updateLikeUI,
 // y para el resto de usuarios llega en la próxima carga del feed/post).
+// Los comentarios en vivo tampoco se escuchan globalmente: igual que Instagram,
+// solo llegan en tiempo real mientras tienes esa publicación abierta (ver
+// subscribeToPostComments / unsubscribeFromPostComments más abajo).
 // Menos canales = menos carga en Supabase Realtime con más usuarios conectados.
 // =====================================================================
 function setupRealtime(){
-  sb.channel('enraiza-posts-realtime')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
-      const post = getCachedPost(payload.new.post_id);
+  setupNotificationsRealtime();
+}
+
+// Canal de comentarios con alcance a UN solo post. Se abre cuando el usuario
+// entra a ver los comentarios de esa publicación y se cierra al salir —
+// nunca hay más de un canal de este tipo abierto a la vez por cliente.
+let postCommentsChannel = null;
+function subscribeToPostComments(postId){
+  unsubscribeFromPostComments();
+  postCommentsChannel = sb.channel(`post-comments-${postId}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments', filter: `post_id=eq.${postId}` }, (payload) => {
+      const post = getCachedPost(postId);
       if(!post) return;
       post.comments = post.comments || [];
       const newDate = new Date(payload.new.created_at).getTime();
@@ -4969,21 +4983,23 @@ function setupRealtime(){
         if(document.getElementById('commentsViewList')) renderCommentsList(post);
       });
     })
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments' }, (payload) => {
-      if(!payload.old || !payload.old.id) return;
-      for(const post of postsCache){
-        const before = (post.comments||[]).length;
-        post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
-        if(post.comments.length !== before){
-          rerenderCardFromCache(post.id);
-          if(document.getElementById('commentsViewList')) renderCommentsList(post);
-          break;
-        }
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments', filter: `post_id=eq.${postId}` }, (payload) => {
+      const post = getCachedPost(postId);
+      if(!post || !payload.old || !payload.old.id) return;
+      const before = (post.comments||[]).length;
+      post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
+      if(post.comments.length !== before){
+        rerenderCardFromCache(post.id);
+        if(document.getElementById('commentsViewList')) renderCommentsList(post);
       }
     })
     .subscribe();
-
-  setupNotificationsRealtime();
+}
+function unsubscribeFromPostComments(){
+  if(postCommentsChannel){
+    sb.removeChannel(postCommentsChannel);
+    postCommentsChannel = null;
+  }
 }
 
 // Canal aparte para notificaciones propias (solo filas donde YO soy el destinatario).
@@ -6218,7 +6234,7 @@ async function createLinkedPostForProject(project){
     photos: [project.coverPhoto || placeholderImage(project.id+project.title, project.category)],
     projectId: project.id,
   });
-  await DB.projects.setLinkedPost(project.id, created.id);
+  await DB.projects.setLinkedPost(project.id, currentUser.id, created.id);
   project.linkedPostId = created.id;
   upsertCachedPost(created);
   renderFeedFromCache();
@@ -6383,10 +6399,10 @@ async function toggleProjectVisibility(project){
     } else if(!makePublic && project.linkedPostId){
       try{ await DB.posts.remove(project.linkedPostId, currentUser.id); removeCachedPost(project.linkedPostId); renderFeedFromCache(); }
       catch(err){ /* si ya no existe, seguimos */ }
-      await DB.projects.setLinkedPost(project.id, null);
+      await DB.projects.setLinkedPost(project.id, currentUser.id, null);
       project.linkedPostId = null;
     }
-    await DB.projects.setShared(project.id, makePublic);
+    await DB.projects.setShared(project.id, currentUser.id, makePublic);
     showToast(makePublic ? '🌎 Ahora tu proyecto es público' : '🔒 Ahora tu proyecto es privado');
     await renderProjectView();
     renderProfileLogs();
