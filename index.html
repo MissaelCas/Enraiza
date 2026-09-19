@@ -1517,7 +1517,8 @@
           <form id="settingsProfileForm">
             <label for="settingsProfileName">Nombre o apodo</label>
             <input type="text" id="settingsProfileName" maxlength="80" placeholder="Tu nombre o apodo" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;">
-
+            <label for="settingsProfileUsername">Nombre de usuario</label>
+            <input type="text" id="settingsProfileUsername" maxlength="20" placeholder="ej. lucas_92" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;">
             <label for="settingsProfileBio">Descripción</label>
             <textarea id="settingsProfileBio" maxlength="160" placeholder="Escribe un resumen corto de tu enfoque sostenible"></textarea>
             <div class="bio-presets" id="profileBioPresetList" aria-label="Opciones rápidas de descripción"></div>
@@ -1637,6 +1638,7 @@
         <div class="profile-ig-right">
           <div class="profile-name-line">
             <p class="profile-ig-name" id="profileDisplayName">Sin nombre todavía</p>
+            <p class="profile-handle" id="profileDisplayHandle" style="color:var(--ink-soft);font-size:0.85rem;margin:0 0 6px;"></p>
             <span class="verified-badge" id="profileVerifiedBadge" title="Cuenta verificada" aria-label="Cuenta verificada">✓</span>
             <div class="profile-header-actions">
               <button type="button" class="profile-settings-btn" id="profileSettingsBtn" title="Configuración" aria-label="Abrir configuración">
@@ -1706,6 +1708,7 @@
         <div class="profile-visit-meta">
           <div class="profile-visit-name-row">
             <p class="profile-ig-name" id="profileVisitName">Cargando…</p>
+            <p class="profile-handle" id="profileVisitHandle" style="color:var(--ink-soft);font-size:0.85rem;margin:0 0 6px;"></p>
             <span class="profile-visit-badge" aria-label="Cuenta verificada">✓</span>
           </div>
           <div class="profile-visit-actions">
@@ -2322,7 +2325,8 @@ async function uploadImageFile(file, folder){
   const uid = currentUser ? currentUser.id : 'anon';
   const toUpload = file.type.startsWith('image/') ? await compressImage(file) : file;
   const ext = (toUpload.name.split('.').pop() || 'jpg').toLowerCase();
-  const path = `${folder}/${uid}/${Date.now()}_${Math.floor(Math.random()*1e6)}.${ext}`;
+  const objectId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.floor(Math.random()*1e9)}`);
+  const path = `${folder}/${uid}/${objectId}.${ext}`;
   const { error } = await sb.storage.from(BUCKET).upload(path, toUpload, { cacheControl: '3600', upsert: false });
   if(error) throw error;
   const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
@@ -2334,6 +2338,20 @@ async function uploadImageFile(file, folder){
 // Ver schema.sql (incluye ahora logbook_projects, post_views y la función
 // recommend_feed para el algoritmo de recomendación).
 // =====================================================================
+// Fila cruda de public.profiles -> objeto que usa el resto de la app.
+// Antes esta misma transformación estaba copiada y pegada en 5 lugares distintos
+// dentro de DB.users (findById, search, updateProfile, updateAvatar, ensureProfile).
+function mapProfileRow(row){
+  return {
+    id: row.id,
+    name: row.name,
+    username: row.username || '',
+    avatarUrl: row.avatar_url,
+    bio: row.bio || '',
+    privacySettings: normalizePrivacySettings(row.privacy_settings || {})
+  };
+}
+
 const DB = {
 
   users: {
@@ -2342,45 +2360,54 @@ const DB = {
 
       const { data, error } = await sb
         .from('profiles')
-        .select('id,name,avatar_url,bio,privacy_settings')
-        .eq('id', id)
+        .select('id,name,username,avatar_url,bio,privacy_settings')        .eq('id', id)
         .maybeSingle();
 
       if(error) throw error;
       if(!data) return null;
 
-      return {
-        id: data.id,
-        name: data.name,
-        avatarUrl: data.avatar_url,
-        bio: data.bio || '',
-        privacySettings: normalizePrivacySettings(
-          data.privacy_settings || {}
-        )
-      };
+      return mapProfileRow(data);
+    },
+
+    async getUsersByIds(ids){
+      const uniqueIds = [...new Set((ids || []).filter(Boolean))];
+      if(!uniqueIds.length) return [];
+
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id,name,username,avatar_url,bio,privacy_settings')
+        .in('id', uniqueIds);
+
+      if(error) throw error;
+
+      return (data || []).map(mapProfileRow);
     },
 
     async search(query){
-      const q = String(query || '').trim();
+      const q = String(query || '').trim().replace(/[,()]/g, '');
       if(!q) return [];
 
       const { data, error } = await sb
         .from('profiles')
-        .select('id,name,avatar_url,bio,privacy_settings')
-        .ilike('name', `%${q}%`)
+        .select('id,name,username,avatar_url,bio,privacy_settings')
+        .or(`name.ilike.%${q}%,username.ilike.%${q}%`)
         .limit(8);
 
       if(error) throw error;
 
-      return (data || []).map(d => ({
-        id: d.id,
-        name: d.name,
-        avatarUrl: d.avatar_url,
-        bio: d.bio || '',
-        privacySettings: normalizePrivacySettings(
-          d.privacy_settings || {}
-        )
-      }));
+      return (data || []).map(mapProfileRow);
+    },
+
+    async isUsernameAvailable(username, excludeUserId){
+      const clean = String(username || '').trim().toLowerCase();
+      if(!clean) return false;
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id')
+        .ilike('username', clean)
+        .maybeSingle();
+      if(error) throw error;
+      return !data || data.id === excludeUserId;
     },
 
     async updateProfile(id, profile){
@@ -2414,20 +2441,11 @@ const DB = {
         .from('profiles')
         .update(patch)
         .eq('id', id)
-        .select('id,name,avatar_url,bio,privacy_settings')
-        .single();
+        .select('id,name,username,avatar_url,bio,privacy_settings')        .single();
 
       if(error) throw error;
 
-      return {
-        id: data.id,
-        name: data.name,
-        avatarUrl: data.avatar_url,
-        bio: data.bio || '',
-        privacySettings: normalizePrivacySettings(
-          data.privacy_settings || {}
-        )
-      };
+      return mapProfileRow(data);
     },
 
     async updateName(id, name){
@@ -2445,20 +2463,12 @@ const DB = {
         .from('profiles')
         .update({ avatar_url: avatarUrl })
         .eq('id', id)
-        .select('id,name,avatar_url,bio,privacy_settings')
+        .select('id,name,username,avatar_url,bio,privacy_settings')
         .single();
 
       if(error) throw error;
 
-      return {
-        id: data.id,
-        name: data.name,
-        avatarUrl: data.avatar_url,
-        bio: data.bio || '',
-        privacySettings: normalizePrivacySettings(
-          data.privacy_settings || {}
-        )
-      };
+      return mapProfileRow(data);
     },
 
     // Red de seguridad: si por lo que sea el trigger de auth.users -> profiles no corrió
@@ -2474,21 +2484,15 @@ const DB = {
           id: sessionUser.id,
           name: sessionUser.user_metadata?.name || 'Sin nombre',
         }, { onConflict: 'id', ignoreDuplicates: true })
-        .select('id,name,avatar_url,bio,privacy_settings')
+        .select('id,name,username,avatar_url,bio,privacy_settings')
         .maybeSingle();
 
       if(error) throw error;
       // ignoreDuplicates hace que data venga null si ya existía; en ese caso lo volvemos a leer.
-      const row = data || await this.findById(sessionUser.id);
+      const row = data ? mapProfileRow(data) : await this.findById(sessionUser.id);
       if(!row) throw new Error('No se pudo crear el perfil.');
 
-      return row.privacySettings ? row : {
-        id: row.id,
-        name: row.name,
-        avatarUrl: row.avatar_url,
-        bio: row.bio || '',
-        privacySettings: normalizePrivacySettings(row.privacy_settings || {})
-      };
+      return row;
     }
   },
 
@@ -2530,13 +2534,21 @@ const DB = {
         followingCount: followingCount || 0
       };
     },
-    async listFollowers(userId){
-      const { data, error } = await sb.from('user_follows').select('follower_id').eq('followed_id', userId);
+    async listFollowers(userId, { limit = 50, offset = 0 } = {}){
+      const { data, error } = await sb
+        .from('user_follows')
+        .select('follower_id')
+        .eq('followed_id', userId)
+        .range(offset, offset + limit - 1);
       if(error) throw error;
       return (data || []).map(r => r.follower_id);
     },
-    async listFollowing(userId){
-      const { data, error } = await sb.from('user_follows').select('followed_id').eq('follower_id', userId);
+    async listFollowing(userId, { limit = 50, offset = 0 } = {}){
+      const { data, error } = await sb
+        .from('user_follows')
+        .select('followed_id')
+        .eq('follower_id', userId)
+        .range(offset, offset + limit - 1);
       if(error) throw error;
       return (data || []).map(r => r.followed_id);
     },
@@ -2564,24 +2576,59 @@ const DB = {
   posts: {
     async listByIds(ids){
       if(!ids || !ids.length) return [];
-      const { data, error } = await sb.from('posts')
-        .select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))')
-        .in('id', ids);
+
+      const { data, error } = await sb.rpc('get_feed_posts', {
+        p_post_ids: ids
+      });
+
       if(error) throw error;
-      const byId = new Map((data||[]).map(mapPostRow).map(p => [p.id, p]));
-      return ids.map(id => byId.get(id)).filter(Boolean); // conserva el orden del ranking
+
+      const byId = new Map(
+        (data || []).map(row => [row.id, mapPostRow(row)])
+      );
+
+      return ids
+        .map(id => byId.get(id))
+        .filter(Boolean);
     },
     async listRecent(limit = 50){
-      const { data, error } = await sb.from('posts')
-        .select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))')
+      const { data, error } = await sb
+        .from('posts')
+        .select(`
+          id,
+          author_id,
+          title,
+          category,
+          notes,
+          photos,
+          project_id,
+          created_at,
+          updated_at,
+          like_count,
+          comment_count
+        `)
         .order('created_at', { ascending:false })
         .limit(limit);
+
       if(error) throw error;
-      return (data||[]).map(mapPostRow);
+
+      return (data || []).map(mapPostRow);
     },
     async listRecentExcluding(excludeIds = [], limit = 20){
       let q = sb.from('posts')
-        .select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))')
+        .select(`
+          id,
+          author_id,
+          title,
+          category,
+          notes,
+          photos,
+          project_id,
+          created_at,
+          updated_at,
+          like_count,
+          comment_count
+        `)
         .order('created_at', { ascending:false })
         .limit(limit);
       if(excludeIds.length) q = q.not('id', 'in', `(${excludeIds.join(',')})`);
@@ -2590,9 +2637,47 @@ const DB = {
       return (data||[]).map(mapPostRow);
     },
     async getOne(id){
-      const { data, error } = await sb.from('posts').select('*, post_likes(user_id), post_comments(*, comment_likes(user_id))').eq('id', id).maybeSingle();
+      const { data, error } = await sb
+        .from('posts')
+        .select(`
+          id,
+          author_id,
+          title,
+          category,
+          notes,
+          photos,
+          project_id,
+          created_at,
+          updated_at,
+          like_count,
+          comment_count
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
       if(error) throw error;
+
       return data ? mapPostRow(data) : null;
+    },
+    async listComments(postId){
+      if(!postId) return [];
+
+      const { data, error } = await sb
+        .from('post_comments')
+        .select('*, comment_likes(user_id)')
+        .eq('post_id', postId)
+        .order('created_at', { ascending: true });
+
+      if(error) throw error;
+
+      return (data || []).map(c => ({
+        id: c.id,
+        authorId: c.author_id,
+        text: c.text,
+        date: new Date(c.created_at).getTime(),
+        parentId: c.parent_id || null,
+        likedBy: (c.comment_likes || []).map(l => l.user_id),
+      }));
     },
     async create({ authorId, title, category, notes, photos, projectId }){
       const { data, error } = await sb.from('posts').insert({ author_id: authorId, title, category, notes, photos: photos||[], project_id: projectId||null }).select().single();
@@ -2678,17 +2763,22 @@ const DB = {
 
   storyViews: {
     async record(storyId, viewerId){
-      try{
-        const { data: existing } = await sb.from('story_views').select('*').eq('story_id', storyId).eq('viewer_id', viewerId).maybeSingle();
-        if(!existing) await sb.from('story_views').insert({ story_id: storyId, viewer_id: viewerId });
-      }catch(err){ /* silencioso: no debe interrumpir la reproducción de la historia */ }
-    },
-    async listViewers(storyId){
-      try{
-        const { data, error } = await sb.from('story_views').select('viewer_id, created_at').eq('story_id', storyId).order('created_at', { ascending:false });
-        if(error) throw error;
-        return data || [];
-      }catch(err){ return []; }
+      if(!storyId || !viewerId) return;
+
+      const { error } = await sb
+        .from('story_views')
+        .upsert(
+          {
+            story_id: storyId,
+            viewer_id: viewerId
+          },
+          {
+            onConflict: 'story_id,viewer_id',
+            ignoreDuplicates: true
+          }
+        );
+
+      if(error) throw error;
     },
   },
 
@@ -2699,23 +2789,54 @@ const DB = {
       return (data||[]).map(r => r.post_id);
     },
     async toggle(userId, postId){
-      const { data: existing } = await sb.from('saved_posts').select('*').eq('user_id', userId).eq('post_id', postId).maybeSingle();
-      if(existing){
-        await sb.from('saved_posts').delete().eq('user_id', userId).eq('post_id', postId);
-        return false;
+      if(!userId || !postId){
+        throw new Error('Datos inválidos.');
       }
-      await sb.from('saved_posts').insert({ user_id: userId, post_id: postId });
-      return true;
+
+      const { data, error } = await sb.rpc(
+        'toggle_saved_post',
+        {
+          p_post_id: postId
+        }
+      );
+
+      if(error) throw error;
+
+      return !!data;
     },
   },
 
   messages: {
-    async listConversations(userId){
-      const { data, error } = await sb
+    async listConversations(
+      userId,
+      { limit = 30, before = null } = {}
+    ){
+
+      let q = sb
         .from('direct_conversations')
-        .select('*')
-        .or(`participant_a.eq.${userId},participant_b.eq.${userId}`)
-        .order('updated_at', { ascending:false });
+        .select(`
+          id,
+          participant_a,
+          participant_b,
+          updated_at
+        `)
+        .or(
+          `participant_a.eq.${userId},participant_b.eq.${userId}`
+        )
+        .order('updated_at', {
+          ascending: false
+        })
+        .limit(limit);
+
+      if(before){
+        q = q.lt('updated_at', before);
+      }
+
+      const { data, error } = await q;
+
+      if(error) throw error;
+
+      return data || [];
       if(error) throw error;
       return (data || []).map(row => ({
         id: row.id,
@@ -2726,22 +2847,31 @@ const DB = {
       }));
     },
     async findOrCreateConversation(userA, userB){
-      if(!userA || !userB || userA === userB) return null;
+
+      if(!userA || !userB || userA === userB){
+        throw new Error('Conversación no válida.');
+      }
+
       const [a, b] = [userA, userB].sort();
-      const { data: existing, error: lookupError } = await sb
-        .from('direct_conversations')
-        .select('*')
-        .eq('participant_a', a)
-        .eq('participant_b', b)
-        .maybeSingle();
-      if(lookupError) throw lookupError;
-      if(existing) return existing;
+
       const { data, error } = await sb
         .from('direct_conversations')
-        .insert({ participant_a: a, participant_b: b, key: `${a}:${b}` })
+        .upsert(
+          {
+            participant_a: a,
+            participant_b: b,
+            key: `${a}:${b}`
+          },
+          {
+            onConflict: 'participant_a,participant_b',
+            ignoreDuplicates: false
+          }
+        )
         .select()
         .single();
+
       if(error) throw error;
+
       return data;
     },
     async listMessages(conversationId, viewerId){
@@ -2989,16 +3119,33 @@ const DB = {
 };
 
 function mapPostRow(row){
+  // Soporta las dos formas: la vieja (con post_likes/post_comments embebidos)
+  // y la nueva (con like_count/comment_count/viewer_liked del servidor).
+  const hasEmbeddedLikes = Array.isArray(row.post_likes);
+  const hasEmbeddedComments = Array.isArray(row.post_comments);
+
+  const likedBy = hasEmbeddedLikes
+    ? row.post_likes.map(l => l.user_id)
+    : (row.viewer_liked && currentUser ? [currentUser.id] : []);
+
+  const comments = hasEmbeddedComments
+    ? row.post_comments.map(c => ({
+        id:c.id, authorId:c.author_id, text:c.text, date:new Date(c.created_at).getTime(),
+        parentId: c.parent_id || null,
+        likedBy: (c.comment_likes||[]).map(l => l.user_id),
+      })).sort((a,b)=>a.date-b.date)
+    : [];
+
   return {
     id: row.id, authorId: row.author_id, title: row.title, category: row.category,
     notes: row.notes, photos: row.photos || [], date: new Date(row.created_at).getTime(),
     demo: !!row.is_demo, projectId: row.project_id || null,
-    likedBy: (row.post_likes||[]).map(l => l.user_id),
-    comments: (row.post_comments||[]).map(c => ({
-      id:c.id, authorId:c.author_id, text:c.text, date:new Date(c.created_at).getTime(),
-      parentId: c.parent_id || null,
-      likedBy: (c.comment_likes||[]).map(l => l.user_id),
-    })).sort((a,b)=>a.date-b.date),
+    likedBy,
+    comments,
+    likeCount: Number(row.like_count ?? likedBy.length),
+    commentCount: Number(row.comment_count ?? comments.length),
+    commentsLoaded: hasEmbeddedComments,
+    _savedLocal: row.viewer_saved === true ? true : undefined,
   };
 }
 function mapNotificationRow(row){
@@ -3120,12 +3267,10 @@ async function getUsersBatch(ids){
   const missing = [...new Set(ids)].filter(id => id && !usersCache[id]);
   if(!missing.length) return;
   const { data, error } = await sb.from('profiles')
-    .select('id,name,avatar_url,bio,privacy_settings')
+    .select('id,name,username,avatar_url,bio,privacy_settings')
     .in('id', missing);
   if(error) return; // si falla el lote, resolveAuthorObjs de todos modos cachea uno por uno como respaldo
-  (data||[]).forEach(d => {
-    usersCache[d.id] = { id: d.id, name: d.name, avatarUrl: d.avatar_url, bio: d.bio || '', privacySettings: normalizePrivacySettings(d.privacy_settings || {}) };
-  });
+  (data||[]).forEach(d => { usersCache[d.id] = mapProfileRow(d); });
 }
 function initials(name){
   const clean = (name || '').trim();
@@ -3242,6 +3387,8 @@ async function renderUserProfileVisit(){
   if(freshUser && uid === viewingUserId){
     usersCache[uid] = freshUser;
     nameEl.textContent = freshUser.name;
+    const visitHandleEl = document.getElementById('profileVisitHandle');
+    if(visitHandleEl) visitHandleEl.textContent = freshUser.username ? `@${freshUser.username}` : '';
     avatarEl.innerHTML = avatarHTML(freshUser);
     if(bioEl) {
       const bioText = (freshUser.bio || '').trim() || 'Construyendo un cambio sostenible, proyecto a proyecto.';
@@ -3268,15 +3415,6 @@ async function renderUserProfileVisit(){
       };
     }
   }
-
-  async function areMutualFollowers(userA, userB){
-  if(!userA || !userB || userA === userB) return false;
-  const [aFollowsB, bFollowsA] = await Promise.all([
-    DB.follows.isFollowing(userA, userB),
-    DB.follows.isFollowing(userB, userA)
-  ]);
-  return aFollowsB && bFollowsA;
-}
 
   if(messageBtn){
     const canSeeButton = currentUser && currentUser.id !== uid;
@@ -3571,8 +3709,13 @@ function openAuthModal(mode, actionLabel){
     <form class="auth-form" id="authForm">
       ${!isLogin ? `
         <div>
-          <label for="authName">Nombre o apodo</label>
-          <input type="text" id="authName" maxlength="80" autocomplete="name" required>
+          <label for="authName">Nombre</label>
+          <input type="text" id="authName" maxlength="80" autocomplete="name" placeholder="Tu nombre real o el que quieras mostrar" required>
+        </div>
+        <div>
+          <label for="authUsername">Nombre de usuario</label>
+          <input type="text" id="authUsername" maxlength="20" autocomplete="off" placeholder="ej. lucas_92" required>
+          <div class="security-hint" id="usernameHint">Solo minúsculas, números, puntos y guiones bajos. Debe ser único.</div>
         </div>` : ''}
       <div>
         <label for="authEmail">Correo</label>
@@ -3603,6 +3746,32 @@ function openAuthModal(mode, actionLabel){
   document.getElementById('authSwitchBtn').addEventListener('click', () => openAuthModal(isLogin ? 'register' : 'login', actionLabel));
   if(isLogin){
     document.getElementById('forgotPasswordBtn').addEventListener('click', openRecoveryModal);
+  }
+
+  const usernameInput = document.getElementById('authUsername');
+  const usernameHint = document.getElementById('usernameHint');
+  let usernameCheckToken = 0;
+  if(usernameInput){
+    usernameInput.addEventListener('input', () => {
+      usernameInput.value = usernameInput.value.toLowerCase().replace(/[^a-z0-9._]/g, '');
+    });
+    usernameInput.addEventListener('blur', async () => {
+      const val = usernameInput.value.trim();
+      if(!val) return;
+      if(!/^[a-z][a-z0-9._]{2,19}$/.test(val)){
+        usernameHint.textContent = 'Debe empezar con letra, 3–20 caracteres (letras, números, "." o "_").';
+        usernameHint.style.color = '#a3392c';
+        return;
+      }
+      const myToken = ++usernameCheckToken;
+      usernameHint.textContent = 'Comprobando disponibilidad…';
+      usernameHint.style.color = '';
+      const available = await DB.users.isUsernameAvailable(val).catch(() => null);
+      if(myToken !== usernameCheckToken) return; // el usuario ya siguió escribiendo, esta respuesta ya no aplica
+      if(available === null){ usernameHint.textContent = 'No se pudo comprobar, se validará al enviar.'; return; }
+      usernameHint.textContent = available ? '✓ Disponible' : 'Ya está en uso — elige otro.';
+      usernameHint.style.color = available ? 'var(--moss-dark)' : '#a3392c';
+    });
   }
 
   document.getElementById('authForm').addEventListener('submit', async (e) => {
@@ -3648,7 +3817,14 @@ function openAuthModal(mode, actionLabel){
         await loadCurrentUserFromSession(data.session);
       } else {
         const name = document.getElementById('authName').value.trim();
-        if(!name) throw new Error('Pon un nombre o apodo.');
+        if(!name) throw new Error('Pon un nombre.');
+        const username = document.getElementById('authUsername').value.trim();
+        if(!/^[a-z][a-z0-9._]{2,19}$/.test(username)){
+          throw new Error('El nombre de usuario debe empezar con letra, medir 3–20 caracteres, y usar solo letras, números, "." o "_".');
+        }
+        if(!(await DB.users.isUsernameAvailable(username))){
+          throw new Error('Ese nombre de usuario ya está en uso.');
+        }
         // Antes esto era un hardcode a dos URLs fijas (github.io o localhost:3000), así que
         // probando desde cualquier otro origen (127.0.0.1:5500 con Live Server, por ejemplo)
         // el correo de confirmación mandaba a una URL que no coincidía con nada permitido en
@@ -3660,7 +3836,7 @@ function openAuthModal(mode, actionLabel){
           email,
           password,
           options: {
-            data: { name },
+            data: { name, username },
             emailRedirectTo: authRedirectUrl
           }
         });
@@ -3845,6 +4021,8 @@ function applyProfileToUI(){
     ? `¿Qué quieres compartir hoy, ${currentUser.name}?`
     : 'Inicia sesión para compartir un proyecto o planta';
   document.getElementById('profileDisplayName').textContent = currentUser ? currentUser.name : 'Invitado';
+  const ownHandleEl = document.getElementById('profileDisplayHandle');
+  if(ownHandleEl) ownHandleEl.textContent = currentUser?.username ? `@${currentUser.username}` : '';
   updateAuthButtonsUI();
 }
 
@@ -4040,8 +4218,9 @@ function carouselHTML(post){
 }
 
 function postCardHTML(post, authorName, authorObj, liked, saved){
-  const likeCount = (post.likedBy || []).length;
+  const likeCount = Number(post.likeCount ?? (post.likedBy || []).length);
   const comments = post.comments || [];
+  const totalComments = Number(post.commentCount ?? comments.length);
   const expanded = expandedComments.has(post.id);
   const shown = expanded ? comments : comments.slice(-2);
   const hiddenCount = comments.length - shown.length;
@@ -4078,7 +4257,7 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
       ${isProjectPost ? `<button type="button" class="btn-text" style="margin:0 14px 8px;" data-openprojectlink="${post.projectId}">Ver bitácora completa →</button>` : ''}
       ${comments.length ? `
         <div class="ig-comments-preview">
-          ${hiddenCount > 0 ? `<button class="ig-view-more" data-viewmore="${post.id}">Ver los ${comments.length} comentarios</button>` : ''}
+          ${(hiddenCount > 0 || totalComments > shown.length) ? `<button class="ig-view-more" data-viewmore="${post.id}">Ver los ${totalComments} comentarios</button>` : ''}
           ${shown.map(c => `<div class="comment-item" data-comment-author="${c.authorId}"><strong>…</strong> ${escapeHtml(c.text)}</div>`).join('')}
         </div>` : ''}
       <form class="ig-comment-row" data-id="${post.id}">
@@ -4477,7 +4656,8 @@ async function handleLike(id, forceLike, point){
   if(willLike) post.likedBy.push(currentUser.id);
   else post.likedBy = post.likedBy.filter(uid => uid !== currentUser.id);
 
-  updateLikeUI(id, willLike, post.likedBy.length);
+  post.likeCount = Math.max(0, Number(post.likeCount ?? 0) + (willLike ? 1 : -1));
+  updateLikeUI(id, willLike, post.likeCount);
   if(willLike) incrementStat('likes_given');
 
   try{
@@ -4485,7 +4665,8 @@ async function handleLike(id, forceLike, point){
   }catch(err){
     if(willLike) post.likedBy = post.likedBy.filter(uid => uid !== currentUser.id);
     else post.likedBy.push(currentUser.id);
-    updateLikeUI(id, post.likedBy.includes(currentUser.id), post.likedBy.length);
+    post.likeCount = Math.max(0, Number(post.likeCount ?? 0) + (willLike ? -1 : 1));
+    updateLikeUI(id, post.likedBy.includes(currentUser.id), post.likeCount);
   }
 }
 
@@ -4563,6 +4744,17 @@ let replyingTo = null;
 async function openCommentsView(postId){
   const post = getCachedPost(postId);
   if(!post) return;
+
+  if(!post.commentsLoaded){
+    try{
+      post.comments = await DB.posts.listComments(post.id);
+      post.commentsLoaded = true;
+      post.commentCount = post.comments.length;
+    }catch(err){
+      showToast('No se pudieron cargar los comentarios.');
+    }
+  }
+
   await resolveAuthorObjs([post]);
   const authorObj = usersCache[post.authorId];
   const authorName = authorObj?.name || 'Alguien de la comunidad';
@@ -4761,31 +4953,6 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 // =====================================================================
 function setupRealtime(){
   sb.channel('enraiza-posts-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
-      if(payload.eventType === 'DELETE'){
-        if(!payload.old || !payload.old.id) return;
-        if(!getCachedPost(payload.old.id)) return;
-        removeCachedPost(payload.old.id);
-        renderFeedFromCache();
-        return;
-      }
-      if(payload.eventType === 'INSERT'){
-        if(getCachedPost(payload.new.id)) return;
-        const post = mapPostRow({ ...payload.new, post_likes: [], post_comments: [] });
-        upsertCachedPost(post);
-        resolveAuthorObjs([post]).then(() => renderFeedFromCache());
-        return;
-      }
-      if(payload.eventType === 'UPDATE'){
-        const existing = getCachedPost(payload.new.id);
-        if(!existing) return;
-        existing.title = payload.new.title;
-        existing.category = payload.new.category;
-        existing.notes = payload.new.notes;
-        if(Array.isArray(payload.new.photos)) existing.photos = payload.new.photos;
-        rerenderCardFromCache(existing.id);
-      }
-    })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
       const post = getCachedPost(payload.new.post_id);
       if(!post) return;
@@ -6587,6 +6754,8 @@ function renderSettingsPage(){
   if(state) state.textContent=currentUser ? `Sesión iniciada como ${currentUser.name}` : 'No has iniciado sesión.';
   if(logoutBtn){ logoutBtn.style.display=currentUser ? 'inline-block' : 'none'; logoutBtn.onclick=logout; }
   if(nameInput) nameInput.value=currentUser?.name || '';
+  const usernameInput = document.getElementById('settingsProfileUsername');
+  if(usernameInput) usernameInput.value = currentUser?.username || '';
   if(avatarPreview) avatarPreview.innerHTML=currentUser ? avatarHTML(currentUser) : '?';
   const activityBtn=document.getElementById('settingsActivityBtn');
   if(activityBtn) activityBtn.onclick=()=>{ if(requireLogin('ver tu actividad')) openActivityModal(); };
@@ -6625,6 +6794,15 @@ function renderSettingsPage(){
       if(!requireLogin('editar tu perfil')) return;
       const name=document.getElementById('settingsProfileName').value.trim();
       const bio=(document.getElementById('settingsProfileBio').value || '').trim();
+      const username=(document.getElementById('settingsProfileUsername').value || '').trim().toLowerCase();
+      if(username && !/^[a-z][a-z0-9._]{2,19}$/.test(username)){
+        alert('El nombre de usuario debe empezar con letra, medir 3–20 caracteres, y usar solo letras, números, "." o "_".');
+        return;
+      }
+      if(username && username !== (currentUser.username || '')){
+        const free = await DB.users.isUsernameAvailable(username, currentUser.id).catch(() => null);
+        if(free === false){ alert('Ese nombre de usuario ya está en uso.'); return; }
+      }
       const privacy = {
         showFollowers: !!document.getElementById('privacyShowFollowers')?.checked,
         showFollowing: !!document.getElementById('privacyShowFollowing')?.checked,
@@ -6634,7 +6812,7 @@ function renderSettingsPage(){
       };
       if(!name) return;
       try{
-        currentUser=await DB.users.updateProfile(currentUser.id, { name, bio, privacySettings: privacy });
+        currentUser=await DB.users.updateProfile(currentUser.id, { name, bio, username, privacySettings: privacy });
         usersCache[currentUser.id]=currentUser;
         applyProfileToUI();
         renderProfile();
@@ -7184,15 +7362,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
     await refreshAppAfterAuthChange();
   }
 });
-
-// ---------- KEEP-ALIVE: evita que Supabase pause el proyecto por inactividad ----------
-// Hace una consulta mínima cada 6 horas mientras la pestaña siga abierta.
-// Esto ayuda, pero NO es suficiente si nadie visita la página en varios días seguidos:
-// para eso hace falta el ping externo del paso 2 (fuera de este archivo).
-async function pingKeepAlive(){
-  try{ await sb.from('profiles').select('id').limit(1); }
-  catch(err){ /* silencioso: si falla, no debe romper nada visible */ }
-}
+// Keep-alive eliminado: la disponibilidad del proyecto se gestiona desde
+// infraestructura (cron externo), no con consultas periódicas desde cada cliente.
 window.addEventListener('unhandledrejection', (event) => {
   const reason = event && event.reason;
   const msg = reason && reason.message ? reason.message : String(reason || '');
@@ -7201,8 +7372,6 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
   }
 });
-setInterval(pingKeepAlive, 6 * 60 * 60 * 1000); // cada 6 horas
-pingKeepAlive(); // uno al cargar, además del que ya hace loadPostsIntoCache()
 
 (async () => {
   try {
