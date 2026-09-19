@@ -3194,13 +3194,24 @@ async function renderUserProfileVisit(){
     }
   }
 
+  async function areMutualFollowers(userA, userB){
+  if(!userA || !userB || userA === userB) return false;
+  const [aFollowsB, bFollowsA] = await Promise.all([
+    DB.follows.isFollowing(userA, userB),
+    DB.follows.isFollowing(userB, userA)
+  ]);
+  return aFollowsB && bFollowsA;
+}
+
   if(messageBtn){
-    messageBtn.style.display = currentUser && currentUser.id !== uid ? 'inline-flex' : 'none';
-    messageBtn.disabled = !currentUser || currentUser.id === uid;
-    messageBtn.onclick = async () => {
-      if(!currentUser) return;
-      await openDmConversation(uid);
-    };
+    const canSeeButton = currentUser && currentUser.id !== uid;
+    messageBtn.style.display = canSeeButton ? 'inline-flex' : 'none';
+    if(canSeeButton){
+      const mutual = await areMutualFollowers(currentUser.id, uid).catch(() => false);
+      messageBtn.disabled = !mutual;
+      messageBtn.textContent = mutual ? 'Mensaje' : 'Síganse para escribirse';
+      messageBtn.onclick = async () => { if(!mutual) return; await openDmConversation(uid); };
+    }
   }
 
   if(!postsCacheReady) await loadPostsIntoCache();
@@ -4637,92 +4648,92 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 // =====================================================================
 // TIEMPO REAL
 // =====================================================================
-function setupRealtime(){
-  sb.channel('enraiza-posts-realtime')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
-      if(payload.eventType === 'DELETE'){
-        if(!payload.old || !payload.old.id) return;
-        if(!getCachedPost(payload.old.id)) return;
-        removeCachedPost(payload.old.id);
-        renderFeedFromCache();
-        return;
-      }
-      if(payload.eventType === 'INSERT'){
-        if(getCachedPost(payload.new.id)) return;
-        const post = mapPostRow({ ...payload.new, post_likes: [], post_comments: [] });
-        upsertCachedPost(post);
-        resolveAuthorObjs([post]).then(() => renderFeedFromCache());
-        return;
-      }
-      if(payload.eventType === 'UPDATE'){
-        const existing = getCachedPost(payload.new.id);
-        if(!existing) return;
-        existing.title = payload.new.title;
-        existing.category = payload.new.category;
-        existing.notes = payload.new.notes;
-        if(Array.isArray(payload.new.photos)) existing.photos = payload.new.photos;
-        rerenderCardFromCache(existing.id);
-      }
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, (payload) => {
-      const postId = (payload.new && payload.new.post_id) || (payload.old && payload.old.post_id);
-      const post = getCachedPost(postId);
-      if(!post) return;
-      post.likedBy = post.likedBy || [];
-      let changed = false;
-      if(payload.eventType === 'INSERT'){
-        if(!post.likedBy.includes(payload.new.user_id)){ post.likedBy.push(payload.new.user_id); changed = true; }
-      } else if(payload.eventType === 'DELETE'){
-        if(post.likedBy.includes(payload.old.user_id)){ post.likedBy = post.likedBy.filter(uid => uid !== payload.old.user_id); changed = true; }
-      }
-      if(changed) updateLikeUI(postId, currentUser ? post.likedBy.includes(currentUser.id) : false, post.likedBy.length);
-    })
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
-      const post = getCachedPost(payload.new.post_id);
-      if(!post) return;
-      post.comments = post.comments || [];
-      const newDate = new Date(payload.new.created_at).getTime();
-      const alreadyThere = post.comments.some(c =>
-        c.id === payload.new.id ||
-        (c.authorId === payload.new.author_id && c.text === payload.new.text && Math.abs(c.date - newDate) < 15000)
-      );
-      if(alreadyThere) return;
-      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: newDate, parentId: payload.new.parent_id || null, likedBy: [] });
-      getUserCached(payload.new.author_id).then(() => {
-        rerenderCardFromCache(post.id);
-        if(document.getElementById('commentsViewList')) renderCommentsList(post);
-      });
-    })
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments' }, (payload) => {
-      if(!payload.old || !payload.old.id) return;
-      for(const post of postsCache){
-        const before = (post.comments||[]).length;
-        post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
-        if(post.comments.length !== before){
-          rerenderCardFromCache(post.id);
-          if(document.getElementById('commentsViewList')) renderCommentsList(post);
-          break;
-        }
-      }
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'comment_likes' }, (payload) => {
-      const commentId = (payload.new && payload.new.comment_id) || (payload.old && payload.old.comment_id);
-      if(!commentId) return;
-      for(const post of postsCache){
-        const c = (post.comments||[]).find(x => x.id === commentId);
-        if(!c) continue;
-        c.likedBy = c.likedBy || [];
-        if(payload.eventType === 'INSERT'){
-          if(!c.likedBy.includes(payload.new.user_id)) c.likedBy.push(payload.new.user_id);
-        } else if(payload.eventType === 'DELETE'){
-          c.likedBy = c.likedBy.filter(uid => uid !== payload.old.user_id);
-        }
-        if(document.getElementById('commentsViewList')) renderCommentsList(post);
-        break;
-      }
-    })
-    .subscribe();
-}
+//function setupRealtime(){
+//  sb.channel('enraiza-posts-realtime')
+//    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
+//      if(payload.eventType === 'DELETE'){
+//        if(!payload.old || !payload.old.id) return;
+//        if(!getCachedPost(payload.old.id)) return;
+//        removeCachedPost(payload.old.id);
+//        renderFeedFromCache();
+//        return;
+//      }
+//     if(payload.eventType === 'INSERT'){
+//        if(getCachedPost(payload.new.id)) return;
+//        const post = mapPostRow({ ...payload.new, post_likes: [], post_comments: [] });
+//        upsertCachedPost(post);
+//        resolveAuthorObjs([post]).then(() => renderFeedFromCache());
+//        return;
+//      }
+//      if(payload.eventType === 'UPDATE'){
+//        const existing = getCachedPost(payload.new.id);
+//        if(!existing) return;
+//        existing.title = payload.new.title;
+//        existing.category = payload.new.category;
+//        existing.notes = payload.new.notes;
+//        if(Array.isArray(payload.new.photos)) existing.photos = payload.new.photos;
+//        rerenderCardFromCache(existing.id);
+//      }
+//    })
+//    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, (payload) => {
+//      const postId = (payload.new && payload.new.post_id) || (payload.old && payload.old.post_id);
+//      const post = getCachedPost(postId);
+//      if(!post) return;
+//      post.likedBy = post.likedBy || [];
+//      let changed = false;
+//      if(payload.eventType === 'INSERT'){
+//        if(!post.likedBy.includes(payload.new.user_id)){ post.likedBy.push(payload.new.user_id); changed = true; }
+//      } else if(payload.eventType === 'DELETE'){
+//        if(post.likedBy.includes(payload.old.user_id)){ post.likedBy = post.likedBy.filter(uid => uid !== payload.old.user_id); changed = true; }
+//      }
+//      if(changed) updateLikeUI(postId, currentUser ? post.likedBy.includes(currentUser.id) : false, post.likedBy.length);
+//    })
+//    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
+//      const post = getCachedPost(payload.new.post_id);
+//      if(!post) return;
+//      post.comments = post.comments || [];
+//      const newDate = new Date(payload.new.created_at).getTime();
+//      const alreadyThere = post.comments.some(c =>
+//        c.id === payload.new.id ||
+//        (c.authorId === payload.new.author_id && c.text === payload.new.text && Math.abs(c.date - newDate) < 15000)
+//      );
+//      if(alreadyThere) return;
+//      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: newDate, parentId: payload.new.parent_id || null, likedBy: [] });
+//      getUserCached(payload.new.author_id).then(() => {
+//        rerenderCardFromCache(post.id);
+//        if(document.getElementById('commentsViewList')) renderCommentsList(post);
+//      });
+//    })
+//    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments' }, (payload) => {
+//      if(!payload.old || !payload.old.id) return;
+//      for(const post of postsCache){
+//        const before = (post.comments||[]).length;
+//        post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
+//        if(post.comments.length !== before){
+//          rerenderCardFromCache(post.id);
+//          if(document.getElementById('commentsViewList')) renderCommentsList(post);
+//          break;
+//        }
+//      }
+//    })
+//    .on('postgres_changes', { event: '*', schema: 'public', table: 'comment_likes' }, (payload) => {
+//      const commentId = (payload.new && payload.new.comment_id) || (payload.old && payload.old.comment_id);
+//      if(!commentId) return;
+//      for(const post of postsCache){
+//        const c = (post.comments||[]).find(x => x.id === commentId);
+//        if(!c) continue;
+//        c.likedBy = c.likedBy || [];
+//        if(payload.eventType === 'INSERT'){
+//          if(!c.likedBy.includes(payload.new.user_id)) c.likedBy.push(payload.new.user_id);
+//        } else if(payload.eventType === 'DELETE'){
+//          c.likedBy = c.likedBy.filter(uid => uid !== payload.old.user_id);
+//        }
+//        if(document.getElementById('commentsViewList')) renderCommentsList(post);
+//        break;
+//      }
+//    })
+//    .subscribe();
+//}
 
 // ---------- HISTORIAS ----------
 let storyGroups = [];
@@ -4741,9 +4752,39 @@ function markStoryViewed(id){
 
 async function renderStories(){
   let all = [];
-  try{ all = await DB.stories.listActive(); }catch(err){ /* silencioso */ }
-  await Promise.all(all.map(s => getUserCached(s.authorId)));
 
+  try{
+    all = await DB.stories.listActive();
+  }catch(err){
+    console.warn('No se pudieron cargar las historias:', err);
+  }
+
+  // Privacidad:
+  // Solo se muestran:
+  // 1. Tus propias historias.
+  // 2. Historias de personas que sigues.
+  if(currentUser){
+    let followingIds = new Set();
+
+    try{
+      followingIds = new Set(
+        await DB.follows.listFollowing(currentUser.id)
+      );
+    }catch(err){
+      console.warn('No se pudo obtener la lista de seguidos:', err);
+    }
+
+    all = all.filter(story =>
+      story.authorId === currentUser.id ||
+      followingIds.has(story.authorId)
+    );
+  }else{
+    all = [];
+  }
+
+  await Promise.all(
+    all.map(story => getUserCached(story.authorId))
+  );
   const byAuthor = {};
   all.forEach(s => {
     if(!byAuthor[s.authorId]) byAuthor[s.authorId] = [];
@@ -4995,6 +5036,8 @@ function renderStoryViewer(){
       const text = replyInput.value.trim();
       if(!text || !currentUser || !s || s.authorId === currentUser.id) return;
       try{
+        const mutual = await areMutualFollowers(currentUser.id, s.authorId).catch(() => false);
+        if(!mutual){ showToast('Solo pueden escribirse quienes se siguen mutuamente.'); resumeStory(); return; }
         const conversation = await DB.messages.findOrCreateConversation(currentUser.id, s.authorId);
         if(!conversation) throw new Error('No se pudo abrir la conversación.');
         const sent = await DB.messages.send(conversation.id, currentUser.id, text);
@@ -5309,17 +5352,47 @@ const msgs = activeConversation ? await DB.messages.listMessages(activeConversat
   }
 }
 
+async function areMutualFollowers(userA, userB){
+  if(!userA || !userB || userA === userB) return false;
+
+  const [aFollowsB, bFollowsA] = await Promise.all([
+    DB.follows.isFollowing(userA, userB),
+    DB.follows.isFollowing(userB, userA)
+  ]);
+
+  return aFollowsB && bFollowsA;
+}
+
 async function openDmConversation(userId){
   if(!currentUser || !userId || userId === currentUser.id) return;
-  const conversation = await DB.messages.findOrCreateConversation(currentUser.id, userId).catch(() => null);
-  if(!conversation) return;
+
+  // Privacidad: para abrir un chat, ambos usuarios deben seguirse.
+  const mutual = await areMutualFollowers(currentUser.id, userId).catch(() => false);
+
+  if(!mutual){
+    showToast('Solo pueden escribirse quienes se siguen mutuamente.');
+    return;
+  }
+
+  const conversation = await DB.messages
+    .findOrCreateConversation(currentUser.id, userId)
+    .catch(() => null);
+
+  if(!conversation){
+    showToast('No se pudo abrir la conversación.');
+    return;
+  }
+
   const panel = document.getElementById('dmPanel');
   const content = document.getElementById('dmPanelContent');
+
   if(panel) panel.classList.add('open');
+
   if(content){
     content.dataset.activeConversationId = conversation.id;
     await renderDmPanel();
   }
+
   showView('mensajes');
   await renderMessagesScreen(conversation.id);
 }
@@ -6173,9 +6246,9 @@ async function reconcileHistoricalStats(){
     // toda la tabla otra vez (antes se pedía dos veces por cada carga).
     if(!postsCacheReady) await loadPostsIntoCache();
     const posts = postsCache;
-    const [projects, stories, savedIds] = await Promise.all([
+    const [projects, myStoriesCount, savedIds] = await Promise.all([
       DB.projects.listForUser(currentUser.id),
-      DB.stories.listActive(),
+      sb.from('stories').select('id', { count: 'exact', head: true }).eq('author_id', currentUser.id).then(r => r.count || 0),
       DB.saved.listForUser(currentUser.id)
     ]);
     const mine = posts.filter(p => p.authorId === currentUser.id);
@@ -6193,8 +6266,7 @@ async function reconcileHistoricalStats(){
     const observed = {
       posts_created: mine.length,
       logbook_entries: logCount,
-      stories_created: stories.filter(s => s.authorId === currentUser.id).length,
-      likes_given: posts.reduce((n,p) => n + ((p.likedBy||[]).includes(currentUser.id) ? 1 : 0), 0),
+      stories_created: myStoriesCount,      likes_given: posts.reduce((n,p) => n + ((p.likedBy||[]).includes(currentUser.id) ? 1 : 0), 0),
       comments_written: posts.reduce((n,p) => n + (p.comments||[]).filter(c => c.authorId === currentUser.id).length, 0),
       posts_saved: savedIds.length
     };
