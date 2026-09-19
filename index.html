@@ -3066,8 +3066,15 @@ const DB = {
     },
     async recordDailyLogin(){
       const { data, error } = await sb.rpc('record_daily_login');
+
       if(error) throw error;
-      return (data && data[0]) ? data[0] : { current_streak:0, longest_streak:0 };
+
+      const row = Array.isArray(data) ? data[0] : data;
+
+      return row || {
+        current_streak: 0,
+        longest_streak: 0
+      };
     },
   },
 
@@ -3993,7 +4000,7 @@ async function refreshAppAfterAuthChange(){
   await loadUserStatsAndBadges();
   await reconcileHistoricalStats();
   await Promise.all([reloadFeed(), renderStories()]);
-  if(currentUser) await recordDailyLogin();
+
   renderProfile();
   renderSidePanels();
   await updateMessagesBadge();
@@ -6616,28 +6623,58 @@ let dailyLoginInProgress = false;
 let dailyLoginRecordedForUser = null;
 
 async function recordDailyLogin(){
-  if(!currentUser) return;
+  const userId = currentUser?.id;
 
-  // Evita que dos eventos de Supabase registren el mismo login
-  // simultáneamente durante el arranque o inicio de sesión.
-  if(dailyLoginInProgress) return;
-  if(dailyLoginRecordedForUser === currentUser.id) {
+  if(!userId) return;
+
+  /*
+    Una sesión puede disparar SIGNED_IN, carga inicial y eventos de
+    autenticación casi al mismo tiempo. No hacemos escrituras duplicadas.
+  */
+  if(dailyLoginRecordedForUser === userId){
     checkAndAwardBadges();
     checkAndAwardMissions();
     return;
   }
+
+  if(dailyLoginInProgress) return;
 
   dailyLoginInProgress = true;
 
   try{
     const r = await DB.stats.recordDailyLogin();
 
-    userStats.current_streak = Number(r?.current_streak || 0);
-    userStats.longest_streak = Number(r?.longest_streak || 0);
+    /*
+      El RPC devuelve una sola fila:
+      { current_streak, longest_streak }
+    */
+    if(r){
+      userStats.current_streak = Number(
+        r.current_streak ?? userStats.current_streak ?? 0
+      );
 
-    dailyLoginRecordedForUser = currentUser.id;
+      userStats.longest_streak = Number(
+        r.longest_streak ?? userStats.longest_streak ?? 0
+      );
+    }
+
+    /*
+      Marcamos el usuario solamente después de que Supabase
+      confirmó correctamente la operación.
+    */
+    dailyLoginRecordedForUser = userId;
+
   }catch(err){
-    console.warn('No se pudo registrar el login diario:', err);
+    /*
+      El login diario es una función secundaria.
+      Si falla la red o Supabase está temporalmente saturado,
+      NO debe romper el arranque de Enraíza.
+    */
+    console.warn(
+      'No se pudo registrar el login diario. La aplicación continuará normalmente.',
+      err?.message || err
+    );
+
   }finally{
     dailyLoginInProgress = false;
   }
@@ -7399,7 +7436,10 @@ window.addEventListener('unhandledrejection', (event) => {
     await reconcileHistoricalStats();
     await Promise.all([reloadFeed(), renderStories()]);
 
-    if(currentUser) await recordDailyLogin();
+    if(currentUser){
+      await recordDailyLogin();
+    }
+
     await resyncPointsTotalIfNeeded();
 
     renderProfile();
