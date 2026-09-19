@@ -2459,6 +2459,36 @@ const DB = {
           data.privacy_settings || {}
         )
       };
+    },
+
+    // Red de seguridad: si por lo que sea el trigger de auth.users -> profiles no corrió
+    // (o tardó más de lo que esperamos), creamos la fila nosotros mismos con lo que haya
+    // en la sesión. Con onConflict:'id' es idempotente: si el trigger sí alcanzó a correr
+    // mientras esperábamos, esto no revienta ni pisa el nombre que el usuario ya eligió.
+    async ensureProfile(sessionUser){
+      if(!sessionUser?.id) throw new Error('Sesión no válida.');
+
+      const { data, error } = await sb
+        .from('profiles')
+        .upsert({
+          id: sessionUser.id,
+          name: sessionUser.user_metadata?.name || 'Sin nombre',
+        }, { onConflict: 'id', ignoreDuplicates: true })
+        .select('id,name,avatar_url,bio,privacy_settings')
+        .maybeSingle();
+
+      if(error) throw error;
+      // ignoreDuplicates hace que data venga null si ya existía; en ese caso lo volvemos a leer.
+      const row = data || await this.findById(sessionUser.id);
+      if(!row) throw new Error('No se pudo crear el perfil.');
+
+      return row.privacySettings ? row : {
+        id: row.id,
+        name: row.name,
+        avatarUrl: row.avatar_url,
+        bio: row.bio || '',
+        privacySettings: normalizePrivacySettings(row.privacy_settings || {})
+      };
     }
   },
 
@@ -2719,7 +2749,8 @@ const DB = {
         .from('direct_messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending:true });
+        .order('created_at', { ascending:false })
+        .limit(100);
       if(error) throw error;
 
       let clearedAt = 0;
@@ -2737,18 +2768,19 @@ const DB = {
         }catch(err){ /* si falla, simplemente no se recorta nada */ }
       }
 
-      return (data || [])
-        .filter(row => new Date(row.created_at).getTime() > clearedAt)
-        .filter(row => !viewerId || !(row.deleted_for || []).includes(viewerId))
-        .map(row => ({
-          id: row.id,
-          conversationId: row.conversation_id,
-          senderId: row.sender_id,
-          text: row.deleted_for_everyone ? '' : row.text,
-          createdAt: new Date(row.created_at).getTime(),
-          replyToId: row.reply_to_id || null,
-          deletedForEveryone: !!row.deleted_for_everyone
-        }));
+    return (data || [])
+      .filter(row => new Date(row.created_at).getTime() > clearedAt)
+      .filter(row => !viewerId || !(row.deleted_for || []).includes(viewerId))
+      .map(row => ({
+        id: row.id,
+        conversationId: row.conversation_id,
+        senderId: row.sender_id,
+        text: row.deleted_for_everyone ? '' : row.text,
+        createdAt: new Date(row.created_at).getTime(),
+        replyToId: row.reply_to_id || null,
+        deletedForEveryone: !!row.deleted_for_everyone
+      }))
+      .sort((a, b) => a.createdAt - b.createdAt);
     },
     async send(conversationId, senderId, text, replyToId){
       const clean = (text || '').trim();
@@ -2828,12 +2860,15 @@ const DB = {
 
   views: {
     async record(userId, postId, dwellMs){
-      const { data: existing } = await sb.from('post_views').select('dwell_ms').eq('user_id', userId).eq('post_id', postId).maybeSingle();
-      if(existing){
-        await sb.from('post_views').update({ dwell_ms: existing.dwell_ms + dwellMs }).eq('user_id', userId).eq('post_id', postId);
-      } else {
-        await sb.from('post_views').insert({ user_id: userId, post_id: postId, dwell_ms: dwellMs });
-      }
+      // Antes: select + insert/update por separado (dos viajes = condición de carrera:
+      // dos vistas casi simultáneas del mismo post chocan en el insert con 409 Conflict
+      // por la llave única user_id+post_id). Ahora: una sola llamada atómica al RPC,
+      // que hace el upsert del lado del servidor (ver increment_post_view en el SQL).
+      const { error } = await sb.rpc('increment_post_view', {
+        p_post_id: postId,
+        p_dwell_ms: dwellMs
+      });
+      if(error) throw error;
     },
   },
 
@@ -2918,6 +2953,39 @@ const DB = {
       return true;
     },
   },
+
+  notifications: {
+    async list(recipientId, limit = 40){
+      if(!recipientId) return [];
+      const { data, error } = await sb
+        .from('notifications')
+        .select('id, actor_id, type, post_id, comment_id, text, created_at, read_at')
+        .eq('recipient_id', recipientId)
+        .order('created_at', { ascending:false })
+        .limit(limit);
+      if(error) throw error;
+      return (data||[]).map(mapNotificationRow);
+    },
+    async unreadCount(recipientId){
+      if(!recipientId) return 0;
+      const { count, error } = await sb
+        .from('notifications')
+        .select('id', { count:'exact', head:true })
+        .eq('recipient_id', recipientId)
+        .is('read_at', null);
+      if(error) throw error;
+      return count || 0;
+    },
+    async markAllSeen(recipientId){
+      if(!recipientId) return;
+      const { error } = await sb
+        .from('notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('recipient_id', recipientId)
+        .is('read_at', null);
+      if(error) throw error;
+    },
+  },
 };
 
 function mapPostRow(row){
@@ -2931,6 +2999,13 @@ function mapPostRow(row){
       parentId: c.parent_id || null,
       likedBy: (c.comment_likes||[]).map(l => l.user_id),
     })).sort((a,b)=>a.date-b.date),
+  };
+}
+function mapNotificationRow(row){
+  return {
+    id: row.id, actorId: row.actor_id, type: row.type, postId: row.post_id || null,
+    commentId: row.comment_id || null, text: row.text || '', date: new Date(row.created_at).getTime(),
+    read: !!row.read_at,
   };
 }
 function mapStoryRow(row){
@@ -3574,9 +3649,13 @@ function openAuthModal(mode, actionLabel){
       } else {
         const name = document.getElementById('authName').value.trim();
         if(!name) throw new Error('Pon un nombre o apodo.');
-        const authRedirectUrl = window.location.hostname.includes('github.io')
-          ? 'https://missaelcas.github.io/Enraiza/confirmado.html'
-          : 'http://localhost:3000/confirmado.html';
+        // Antes esto era un hardcode a dos URLs fijas (github.io o localhost:3000), así que
+        // probando desde cualquier otro origen (127.0.0.1:5500 con Live Server, por ejemplo)
+        // el correo de confirmación mandaba a una URL que no coincidía con nada permitido en
+        // Supabase (Authentication -> URL Configuration -> Redirect URLs) y la verificación
+        // no completaba bien: la cuenta quedaba registrada pero el login seguía fallando
+        // como si no existiera. Con el origen actual, siempre apunta a donde de verdad estás.
+        const authRedirectUrl = new URL('confirmado.html', window.location.href).href;
         const { data, error } = await sb.auth.signUp({
           email,
           password,
@@ -3704,6 +3783,32 @@ async function loadCurrentUserFromSession(session){
     await wait(600);
     profile = await DB.users.findById(session.user.id);
   }
+  if(!profile){
+    // El trigger que crea profiles a partir de auth.users no alcanzó a correr (o no existe).
+    // Antes de esto se seguía con un usuario "fantasma" solo en memoria, sin fila real en
+    // profiles: cualquier escritura con FK a profiles (user_stats, posts, etc.) tronaba
+    // más adelante con 23503. Creamos la fila de verdad para que todo lo demás funcione.
+    try{
+      profile = await DB.users.ensureProfile(session.user);
+    }catch(err){
+      // 23503 aquí es distinto: significa que el id ni siquiera existe en auth.users,
+      // o sea una sesión huérfana (cuenta borrada pero el token del navegador todavía
+      // no vence). Insistir solo repite el mismo error en cada escritura futura
+      // (login diario, stats, etc.), así que cerramos sesión limpio en vez de seguir
+      // con un usuario fantasma.
+      if(err?.code === '23503'){
+        console.warn('Sesión huérfana (el usuario ya no existe en auth.users): cerrando sesión.', err);
+        currentUser = null; currentAuthEmail = '';
+        // scope:'local' porque esta sesión es huérfana (el usuario ya no existe del lado
+        // del servidor): un signOut normal (scope 'global') le pide a Supabase que revoque
+        // la sesión de ESE usuario, y como no existe, responde 403 y el signOut nunca limpia
+        // nada local. 'local' solo borra la sesión guardada en este navegador, sin llamar al servidor.
+        sb.auth.signOut({ scope: 'local' }).catch(() => {});
+        return;
+      }
+      console.error('No se pudo crear el perfil del usuario:', err);
+    }
+  }
   currentUser = profile || { id: session.user.id, name: session.user.user_metadata?.name || 'Sin nombre', avatarUrl: null };
   usersCache[currentUser.id] = currentUser;
 }
@@ -3716,6 +3821,8 @@ async function refreshAppAfterAuthChange(){
   renderProfile();
   renderSidePanels();
   await updateMessagesBadge();
+  await refreshNotifUnreadCount();
+  setupNotificationsRealtime(); // re-suscribe (o cancela) el canal de notificaciones para el usuario actual
 }
 async function logout(){
   try{
@@ -4647,93 +4754,92 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 
 // =====================================================================
 // TIEMPO REAL
+// Alcance reducido a propósito: ya NO escuchamos post_likes ni comment_likes
+// en vivo (cada like ya se ve al instante para quien lo dio via updateLikeUI,
+// y para el resto de usuarios llega en la próxima carga del feed/post).
+// Menos canales = menos carga en Supabase Realtime con más usuarios conectados.
 // =====================================================================
-//function setupRealtime(){
-//  sb.channel('enraiza-posts-realtime')
-//    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
-//      if(payload.eventType === 'DELETE'){
-//        if(!payload.old || !payload.old.id) return;
-//        if(!getCachedPost(payload.old.id)) return;
-//        removeCachedPost(payload.old.id);
-//        renderFeedFromCache();
-//        return;
-//      }
-//     if(payload.eventType === 'INSERT'){
-//        if(getCachedPost(payload.new.id)) return;
-//        const post = mapPostRow({ ...payload.new, post_likes: [], post_comments: [] });
-//        upsertCachedPost(post);
-//        resolveAuthorObjs([post]).then(() => renderFeedFromCache());
-//        return;
-//      }
-//      if(payload.eventType === 'UPDATE'){
-//        const existing = getCachedPost(payload.new.id);
-//        if(!existing) return;
-//        existing.title = payload.new.title;
-//        existing.category = payload.new.category;
-//        existing.notes = payload.new.notes;
-//        if(Array.isArray(payload.new.photos)) existing.photos = payload.new.photos;
-//        rerenderCardFromCache(existing.id);
-//      }
-//    })
-//    .on('postgres_changes', { event: '*', schema: 'public', table: 'post_likes' }, (payload) => {
-//      const postId = (payload.new && payload.new.post_id) || (payload.old && payload.old.post_id);
-//      const post = getCachedPost(postId);
-//      if(!post) return;
-//      post.likedBy = post.likedBy || [];
-//      let changed = false;
-//      if(payload.eventType === 'INSERT'){
-//        if(!post.likedBy.includes(payload.new.user_id)){ post.likedBy.push(payload.new.user_id); changed = true; }
-//      } else if(payload.eventType === 'DELETE'){
-//        if(post.likedBy.includes(payload.old.user_id)){ post.likedBy = post.likedBy.filter(uid => uid !== payload.old.user_id); changed = true; }
-//      }
-//      if(changed) updateLikeUI(postId, currentUser ? post.likedBy.includes(currentUser.id) : false, post.likedBy.length);
-//    })
-//    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
-//      const post = getCachedPost(payload.new.post_id);
-//      if(!post) return;
-//      post.comments = post.comments || [];
-//      const newDate = new Date(payload.new.created_at).getTime();
-//      const alreadyThere = post.comments.some(c =>
-//        c.id === payload.new.id ||
-//        (c.authorId === payload.new.author_id && c.text === payload.new.text && Math.abs(c.date - newDate) < 15000)
-//      );
-//      if(alreadyThere) return;
-//      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: newDate, parentId: payload.new.parent_id || null, likedBy: [] });
-//      getUserCached(payload.new.author_id).then(() => {
-//        rerenderCardFromCache(post.id);
-//        if(document.getElementById('commentsViewList')) renderCommentsList(post);
-//      });
-//    })
-//    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments' }, (payload) => {
-//      if(!payload.old || !payload.old.id) return;
-//      for(const post of postsCache){
-//        const before = (post.comments||[]).length;
-//        post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
-//        if(post.comments.length !== before){
-//          rerenderCardFromCache(post.id);
-//          if(document.getElementById('commentsViewList')) renderCommentsList(post);
-//          break;
-//        }
-//      }
-//    })
-//    .on('postgres_changes', { event: '*', schema: 'public', table: 'comment_likes' }, (payload) => {
-//      const commentId = (payload.new && payload.new.comment_id) || (payload.old && payload.old.comment_id);
-//      if(!commentId) return;
-//      for(const post of postsCache){
-//        const c = (post.comments||[]).find(x => x.id === commentId);
-//        if(!c) continue;
-//        c.likedBy = c.likedBy || [];
-//        if(payload.eventType === 'INSERT'){
-//          if(!c.likedBy.includes(payload.new.user_id)) c.likedBy.push(payload.new.user_id);
-//        } else if(payload.eventType === 'DELETE'){
-//          c.likedBy = c.likedBy.filter(uid => uid !== payload.old.user_id);
-//        }
-//        if(document.getElementById('commentsViewList')) renderCommentsList(post);
-//        break;
-//      }
-//    })
-//    .subscribe();
-//}
+function setupRealtime(){
+  sb.channel('enraiza-posts-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
+      if(payload.eventType === 'DELETE'){
+        if(!payload.old || !payload.old.id) return;
+        if(!getCachedPost(payload.old.id)) return;
+        removeCachedPost(payload.old.id);
+        renderFeedFromCache();
+        return;
+      }
+      if(payload.eventType === 'INSERT'){
+        if(getCachedPost(payload.new.id)) return;
+        const post = mapPostRow({ ...payload.new, post_likes: [], post_comments: [] });
+        upsertCachedPost(post);
+        resolveAuthorObjs([post]).then(() => renderFeedFromCache());
+        return;
+      }
+      if(payload.eventType === 'UPDATE'){
+        const existing = getCachedPost(payload.new.id);
+        if(!existing) return;
+        existing.title = payload.new.title;
+        existing.category = payload.new.category;
+        existing.notes = payload.new.notes;
+        if(Array.isArray(payload.new.photos)) existing.photos = payload.new.photos;
+        rerenderCardFromCache(existing.id);
+      }
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments' }, (payload) => {
+      const post = getCachedPost(payload.new.post_id);
+      if(!post) return;
+      post.comments = post.comments || [];
+      const newDate = new Date(payload.new.created_at).getTime();
+      const alreadyThere = post.comments.some(c =>
+        c.id === payload.new.id ||
+        (c.authorId === payload.new.author_id && c.text === payload.new.text && Math.abs(c.date - newDate) < 15000)
+      );
+      if(alreadyThere) return;
+      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: newDate, parentId: payload.new.parent_id || null, likedBy: [] });
+      getUserCached(payload.new.author_id).then(() => {
+        rerenderCardFromCache(post.id);
+        if(document.getElementById('commentsViewList')) renderCommentsList(post);
+      });
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments' }, (payload) => {
+      if(!payload.old || !payload.old.id) return;
+      for(const post of postsCache){
+        const before = (post.comments||[]).length;
+        post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
+        if(post.comments.length !== before){
+          rerenderCardFromCache(post.id);
+          if(document.getElementById('commentsViewList')) renderCommentsList(post);
+          break;
+        }
+      }
+    })
+    .subscribe();
+
+  setupNotificationsRealtime();
+}
+
+// Canal aparte para notificaciones propias (solo filas donde YO soy el destinatario).
+// Separado de setupRealtime() porque este SÍ hay que rearmarlo cada vez que cambia
+// currentUser (login/logout), sin duplicar ni dejar canales viejos suscritos.
+let notifRealtimeChannel = null;
+function setupNotificationsRealtime(){
+  if(notifRealtimeChannel){
+    sb.removeChannel(notifRealtimeChannel);
+    notifRealtimeChannel = null;
+  }
+  if(!currentUser) return;
+  notifRealtimeChannel = sb.channel(`enraiza-notifications-realtime-${currentUser.id}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, () => {
+      if(document.getElementById('notifPanel')?.classList.contains('open')){
+        renderNotificationsPanel();
+      } else {
+        notifUnreadCount += 1;
+        checkNotifDot();
+      }
+    })
+    .subscribe();
+}
 
 // ---------- HISTORIAS ----------
 let storyGroups = [];
@@ -5148,38 +5254,28 @@ function setupStorySwipeToClose(){
 // Nota: los "me gusta" no tienen fecha individual guardada en la caché,
 // así que usan la fecha de la publicación/comentario como aproximación.
 // =====================================================================
-function buildNotifications(){
+// Las notificaciones ahora vienen de la tabla real `notifications` (llenada por
+// triggers en Supabase), ya no se recalculan a mano recorriendo postsCache.
+// postsCache solo sirve para completar título/foto del post cuando el tipo lo requiere.
+let notifUnreadCount = 0;
+async function fetchNotifications(){
   if(!currentUser) return [];
-  const myId = currentUser.id;
-  const items = [];
-  postsCache.forEach(p => {
-    const thumb = (p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category);
-    if(p.authorId === myId){
-      (p.comments || []).forEach(c => {
-        if(c.authorId !== myId){
-          items.push({ type:'comment', actorId:c.authorId, postId:p.id, postTitle:p.title, postThumb:thumb, text:c.text, date:c.date });
-        }
-      });
-      (p.likedBy || []).forEach(uid => {
-        if(uid !== myId) items.push({ type:'like', actorId:uid, postId:p.id, postTitle:p.title, postThumb:thumb, date:p.date });
-      });
+  const rows = await DB.notifications.list(currentUser.id, 40);
+  if(!postsCacheReady) await loadPostsIntoCache().catch(() => {});
+  return rows.map(it => {
+    if(it.postId){
+      const post = getCachedPost(it.postId);
+      it.postTitle = post ? post.title : 'una publicación';
+      it.postThumb = post ? ((post.photos && post.photos[0]) || placeholderImage(post.id + post.title, post.category)) : '';
     }
-    (p.comments || []).forEach(c => {
-      if(c.authorId === myId){
-        (c.likedBy || []).forEach(uid => {
-          if(uid !== myId) items.push({ type:'commentLike', actorId:uid, postId:p.id, postTitle:p.title, postThumb:thumb, text:c.text, date:c.date });
-        });
-      }
-      if(c.parentId){
-        const parent = (p.comments || []).find(x => x.id === c.parentId);
-        if(parent && parent.authorId === myId && c.authorId !== myId){
-          items.push({ type:'reply', actorId:c.authorId, postId:p.id, postTitle:p.title, postThumb:thumb, text:c.text, date:c.date });
-        }
-      }
-    });
+    return it;
   });
-  items.sort((a,b) => b.date - a.date);
-  return items;
+}
+async function refreshNotifUnreadCount(){
+  if(!currentUser){ notifUnreadCount = 0; checkNotifDot(); return; }
+  try{ notifUnreadCount = await DB.notifications.unreadCount(currentUser.id); }
+  catch(err){ /* silencioso: no rompe la UI si falla el conteo */ }
+  checkNotifDot();
 }
 function buildReminders(){
   if(!currentUser) return [];
@@ -5206,17 +5302,28 @@ function groupNotifications(items){
   });
   return groups;
 }
-const NOTIF_VERBS = { comment:'comentó en', like:'le dio me gusta a', reply:'respondió tu comentario en', commentLike:'le dio me gusta a tu comentario en' };
+const NOTIF_VERBS = { comment:'comentó en', like:'le dio me gusta a', reply:'respondió tu comentario en', commentLike:'le dio me gusta a tu comentario en', follow:'empezó a seguirte' };
 function notifRowHTML(it){
   const actor = usersCache[it.actorId];
+  if(it.type === 'follow'){
+    return `
+      <div class="notif-row" data-gotoprofile="${it.actorId}">
+        <div class="avatar" style="width:36px;height:36px;font-size:0.8rem;">${avatarHTML(actor)}</div>
+        <div class="notif-text">
+          <strong>${escapeHtml(actor?.name || 'Alguien')}</strong> ${NOTIF_VERBS.follow}
+          <span class="notif-when">${fmtRelative(it.date)}</span>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div class="notif-row" data-goto="${it.postId}">
       <div class="avatar" style="width:36px;height:36px;font-size:0.8rem;">${avatarHTML(actor)}</div>
       <div class="notif-text">
-        <strong>${escapeHtml(actor?.name || 'Alguien')}</strong> ${NOTIF_VERBS[it.type]} <em>${escapeHtml(it.postTitle)}</em>${it.text ? `: "${escapeHtml(it.text.slice(0,60))}${it.text.length>60?'…':''}"` : ''}
+        <strong>${escapeHtml(actor?.name || 'Alguien')}</strong> ${NOTIF_VERBS[it.type]} <em>${escapeHtml(it.postTitle || '')}</em>${it.text ? `: "${escapeHtml(it.text.slice(0,60))}${it.text.length>60?'…':''}"` : ''}
         <span class="notif-when">${fmtRelative(it.date)}</span>
       </div>
-      <img class="notif-thumb" src="${it.postThumb}" alt="">
+      <img class="notif-thumb" src="${it.postThumb || ''}" alt="">
     </div>
   `;
 }
@@ -5226,8 +5333,9 @@ function reminderRowHTML(it){
 async function renderNotificationsPanel(){
   const panel = document.getElementById('notifPanel');
   if(!panel || !currentUser) return;
-  if(!postsCacheReady) await loadPostsIntoCache();
-  const items = buildNotifications();
+  let items = [];
+  try{ items = await fetchNotifications(); }
+  catch(err){ panel.innerHTML = '<p class="empty-note" style="padding:16px;">No se pudieron cargar las notificaciones.</p>'; return; }
   await Promise.all([...new Set(items.map(it => it.actorId))].map(id => getUserCached(id)));
   const reminders = buildReminders();
   const groups = groupNotifications(items);
@@ -5245,9 +5353,11 @@ async function renderNotificationsPanel(){
     closeNotifPanel();
     openPostOrProject(row.dataset.goto);
   }));
-  try{ localStorage.setItem(`enraiza:notif_seen_${currentUser.id}`, String(Date.now())); }catch(err){ /* ignore */ }
-  const dot = document.getElementById('activityDot');
-  if(dot) dot.style.display = 'none';
+  panel.querySelectorAll('[data-gotoprofile]').forEach(row => row.addEventListener('click', () => {
+    closeNotifPanel();
+    openUserProfile(row.dataset.gotoprofile, usersCache[row.dataset.gotoprofile]?.name || 'Alguien de la comunidad');
+  }));
+  DB.notifications.markAllSeen(currentUser.id).then(() => { notifUnreadCount = 0; checkNotifDot(); }).catch(() => {});
 }
 function toggleNotifPanel(){
   const panel = document.getElementById('notifPanel');
@@ -5477,13 +5587,31 @@ async function renderMessagesScreen(activeConversationId = null){
     const conversations = await DB.messages.listConversations(currentUser.id);
     const enriched = await Promise.all(conversations.map(async (conv) => {
       const otherUser = await getUserCached(conv.otherUserId);
-const msgs = await DB.messages.listMessages(conv.id, currentUser.id);
-      const lastMessage = msgs[msgs.length - 1] || null;
+
+      const msgs = await DB.messages
+        .listMessages(conv.id, currentUser.id)
+        .catch(() => []);
+
+      const lastMessage = msgs.length ? msgs[msgs.length - 1] : null;
       const lastReadAt = getConversationLastReadAt(conv.id);
-      const unreadCount = msgs.filter(msg => msg.senderId !== currentUser.id && msg.createdAt > lastReadAt).length;
+
+      const unreadCount = msgs.reduce((total, msg) => {
+        if(
+          msg.senderId !== currentUser.id &&
+          msg.createdAt > lastReadAt
+        ){
+          return total + 1;
+        }
+
+        return total;
+      }, 0);
+
       return {
         ...conv,
-        otherUser: otherUser || { id: conv.otherUserId, name: 'Usuario' },
+        otherUser: otherUser || {
+          id: conv.otherUserId,
+          name: 'Usuario'
+        },
         lastMessage,
         unreadCount,
         pinned: false,
@@ -5793,12 +5921,32 @@ async function updateMessagesBadge(){
   }
   try{
     const conversations = await DB.messages.listConversations(currentUser.id);
-    let unread = 0;
-    for(const conversation of conversations){
-const msgs = await DB.messages.listMessages(conversation.id, currentUser.id);
-      const lastReadAt = getConversationLastReadAt(conversation.id);
-      unread += msgs.filter(msg => msg.senderId !== currentUser.id && msg.createdAt > lastReadAt).length;
-    }
+
+    const unreadCounts = await Promise.all(
+      conversations.map(async (conversation) => {
+        const msgs = await DB.messages
+          .listMessages(conversation.id, currentUser.id)
+          .catch(() => []);
+
+        const lastReadAt = getConversationLastReadAt(conversation.id);
+
+        return msgs.reduce((total, msg) => {
+          if(
+            msg.senderId !== currentUser.id &&
+            msg.createdAt > lastReadAt
+          ){
+            return total + 1;
+          }
+
+          return total;
+        }, 0);
+      })
+    );
+
+    const unread = unreadCounts.reduce(
+      (total, count) => total + count,
+      0
+    );
     dot.style.display = unread > 0 ? 'block' : 'none';
     if(unread > 0 && dot.textContent.trim() !== String(unread)) {
       dot.textContent = String(unread > 9 ? '9+' : unread);
@@ -5810,13 +5958,9 @@ const msgs = await DB.messages.listMessages(conversation.id, currentUser.id);
 }
 function checkNotifDot(){
   const dot = document.getElementById('activityDot');
-  if(!dot || !currentUser) return;
-  const items = buildNotifications();
-  if(!items.length){ dot.style.display = 'none'; return; }
-  const latest = Math.max(...items.map(i => i.date));
-  let lastSeen = 0;
-  try{ lastSeen = Number(localStorage.getItem(`enraiza:notif_seen_${currentUser.id}`) || 0); }catch(err){ /* ignore */ }
-  dot.style.display = latest > lastSeen ? 'block' : 'none';
+  if(!dot) return;
+  if(!currentUser){ dot.style.display = 'none'; return; }
+  dot.style.display = notifUnreadCount > 0 ? 'block' : 'none';
 }
 
 // =====================================================================
@@ -7075,6 +7219,7 @@ pingKeepAlive(); // uno al cargar, además del que ya hace loadPostsIntoCache()
 
     renderProfile();
     renderSidePanels();
+    refreshNotifUnreadCount();
     setupRealtime();
     authReady = true;
 
