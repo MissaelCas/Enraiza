@@ -5535,6 +5535,45 @@ function unsubscribeFromPostComments(){
   }
 }
 
+// Trae el estado puntual (contador, y si aplica el comentario nuevo) de UN post
+// a partir de una notificación. La usan tanto el canal en vivo como el respaldo
+// que corre al volver a la pestaña (por si el evento en vivo se perdió).
+async function refreshPostFromNotification(n){
+  if(!n || !n.post_id || !['like','comment','reply','commentLike'].includes(n.type)) return;
+  let fresh;
+  try{ fresh = await DB.posts.getOne(n.post_id); }catch(err){ return; }
+  if(!fresh) return;
+  const cached = getCachedPost(fresh.id);
+  if(!cached) return;
+  cached.likeCount = fresh.likeCount;
+  cached.commentCount = fresh.commentCount;
+
+  if((n.type === 'comment' || n.type === 'reply') && n.comment_id){
+    cached.comments = cached.comments || [];
+    const already = cached.comments.some(c => c.id === n.comment_id);
+    if(!already){
+      try{
+        const { data: row } = await sb.from('post_comments')
+          .select('id, author_id, text, created_at, parent_id')
+          .eq('id', n.comment_id).maybeSingle();
+        if(row){
+          cached.comments.push({
+            id: row.id, authorId: row.author_id, text: row.text,
+            date: new Date(row.created_at).getTime(),
+            parentId: row.parent_id || null, likedBy: [],
+          });
+          cached.comments.sort((a,b) => a.date - b.date);
+          await getUserCached(row.author_id);
+        }
+      }catch(err){ /* si falla, al menos ya quedó al día el contador */ }
+    }
+  }
+
+  rerenderCardFromCache(fresh.id);
+  const openList = document.getElementById('commentsViewList');
+  if(openList && modalBackdrop.classList.contains('open')) renderCommentsList(cached);
+}
+
 // Canal aparte para notificaciones propias (solo filas donde YO soy el destinatario).
 // Separado de setupRealtime() porque este SÍ hay que rearmarlo cada vez que cambia
 // currentUser (login/logout), sin duplicar ni dejar canales viejos suscritos.
@@ -5557,17 +5596,7 @@ function setupNotificationsRealtime(){
       // Realtime con cada like de cada publicación). Por eso, cuando llega una notificación
       // de que a mi publicación le dieron like o la comentaron, el contador que ya tengo en
       // caché para esa tarjeta quedó desactualizado. Se refresca solo esa publicación puntual.
-      const n = payload.new;
-      if(n && n.post_id && ['like','comment','reply','commentLike'].includes(n.type)){
-        DB.posts.getOne(n.post_id).then(fresh => {
-          if(!fresh) return;
-          const cached = getCachedPost(fresh.id);
-          if(!cached) return;
-          cached.likeCount = fresh.likeCount;
-          cached.commentCount = fresh.commentCount;
-          rerenderCardFromCache(fresh.id);
-        }).catch(() => {});
-      }
+      refreshPostFromNotification(payload.new);
     })
     .subscribe();
 }
@@ -6272,12 +6301,26 @@ async function refreshNotifUnreadCount(){
   checkNotifDot();
 }
 let lastNotifRefresh = 0;
-function refreshNotifOnReturn(){
+let lastSeenNotifDate = 0;
+async function refreshNotifOnReturn(){
   if(document.visibilityState === 'hidden' || !currentUser) return;
   const now = Date.now();
-  if(now - lastNotifRefresh < 30000) return; // máx. 1 consulta liviana (solo un conteo) cada 30 s
+  if(now - lastNotifRefresh < 30000) return; // máx. 1 consulta cada 30 s
   lastNotifRefresh = now;
   refreshNotifUnreadCount();
+
+  // Respaldo por si el canal en vivo se perdió algún evento (p. ej. el
+  // WebSocket se pausó mientras la pestaña estaba en segundo plano): se
+  // piden solo las notificaciones nuevas desde la última vez y se usan
+  // para refrescar puntualmente esos posts, sin recargar todo el feed.
+  try{
+    const recent = await DB.notifications.list(currentUser.id, 15);
+    const fresh = lastSeenNotifDate ? recent.filter(n => n.date > lastSeenNotifDate) : [];
+    if(recent.length) lastSeenNotifDate = Math.max(lastSeenNotifDate, ...recent.map(n => n.date));
+    fresh.forEach(n => refreshPostFromNotification({
+      post_id: n.postId, comment_id: n.commentId, type: n.type,
+    }));
+  }catch(err){ /* silencioso: es solo un respaldo */ }
 }
 document.addEventListener('visibilitychange', refreshNotifOnReturn);
 window.addEventListener('focus', refreshNotifOnReturn);
