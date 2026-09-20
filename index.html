@@ -26,10 +26,10 @@
        y cómodo de leer, centrado, con aire a los lados en pantallas grandes
        en vez de estirarse a lo ancho — pero que en móvil usa el 100% real
        del viewport, sin desbordes ni huecos. */
-    --page-max: 1100px;
-    --feed-max: 630px;
-    --side-w: 200px;
-    --layout-gap: 28px;
+    --page-max: 900px;
+    --feed-max: 470px;
+    --side-w: 180px;
+    --layout-gap: 24px;
   }
   *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html{ scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
@@ -4628,6 +4628,60 @@ const postViewObserver = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.6 });
 
+// ---------- SINCRONÍA EN VIVO DE CONTADORES (likes / comentarios) ----------
+// Optimizada a propósito para muchos usuarios conectados a la vez: NO hay un
+// canal global escuchando toda la tabla "posts" (eso sí saturaría con miles
+// de usuarios). Cada publicación solo abre su propio canal mientras está
+// visible en pantalla —reutilizando la misma señal de "entró/salió de vista"
+// que ya usábamos arriba— y se cierra apenas sale de vista. Así, en
+// cualquier momento, el número de canales abiertos es como mucho la
+// cantidad de publicaciones que caben en una pantalla, no el total de
+// publicaciones ni de usuarios de la app. El conteo en sí sigue viviendo
+// solo en la columna like_count/comment_count del post (nunca se descargan
+// ni se guardan todos los uid de quién dio like).
+const liveCountChannels = new Map(); // postId -> { channel, refs }
+
+function subscribeLiveCounts(id){
+  if(!id) return;
+  const existing = liveCountChannels.get(id);
+  if(existing){ existing.refs++; return; }
+  const channel = sb.channel(`post-counts-${id}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts', filter: `id=eq.${id}` }, (payload) => {
+      const row = payload.new;
+      if(!row) return;
+      const post = getCachedPost(id);
+      if(post){
+        if(row.like_count != null) post.likeCount = Number(row.like_count);
+        if(row.comment_count != null) post.commentCount = Number(row.comment_count);
+      }
+      if(row.like_count != null){
+        const liked = currentUser ? (post?.likedBy || []).includes(currentUser.id) : false;
+        updateLikeUI(id, liked, Number(row.like_count));
+      }
+    })
+    .subscribe();
+  liveCountChannels.set(id, { channel, refs: 1 });
+}
+
+function unsubscribeLiveCounts(id){
+  const existing = liveCountChannels.get(id);
+  if(!existing) return;
+  existing.refs -= 1;
+  if(existing.refs <= 0){
+    sb.removeChannel(existing.channel);
+    liveCountChannels.delete(id);
+  }
+}
+
+const postCountSyncObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const id = entry.target.dataset.id;
+    if(!id) return;
+    if(entry.isIntersecting) subscribeLiveCounts(id);
+    else unsubscribeLiveCounts(id);
+  });
+}, { threshold: 0.01, rootMargin: '200px 0px' });
+
 function carouselHTML(post){
   const photos = (post.photos && post.photos.length) ? post.photos : [placeholderImage(post.id + post.title, post.category)];
   const multi = photos.length > 1;
@@ -4790,6 +4844,7 @@ function bindPostCard(article){
   if(!article) return;
   const id = article.dataset.id;
   postViewObserver.observe(article);
+  postCountSyncObserver.observe(article);
 
   article.querySelectorAll('[data-comment-author]').forEach(el => {
     const uid = el.dataset.commentAuthor;
@@ -4901,6 +4956,8 @@ function rerenderCardFromCache(postId){
       newCarouselSlot.replaceWith(oldCarousel);
     }
     postViewObserver.unobserve(article);
+    postCountSyncObserver.unobserve(article);
+    unsubscribeLiveCounts(postId);
     article.replaceWith(newArticle);
     bindPostCard(newArticle);
   });
@@ -5089,17 +5146,29 @@ async function handleLike(id, forceLike, point){
 
   post.likeCount = Math.max(0, Number(post.likeCount ?? 0) + (willLike ? 1 : -1));
   updateLikeUI(id, willLike, post.likeCount);
-  if(willLike) incrementStat('likes_given');
+  // El logro de "apoyo a la comunidad" es por apoyar a OTRAS personas:
+  // darte like a ti mismo nunca debe sumar aquí.
+  const isOwnPost = post.authorId === currentUser.id;
+  if(willLike && !isOwnPost) incrementStat('likes_given');
 
   try{
-    await DB.posts.toggleLike(id, currentUser.id);
+    const result = await DB.posts.toggleLike(id, currentUser.id);
+    // La base de datos es la fuente de verdad del conteo (evita que el
+    // número se vaya desincronizando si varias personas dan like casi
+    // al mismo tiempo). Solo corregimos si difiere de lo optimista.
+    if(result && Number.isFinite(result.likeCount) && result.likeCount !== post.likeCount){
+      post.likeCount = result.likeCount;
+      updateLikeUI(id, post.likedBy.includes(currentUser.id), post.likeCount);
+    }
   }catch(err){
     if(willLike) post.likedBy = post.likedBy.filter(uid => uid !== currentUser.id);
     else post.likedBy.push(currentUser.id);
     post.likeCount = Math.max(0, Number(post.likeCount ?? 0) + (willLike ? -1 : 1));
     updateLikeUI(id, post.likedBy.includes(currentUser.id), post.likeCount);
+    if(willLike && !isOwnPost) incrementStat('likes_given', -1);
   }
 }
+
 
 async function handleSave(id){
   if(!requireLogin('guardar publicaciones')) return;
@@ -7312,7 +7381,7 @@ async function reconcileHistoricalStats(){
     const observed = {
       posts_created: mine.length,
       logbook_entries: logCount,
-      stories_created: myStoriesCount,      likes_given: posts.reduce((n,p) => n + ((p.likedBy||[]).includes(currentUser.id) ? 1 : 0), 0),
+      stories_created: myStoriesCount,      likes_given: posts.reduce((n,p) => n + (p.authorId !== currentUser.id && (p.likedBy||[]).includes(currentUser.id) ? 1 : 0), 0),
       comments_written: posts.reduce((n,p) => n + (p.comments||[]).filter(c => c.authorId === currentUser.id).length, 0),
       posts_saved: savedIds.length
     };
@@ -7504,7 +7573,7 @@ async function computeStats(){
   const ownPosts = posts.filter(p => p.authorId === myId);
   let likedCount = 0, ownComments = 0;
   posts.forEach(p => {
-    if((p.likedBy || []).includes(myId)) likedCount++;
+    if(p.authorId !== myId && (p.likedBy || []).includes(myId)) likedCount++;
     (p.comments || []).forEach(c => { if(c.authorId === myId) ownComments++; });
   });
   return { ownPosts: ownPosts.length, ownPostList: ownPosts, likedCount, savedCount: savedIds.length, ownComments, projectCount: projects.length };
