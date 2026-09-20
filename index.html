@@ -2048,13 +2048,13 @@
 <!-- AVISO PEQUEÑO (toast) -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <script>
 // =====================================================================
 // CONEXIÓN A SUPABASE (proyecto real del usuario)
 // =====================================================================
 const SUPABASE_URL = 'https://bizluypmotcgoxdjquyf.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_NQPTYNX-B3OFCEWOX5QuBw_O-dTAjPw';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpemx1eXBtb3RjZ294ZGpxdXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNzY5MTksImV4cCI6MjEwNDc1MjkxOX0.2FcnsVwcO-KOg8gLNNvxLfsRJCvAlWCHxKE0F2ogDbY';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const BUCKET = 'enraiza';
 const STORY_DAY_MS = 24 * 60 * 60 * 1000;
@@ -2992,11 +2992,11 @@ const DB = {
       if(error) throw error;
 
       return {
-        liked: !!data?.liked,
-        likeCount: Number(data?.like_count || 0)
-      };
-    },
-    async addComment(id, { text, parentId }){
+          liked: !!data?.liked,
+          likeCount: Number(data?.like_count || 0)
+        };
+      },
+      async addComment(id, { text, parentId }){
       const { data, error } = await sb.rpc('create_post_comment', {
         p_post_id: id,
         p_text: text,
@@ -5279,16 +5279,7 @@ async function postComment(id, text, parentId){
     try{
       const freshComments = await DB.posts.listComments(id);
 
-      post.comments = freshComments.map(c => ({
-        id: c.id,
-        authorId: c.author_id,
-        text: c.text,
-        date: new Date(c.created_at).getTime(),
-        parentId: c.parent_id || null,
-        likedBy: (c.comment_likes || [])
-          .map(x => x.user_id)
-          .filter(Boolean)
-      }));
+      post.comments = freshComments;
     }catch(syncErr){
       console.warn('[COMMENTS] No se pudo refrescar comentarios:', syncErr);
     }
