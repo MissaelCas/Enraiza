@@ -35,7 +35,13 @@
     font-family: var(--sans);
     line-height: 1.55;
     padding-top: 78px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
+  @supports (min-height: 100dvh){ body{ min-height: 100dvh; } }
+  .main-content-wrap{ flex: 1 0 auto; width: 100%; }
+  footer{ flex-shrink: 0; margin-top: auto; }
   a{ color: var(--moss-dark); }
   img,svg{
     max-width:100%; display:block;
@@ -718,29 +724,40 @@
 .story-nav-arrow[disabled]{ opacity:0 !important; pointer-events:none; }
 @media (hover:none), (pointer:coarse){ .story-nav-arrow{ display:none; } }
   body.story-open{ overflow:hidden; height:100%; position:fixed; width:100%; }
-  body.story-open #modalBackdrop{ background: rgba(0,0,0,0.92); }
+  body.story-open #modalBackdrop{ background: rgba(0,0,0,0.92); padding:0; align-items:center; justify-content:center; }
   .story-view-backdrop{
     background: transparent;
     width: 100%;
-    max-width: 420px;
+    max-width: none;
     padding: 0;
     overflow: visible;
     max-height: none;
     box-shadow: none;
+    border-radius: 0;
     margin: 0 auto;
   }
   .story-view-backdrop .modal-close{ display:none; }
+  /* Escritorio / tablet: tarjeta 9:16 que se ajusta al alto de la ventana (nunca más de 420px de ancho) */
   .story-view{
-    background:#000; border-radius: 10px; padding:0; max-width:420px; width:100%;
-    position:relative; overflow:hidden; aspect-ratio: 9/16; max-height: 88vh;
+    --sv-h: min(92vh, 747px);
+    background:#000; border-radius: 10px; padding:0;
+    position:relative; overflow:hidden;
+    height: var(--sv-h);
+    width: calc(var(--sv-h) * 9 / 16);
+    max-width: 100%;
     display:flex; align-items:center; justify-content:center; margin: 0 auto;
     touch-action: pan-y;
   }
+  @supports (height: 100dvh){ .story-view{ --sv-h: min(92dvh, 747px); } }
   .story-view-with-reply .story-view-text{ bottom:74px; }
-  @media (max-width: 640px){
-    .story-view-backdrop{ align-items:stretch; justify-content:stretch; max-width:none; width:100%; }
-    .story-view-backdrop .modal{ max-width:none; width:100%; height:100%; max-height:none; padding:0; border-radius:0; background:#000; }
-    .story-view{ max-width:none; width:100%; height:100%; max-height:none; aspect-ratio: auto; border-radius:0; }
+  /* Celulares (y celulares en horizontal): pantalla completa.
+     Se ancla al viewport con position:fixed, así NO depende de la altura de ningún contenedor padre. */
+  @media (max-width: 640px), (pointer: coarse) and (max-height: 500px){
+    .story-view{
+      position: fixed; inset: 0;
+      width: 100%; height: auto; max-width: none; max-height: none;
+      border-radius: 0; margin: 0;
+    }
   }
   .story-progress-row{ position:absolute; top:8px; left:8px; right:8px; display:flex; gap:4px; z-index:8; padding:2px 2px 0; background: rgba(0,0,0,0.28); border-radius:8px; }
   .story-progress-track{ flex:1; height:3px; background: rgba(255,255,255,0.35); border-radius:3px; overflow:hidden; }
@@ -1138,7 +1155,7 @@
   }
   .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
   .cookie-banner{
-    position:fixed; left:0; right:0; bottom:0; z-index:250;
+    position:fixed; left:0; right:0; bottom:0; z-index:650;
     background: var(--ink); color: var(--paper); padding:14px 18px;
     display:none; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
     box-shadow: 0 -4px 16px rgba(0,0,0,0.25); font-size:0.85rem;
@@ -1467,7 +1484,7 @@
   </div>
 </section>
 
-<div class="wrap">
+<div class="wrap main-content-wrap">
 
   <!-- ===================== INICIO: SOLO RED SOCIAL ===================== -->
   <section id="inicio" class="view active" style="padding-top: 18px;">
