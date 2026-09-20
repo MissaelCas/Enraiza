@@ -5035,23 +5035,56 @@ function renderFeedFromCache(){
       : '<p class="feed-empty">Todavía no hay publicaciones. Inicia sesión y cuenta un proyecto o una planta arriba.</p>';
     return;
   }
-  feedRenderedCount = Math.min(FEED_PAGE_SIZE, posts.length);
-  paintFeedBatch(posts, feedRenderedCount);
+  // Reinicio real del feed: solo pasa al cambiar de vista/filtro o al crear
+  // o borrar una publicación (nunca durante el scroll infinito, ver abajo),
+  // así que aquí sí es correcto reconstruirlo desde cero.
+  feedEntriesEl.innerHTML = '';
+  feedRenderedCount = 0;
+  paintFeedBatch(posts, Math.min(FEED_PAGE_SIZE, posts.length));
   setupFeedInfiniteScroll(posts);
 }
 
+// Pinta SOLO las publicaciones nuevas entre lo que ya estaba mostrado
+// (feedRenderedCount) y el nuevo total (count), y las agrega al final —
+// nunca reconstruye las tarjetas que ya estaban en pantalla. Antes esta
+// función rehacía TODO el feed (innerHTML completo) cada vez que el scroll
+// infinito pedía más publicaciones, lo que reiniciaba imágenes, listeners
+// y los canales en vivo de tarjetas que el usuario ya llevaba rato viendo
+// — eso era lo que se sentía como "se recarga solo" y hacía perder el
+// scroll en medio de la lectura.
 function paintFeedBatch(posts, count){
-  const slice = posts.slice(0, count);
-  feedEntriesEl.innerHTML = slice.map(post => {
-    const authorObj = usersCache[post.authorId];
-    const authorName = authorObj?.name || 'Alguien de la comunidad';
-    const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
-    const saved = currentUser ? !!post._savedLocal : false;
-    return postCardHTML(post, authorName, authorObj, liked, saved);
-  }).join('') + ((count < posts.length || (!activeAuthorFilter && !feedExhausted))
-    ? '<div id="feedSentinel" style="height:1px;"></div>'
-    : '<p class="feed-empty" style="text-align:center;padding:18px 0;">Ya viste todo por ahora 🌱</p>');
-  feedEntriesEl.querySelectorAll('.ig-post').forEach(article => bindPostCard(article));
+  const prevCount = feedRenderedCount;
+  const slice = posts.slice(prevCount, count);
+  document.getElementById('feedSentinel')?.remove();
+  document.getElementById('feedEndMsg')?.remove();
+  if(slice.length){
+    const wrap = document.createElement('div');
+    wrap.innerHTML = slice.map(post => {
+      const authorObj = usersCache[post.authorId];
+      const authorName = authorObj?.name || 'Alguien de la comunidad';
+      const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
+      const saved = currentUser ? !!post._savedLocal : false;
+      return postCardHTML(post, authorName, authorObj, liked, saved);
+    }).join('');
+    Array.from(wrap.children).forEach(article => {
+      feedEntriesEl.appendChild(article);
+      bindPostCard(article);
+    });
+  }
+  feedRenderedCount = count;
+  if(count < posts.length || (!activeAuthorFilter && !feedExhausted)){
+    const sentinel = document.createElement('div');
+    sentinel.id = 'feedSentinel';
+    sentinel.style.height = '1px';
+    feedEntriesEl.appendChild(sentinel);
+  } else {
+    const doneMsg = document.createElement('p');
+    doneMsg.id = 'feedEndMsg';
+    doneMsg.className = 'feed-empty';
+    doneMsg.style.cssText = 'text-align:center;padding:18px 0;';
+    doneMsg.textContent = 'Ya viste todo por ahora 🌱';
+    feedEntriesEl.appendChild(doneMsg);
+  }
 }
 
 function setupFeedInfiniteScroll(posts){
