@@ -4659,7 +4659,9 @@ function subscribeLiveCounts(id){
         updateLikeUI(id, liked, Number(row.like_count));
       }
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      if(status !== 'SUBSCRIBED') console.warn('[postCounts]', id, status, err || ''); // DEBUG TEMPORAL
+    });
   liveCountChannels.set(id, { channel, refs: 1 });
 }
 
@@ -5526,7 +5528,9 @@ function subscribeToPostComments(postId){
         if(document.getElementById('commentsViewList')) renderCommentsList(post);
       }
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      if(status !== 'SUBSCRIBED') console.warn('[postComments]', postId, status, err || ''); // DEBUG TEMPORAL
+    });
 }
 function unsubscribeFromPostComments(){
   if(postCommentsChannel){
@@ -5586,6 +5590,7 @@ function setupNotificationsRealtime(){
   if(!currentUser) return;
   notifRealtimeChannel = sb.channel(`enraiza-notifications-realtime-${currentUser.id}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, (payload) => {
+      console.log('[notifRealtime] evento recibido:', payload.new); // DEBUG TEMPORAL
       if(document.getElementById('notifPanel')?.classList.contains('open')){
         renderNotificationsPanel();
       } else {
@@ -5598,7 +5603,12 @@ function setupNotificationsRealtime(){
       // caché para esa tarjeta quedó desactualizado. Se refresca solo esa publicación puntual.
       refreshPostFromNotification(payload.new);
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      // DEBUG TEMPORAL: si el contador no se actualiza en vivo, abre la consola
+      // y confirma que esto diga "SUBSCRIBED". Si dice CHANNEL_ERROR/TIMED_OUT,
+      // el problema es la conexión/permiso del canal, no la lógica de arriba.
+      if(status !== 'SUBSCRIBED') console.warn('[notifRealtime]', status, err || '');
+    });
 }
 
 // ---------- HISTORIAS ----------
