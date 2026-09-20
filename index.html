@@ -2996,10 +2996,23 @@ const DB = {
         likeCount: Number(data?.like_count || 0)
       };
     },
-    async addComment(id, { authorId, text, parentId }){
-      const { data, error } = await sb.from('post_comments').insert({ post_id: id, author_id: authorId, text, parent_id: parentId || null }).select().single();
-      if(error) throw error;
-      return data;
+    async addComment(id, { text, parentId }){
+      const { data, error } = await sb.rpc('create_post_comment', {
+        p_post_id: id,
+        p_text: text,
+        p_parent_id: parentId || null
+      });
+
+      if(error){
+        console.error('[COMMENTS] create_post_comment error:', error);
+        throw error;
+      }
+
+      if(!data){
+        throw new Error('Supabase no devolvió el comentario creado.');
+      }
+
+      return Array.isArray(data) ? data[0] : data;
     },
     async removeComment(commentId, authorId){
       const { error } = await sb.from('post_comments').delete().eq('id', commentId).eq('author_id', authorId);
@@ -5221,19 +5234,76 @@ async function handleSave(id){
 async function postComment(id, text, parentId){
   const post = getCachedPost(id);
   if(!post) return;
+
+  const cleanText = String(text || '').trim();
+  if(!cleanText) return;
+
   const tempId = 'temp' + Date.now();
-  const tempComment = { id: tempId, authorId: currentUser.id, text, date: Date.now(), parentId: parentId || null, likedBy: [] };
+
+  const tempComment = {
+    id: tempId,
+    authorId: currentUser.id,
+    text: cleanText,
+    date: Date.now(),
+    parentId: parentId || null,
+    likedBy: []
+  };
+
   post.comments = post.comments || [];
   post.comments.push(tempComment);
+
   rerenderCardFromCache(id);
+
   try{
-    const saved = await DB.posts.addComment(id, { authorId: currentUser.id, text, parentId });
+    const saved = await DB.posts.addComment(id, {
+      text: cleanText,
+      parentId
+    });
+
     const idx = post.comments.findIndex(c => c.id === tempId);
-    if(idx !== -1) post.comments[idx] = { id: saved.id, authorId: saved.author_id, text: saved.text, date: new Date(saved.created_at).getTime(), parentId: saved.parent_id || null, likedBy: [] };
+
+    if(idx !== -1){
+      post.comments[idx] = {
+        id: saved.id,
+        authorId: saved.author_id,
+        text: saved.text,
+        date: new Date(saved.created_at).getTime(),
+        parentId: saved.parent_id || null,
+        likedBy: []
+      };
+    }
+
     incrementStat('comments_written');
+
+    // Sincroniza inmediatamente con la base de datos.
+    try{
+      const freshComments = await DB.posts.listComments(id);
+
+      post.comments = freshComments.map(c => ({
+        id: c.id,
+        authorId: c.author_id,
+        text: c.text,
+        date: new Date(c.created_at).getTime(),
+        parentId: c.parent_id || null,
+        likedBy: (c.comment_likes || [])
+          .map(x => x.user_id)
+          .filter(Boolean)
+      }));
+    }catch(syncErr){
+      console.warn('[COMMENTS] No se pudo refrescar comentarios:', syncErr);
+    }
+
   }catch(err){
+    console.error('[COMMENTS] No se pudo publicar:', err);
+
     post.comments = post.comments.filter(c => c.id !== tempId);
+
+    alert(
+      err?.message ||
+      'No se pudo publicar el comentario. Inténtalo nuevamente.'
+    );
   }
+
   rerenderCardFromCache(id);
   renderProfile();
 }
