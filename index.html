@@ -52,7 +52,7 @@
     -webkit-touch-callout:none;
   }
 
-  .wrap{ max-width: 1080px; margin:0 auto; padding: 0 24px; }
+  .wrap{ max-width: 1320px; margin:0 auto; padding: 0 24px; }
 
   header.nav{
     position: fixed; top:0; left:0; right:0; z-index: 120;
@@ -60,7 +60,7 @@
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
   }
-  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding: 14px 24px; max-width:1080px; margin:0 auto; gap: 10px; }
+  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding: 14px 24px; max-width:1320px; margin:0 auto; gap: 10px; }
   .logo{ font-family: var(--serif); font-size: 1.35rem; font-weight:700; color: var(--moss-dark); text-decoration:none; letter-spacing: 0.2px; }
   .logo span{ color: var(--clay-dark); }
 
@@ -328,7 +328,7 @@
   .ig-icon-btn .avatar{ width:28px; height:28px; font-size:0.8rem; }
   .ig-dot{ position:absolute; top:0; right:0; width:8px; height:8px; border-radius:50%; background: var(--clay); border: 1.5px solid var(--paper); }
 
-  .feed-col{ max-width: 640px; margin: 0 auto; min-width:0; }
+  .feed-col{ max-width: 760px; margin: 0 auto; min-width:0; }
 
   .stories-row{
     display:flex;
@@ -1123,20 +1123,30 @@
 
   .inicio-layout{ display:block; min-width:0; }
   .side-panel{ display:none; }
-  /* Marcos laterales (espacio para anuncios próximos): pequeños, pegados a las publicaciones
-     y siempre a la vista al hacer scroll (sticky: se quedan en pantalla, no en la página). */
-  @media (min-width: 1180px){
-    .inicio-layout{ display:grid; grid-template-columns: 180px minmax(0, 640px) 180px; gap: 16px; align-items:start; justify-content:center; }
+  /* Grid robusto: los laterales son de ancho fijo (180px) y el centro es "1fr" con piso
+     de 400px. Al ser una columna flexible de verdad (fr), el feed siempre recibe todo el
+     espacio que sobra — no puede quedar aplastado como con un ancho fijo o un minmax sin fr.
+     El quiebre está en 920px (con margen de sobra sobre el mínimo real de ~856px), para
+     que el layout de 3 columnas entre lo antes posible y no deje una franja intermedia
+     ancha y vacía justo antes del quiebre. */
+  @media (min-width: 920px){
+    .inicio-layout{ display:grid; grid-template-columns: 220px minmax(400px, 760px) 220px; gap: 32px; align-items:start; justify-content:center; }
     .side-panel{ display:block; position:sticky; top:92px; }
   }
   .ad-frame{
-    aspect-ratio: 3 / 4; border: 1px dashed var(--line); border-radius: 8px; background: var(--white-ish);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    padding:12px; text-align:center; color: var(--ink-soft);
+    aspect-ratio: 3 / 4; border-radius: 14px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:5px; padding:16px; text-align:center;
+    color: var(--ink-soft); background: linear-gradient(160deg, var(--paper-alt) 0%, var(--white-ish) 100%);
+    border: 1px solid var(--line);
   }
-  .ad-frame-tag{ font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; }
-  .ad-frame strong{ font-family: var(--serif); font-size:0.98rem; color: var(--ink); }
+  .ad-frame-icon{ font-size:1.6rem; margin-bottom:2px; opacity:0.85; }
+  .ad-frame-tag{ font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; opacity:0.75; }
+  .ad-frame strong{ font-family: var(--serif); font-size:1.02rem; color: var(--ink); }
   .ad-frame small{ font-size:0.72rem; }
+  .side-tip-card{
+    border:1px solid var(--line); border-radius:12px; background:var(--paper-alt);
+    padding:14px 16px; font-size:0.8rem; color:var(--ink-soft); line-height:1.55; margin-top:16px;
+  }
 
   .quick-preview-backdrop{
     position:fixed; inset:0; background: rgba(0,0,0,0.55); display:none;
@@ -1497,7 +1507,12 @@
   <section id="inicio" class="view active" style="padding-top: 18px;">
     <div class="inicio-layout">
       <aside class="side-panel" aria-label="Espacio reservado para anuncios">
-        <div class="ad-frame"><span class="ad-frame-tag">Anuncio</span><strong>Próximamente</strong><small>Espacio reservado</small></div>
+        <div class="ad-frame">
+          <span class="ad-frame-icon">🌿</span>
+          <span class="ad-frame-tag">Anuncio</span>
+          <strong>Próximamente</strong>
+          <small>Espacio reservado</small>
+        </div>
       </aside>
 
       <div class="feed-col">
@@ -1542,10 +1557,17 @@
       </div>
 
       <aside class="side-panel" aria-label="Espacio reservado para anuncios">
-        <div class="ad-frame"><span class="ad-frame-tag">Anuncio</span><strong>Próximamente</strong><small>Espacio reservado</small></div>
+        <div class="ad-frame">
+          <span class="ad-frame-icon">🪴</span>
+          <span class="ad-frame-tag">Anuncio</span>
+          <strong>Próximamente</strong>
+          <small>Espacio reservado</small>
+        </div>
+        <div class="side-tip-card" id="sideTipCard"></div>
       </aside>
     </div>
   </section>
+
 
   <!-- ===================== PROYECTOS (pantalla aparte) ===================== -->
   <section id="proyectos" class="view">
@@ -1986,6 +2008,7 @@
 <!-- MODAL DE AUTENTICACIÓN -->
 <div class="modal-backdrop" id="authBackdrop">
   <div class="modal" style="max-width:400px;">
+    <button class="modal-close" id="authModalClose" aria-label="Cerrar">&times;</button>
     <div id="authContent"></div>
   </div>
 </div>
@@ -2261,6 +2284,15 @@ const LAST_VIEW_KEY = 'enraiza:view';
 const VIEW_STACK_KEY = 'enraiza:viewStack';
 let activeInlineFeedClose = null; // si hay una publicación ampliada abierta, el botón "atrás" la cierra en vez de cambiar de pantalla
 
+// ---------- INTERRUPTOR TEMPORAL: sesión obligatoria ----------
+// Ponlo en `false` para poder navegar y ver TODAS las secciones sin tener que iniciar
+// sesión (útil para probar/mostrar la app rápido). Vuelve a ponerlo en `true` cuando
+// termines de probar — es solo un candado de navegación en el cliente, no reemplaza
+// las políticas de seguridad de Supabase (RLS): con esto en `false` puedes ENTRAR a
+// las secciones privadas, pero publicar, dar like, comentar, etc. van a seguir sin
+// funcionar si no hay una sesión real, porque Supabase los rechaza del lado del servidor.
+const REQUIRE_LOGIN = true;
+
 function getViewStack(){
   try {
     const raw = sessionStorage.getItem(VIEW_STACK_KEY);
@@ -2316,7 +2348,7 @@ function showView(name, options = {}){
   }
   const targetView = name || 'inicio';
   const { silentReplace = false, force = false } = options;
-  if(PRIVATE_VIEWS.has(targetView) && !currentUser && !force){
+  if(REQUIRE_LOGIN && PRIVATE_VIEWS.has(targetView) && !currentUser && !force){
     openAuthModal('login', 'ver esta sección');
     const home = document.getElementById('inicio');
     if(home) {
@@ -3564,6 +3596,7 @@ function avatarHTML(user){
 }
 function isLoggedIn(){ return !!currentUser; }
 function requireLogin(actionLabel){
+  if(!REQUIRE_LOGIN) return true;
   if(isLoggedIn()) return true;
   openAuthModal('login', actionLabel);
   return false;
@@ -3712,7 +3745,7 @@ async function renderUserProfileVisit(){
   if(!postsCacheReady) await loadPostsIntoCache();
   if(uid !== viewingUserId) return;
   const posts = postsCache.filter(p => p.authorId === uid);
-  const totalLikes = posts.reduce((sum, p) => sum + (p.likedBy || []).length, 0);
+  const totalLikes = posts.reduce((sum, p) => sum + Number(p.likeCount ?? (p.likedBy || []).length), 0);
   const publicLogs = await DB.projects.listPublicForUser(uid).catch(() => []);
   const counts = await DB.follows.getCounts(uid).catch(() => ({ followersCount: 0, followingCount: 0 }));
   const owner = usersCache[uid] || freshUser || { id: uid, privacySettings: normalizePrivacySettings({}) };
@@ -3979,13 +4012,16 @@ async function renderPostModalContent(postId){
 // ---------- MODAL DE AUTENTICACIÓN (Supabase Auth) ----------
 const authBackdrop = document.getElementById('authBackdrop');
 const authContent = document.getElementById('authContent');
-// El inicio de sesión es OBLIGATORIO: sin sesión el recuadro no tiene tache, ni cierra con clic fuera.
-// Solo se cierra solo cuando la sesión queda iniciada (closeAuthModal), y entonces vacía el
+// El inicio de sesión es obligatorio SOLO mientras REQUIRE_LOGIN esté en `true` (ver arriba,
+// junto a PRIVATE_VIEWS). Con REQUIRE_LOGIN en `true`, sin sesión el recuadro no tiene tache
+// propio en el flujo normal — pero como candado temporal, este botón de cerrar (×) sí deja
+// esquivarlo a mano sin tocar código. Al iniciar sesión de verdad, closeAuthModal() vacía el
 // formulario: por privacidad no se deja correo ni contraseña escritos en la página.
 function closeAuthModal(){
   authBackdrop.classList.remove('open');
   authContent.innerHTML = '';
 }
+document.getElementById('authModalClose')?.addEventListener('click', closeAuthModal);
 // Un enlace compartido (?post=ID) se abre solo con la sesión iniciada y se usa UNA sola vez:
 // se quita de la URL al abrirlo, así cerrar la publicación o recargar no la reabre.
 function openSharedPostIfAny(){
@@ -4002,6 +4038,7 @@ function openSharedPostIfAny(){
 }
 // Punto único que hace cumplir el gate; se llama al arrancar y en cada cambio de sesión.
 function enforceAuthGate(){
+  if(!REQUIRE_LOGIN) return; // candado temporal desactivado: no forzar el modal de login
   if(!currentUser){
     if(!authBackdrop.classList.contains('open')) openAuthModal('login');
     return;
@@ -4386,6 +4423,13 @@ async function logout(){
   showView('inicio');
 }
 
+const GROWTH_TIPS = [
+  '🌱 Entre más seguido registres tu bitácora, más fácil es notar patrones en el crecimiento de tus plantas.',
+  '💧 La mayoría de las plantas de interior prefieren que la tierra se seque un poco entre riego y riego.',
+  '☀️ Si las hojas se estiran hacia un lado, tu planta está buscando más luz — gírala cada semana.',
+  '🪴 Un cambio de maceta de vez en cuando le da espacio a las raíces para seguir creciendo.',
+  '📸 Una foto por semana del mismo ángulo es la forma más fácil de ver tu progreso con el tiempo.',
+];
 function applyProfileToUI(){
   document.getElementById('composerAvatar').innerHTML = avatarHTML(currentUser);
   document.getElementById('profileAvatar').innerHTML = avatarHTML(currentUser);
@@ -4395,6 +4439,10 @@ function applyProfileToUI(){
     ? `¿Qué quieres compartir hoy, ${currentUser.name}?`
     : 'Inicia sesión para compartir un proyecto o planta';
   document.getElementById('profileDisplayName').textContent = currentUser ? currentUser.name : 'Invitado';
+
+  const tipCard = document.getElementById('sideTipCard');
+  if(tipCard) tipCard.textContent = GROWTH_TIPS[Math.floor(Math.random() * GROWTH_TIPS.length)];
+
   updateAuthButtonsUI();
 }
 
@@ -5386,12 +5434,27 @@ function setupNotificationsRealtime(){
   }
   if(!currentUser) return;
   notifRealtimeChannel = sb.channel(`enraiza-notifications-realtime-${currentUser.id}`)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, () => {
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, (payload) => {
       if(document.getElementById('notifPanel')?.classList.contains('open')){
         renderNotificationsPanel();
       } else {
         notifUnreadCount += 1;
         checkNotifDot();
+      }
+      // No hay canal global de post_likes/post_comments (a propósito, para no saturar
+      // Realtime con cada like de cada publicación). Por eso, cuando llega una notificación
+      // de que a mi publicación le dieron like o la comentaron, el contador que ya tengo en
+      // caché para esa tarjeta quedó desactualizado. Se refresca solo esa publicación puntual.
+      const n = payload.new;
+      if(n && n.post_id && ['like','comment','reply','commentLike'].includes(n.type)){
+        DB.posts.getOne(n.post_id).then(fresh => {
+          if(!fresh) return;
+          const cached = getCachedPost(fresh.id);
+          if(!cached) return;
+          cached.likeCount = fresh.likeCount;
+          cached.commentCount = fresh.commentCount;
+          rerenderCardFromCache(fresh.id);
+        }).catch(() => {});
       }
     })
     .subscribe();
@@ -6973,7 +7036,7 @@ async function renderProjectView(){
   if(linkedPost) linkedPost._savedLocal = savedIds.includes(linkedPost.id);
 
   const liked = linkedPost && currentUser ? (linkedPost.likedBy||[]).includes(currentUser.id) : false;
-  const likeCount = linkedPost ? (linkedPost.likedBy||[]).length : 0;
+  const likeCount = linkedPost ? Number(linkedPost.likeCount ?? (linkedPost.likedBy||[]).length) : 0;
 
   wrap.innerHTML = `
     <div class="project-view-head">
@@ -8011,7 +8074,7 @@ window.addEventListener('unhandledrejection', (event) => {
     const initialView = (savedView && savedView !== 'inicio' && PERSISTABLE_VIEWS.includes(savedView)) ? savedView : (
       stack.length ? stack[stack.length - 1] : requestedView
     );
-    if(initialView && initialView !== 'inicio' && PRIVATE_VIEWS.has(initialView) && !currentUser){
+    if(REQUIRE_LOGIN && initialView && initialView !== 'inicio' && PRIVATE_VIEWS.has(initialView) && !currentUser){
       showView('inicio', { silentReplace: true, force: true });
     } else if(initialView && PERSISTABLE_VIEWS.includes(initialView)){
       showView(initialView, { silentReplace: true, force: true });
