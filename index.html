@@ -20,6 +20,16 @@
     --white-ish: #FAF7EE;
     --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    /* Medidas de layout centralizadas: una sola fuente de verdad para que el
+       ancho del contenedor, la barra superior y el feed nunca queden
+       desincronizados entre sí. Fiel al estilo Instagram: un feed angosto
+       y cómodo de leer, centrado, con aire a los lados en pantallas grandes
+       en vez de estirarse a lo ancho — pero que en móvil usa el 100% real
+       del viewport, sin desbordes ni huecos. */
+    --page-max: 1100px;
+    --feed-max: 630px;
+    --side-w: 200px;
+    --layout-gap: 28px;
   }
   *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html{ scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
@@ -52,7 +62,7 @@
     -webkit-touch-callout:none;
   }
 
-  .wrap{ max-width: 1320px; margin:0 auto; padding: 0 24px; }
+  .wrap{ max-width: var(--page-max); margin:0 auto; padding: 0 24px; width:100%; }
 
   header.nav{
     position: fixed; top:0; left:0; right:0; z-index: 120;
@@ -60,7 +70,7 @@
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
   }
-  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding: 14px 24px; max-width:1320px; margin:0 auto; gap: 10px; }
+  .nav-inner{ display:flex; align-items:center; justify-content:space-between; padding: 14px 24px; max-width: var(--page-max); margin:0 auto; gap: 10px; width:100%; }
   .logo{ font-family: var(--serif); font-size: 1.35rem; font-weight:700; color: var(--moss-dark); text-decoration:none; letter-spacing: 0.2px; }
   .logo span{ color: var(--clay-dark); }
 
@@ -328,7 +338,7 @@
   .ig-icon-btn .avatar{ width:28px; height:28px; font-size:0.8rem; }
   .ig-dot{ position:absolute; top:0; right:0; width:8px; height:8px; border-radius:50%; background: var(--clay); border: 1.5px solid var(--paper); }
 
-  .feed-col{ max-width: 760px; margin: 0 auto; min-width:0; }
+  .feed-col{ max-width: var(--feed-max); margin: 0 auto; min-width:0; width:100%; }
 
   .stories-row{
     display:flex;
@@ -1130,7 +1140,7 @@
      que el layout de 3 columnas entre lo antes posible y no deje una franja intermedia
      ancha y vacía justo antes del quiebre. */
   @media (min-width: 920px){
-    .inicio-layout{ display:grid; grid-template-columns: 220px minmax(400px, 760px) 220px; gap: 32px; align-items:start; justify-content:center; }
+    .inicio-layout{ display:grid; grid-template-columns: var(--side-w) minmax(420px, var(--feed-max)) var(--side-w); gap: var(--layout-gap); align-items:start; justify-content:center; }
     .side-panel{ display:block; position:sticky; top:92px; }
   }
   .ad-frame{
