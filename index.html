@@ -4754,9 +4754,9 @@ function postCardHTML(post, authorName, authorObj, liked, saved){
       <p class="ig-likes-line" data-likesline="${post.id}">${likeCount ? `A ${likeCount} persona${likeCount===1?'':'s'} le${likeCount===1?'':'s'} gusta esto` : 'Sé la primera persona en darle me gusta'}</p>
       <p class="ig-caption"><strong>${escapeHtml(post.title)}</strong><br>${escapeHtml(post.notes)}</p>
       ${isProjectPost ? `<button type="button" class="btn-text" style="margin:0 14px 8px;" data-openprojectlink="${post.projectId}">Ver bitácora completa →</button>` : ''}
-      ${comments.length ? `
+      ${totalComments > 0 ? `
         <div class="ig-comments-preview">
-          ${(hiddenCount > 0 || totalComments > shown.length) ? `<button class="ig-view-more" data-viewmore="${post.id}">Ver los ${totalComments} comentarios</button>` : ''}
+          ${(totalComments > shown.length) ? `<button class="ig-view-more" data-viewmore="${post.id}">Ver los ${totalComments} comentarios</button>` : ''}
           ${shown.map(c => `<div class="comment-item" data-comment-author="${c.authorId}"><strong>…</strong> ${escapeHtml(c.text)}</div>`).join('')}
         </div>` : ''}
       <form class="ig-comment-row" data-id="${post.id}">
