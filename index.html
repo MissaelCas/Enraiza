@@ -40,13 +40,14 @@
   html::-webkit-scrollbar-track{ background: transparent; }
   html::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 999px; border: 2px solid var(--paper); }
   html::-webkit-scrollbar-thumb:hover{ background: var(--sage); }
+  :root{ --header-h: 78px; }
   body{
     margin:0;
     background: var(--paper);
     color: var(--ink);
     font-family: var(--sans);
     line-height: 1.55;
-    padding-top: 78px;
+    padding-top: var(--header-h);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -1208,15 +1209,15 @@
   }
   .notif-panel.open, .dm-panel.open{ display:block; }
   @media (max-width:600px){
-    .notif-panel, .dm-panel{ position:fixed; top:66px; left:8px; right:8px; width:auto; max-width:none; }
+    .notif-panel, .dm-panel{ position:fixed; top: calc(var(--header-h) + 8px); left:8px; right:8px; width:auto; max-width:none; }
   }
   .notif-panel-head{ font-family:var(--serif); font-weight:700; padding:14px 16px; border-bottom:1px solid var(--line); }
   #mensajes.view{
-    position: fixed; inset: 78px 0 0 0; padding: 0; z-index: 90; background: var(--paper);
+    position: fixed; inset: var(--header-h) 0 0 0; padding: 0; z-index: 90; background: var(--paper);
   }
   .messages-screen {
     background: var(--white-ish); border: 1px solid var(--line); border-radius: 18px; overflow: hidden;
-    box-shadow: 0 10px 28px rgba(35,48,29,0.08); height: calc(100vh - 78px); width: min(1200px, calc(100vw - 32px)); margin: 0 auto;
+    box-shadow: 0 10px 28px rgba(35,48,29,0.08); height: calc(100vh - var(--header-h)); width: min(1200px, calc(100vw - 32px)); margin: 0 auto;
   }
   .messages-layout{ display:flex; min-height:100%; height:100%; }
   .messages-sidebar{ width: 340px; border-right:1px solid var(--line); background: var(--paper); display:flex; flex-direction:column; min-height:0; }
@@ -1310,8 +1311,8 @@
   .messages-empty-state{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-soft); font-size:0.9rem; text-align:center; padding:32px; }
   .messages-mobile-back{ display:none; }
   @media (max-width:840px){
-    #mensajes.view{ inset: 78px 0 0 0; }
-    .messages-screen{ width: calc(100vw - 16px); height: calc(100vh - 78px); border-radius: 12px; }
+    #mensajes.view{ inset: var(--header-h) 0 0 0; }
+    .messages-screen{ width: calc(100vw - 16px); height: calc(100vh - var(--header-h)); border-radius: 12px; }
     .messages-layout{ display:block; height:100%; }
     .messages-sidebar, .messages-chat{ width:100%; height:100%; }
     .messages-chat{ display:none; }
@@ -3107,6 +3108,19 @@ const DB = {
 
       if(error) throw error;
     },
+    async listViewers(storyId){
+      if(!storyId) return [];
+
+      const { data, error } = await sb
+        .from('story_views')
+        .select('viewer_id, created_at')
+        .eq('story_id', storyId)
+        .order('created_at', { ascending: false });
+
+      if(error) throw error;
+
+      return data || [];
+    },
   },
 
   saved: {
@@ -4453,6 +4467,20 @@ const GROWTH_TIPS = [
   '🪴 Un cambio de maceta de vez en cuando le da espacio a las raíces para seguir creciendo.',
   '📸 Una foto por semana del mismo ángulo es la forma más fácil de ver tu progreso con el tiempo.',
 ];
+// El header puede envolverse a dos filas en pantallas angostas (el buscador
+// baja de línea cuando aparecen/desaparecen los botones de auth). Los paneles
+// de notificaciones/mensajes y la pantalla de mensajes anclan su posición al
+// alto real del header vía la variable --header-h, en vez de un número fijo,
+// para no quedar tapados quedándose cortos cuando el header mide más de lo
+// esperado.
+function syncHeaderHeightVar(){
+  const header = document.querySelector('header.nav');
+  if(!header) return;
+  document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
+}
+window.addEventListener('resize', syncHeaderHeightVar);
+window.addEventListener('orientationchange', syncHeaderHeightVar);
+
 function applyProfileToUI(){
   document.getElementById('composerAvatar').innerHTML = avatarHTML(currentUser);
   document.getElementById('profileAvatar').innerHTML = avatarHTML(currentUser);
@@ -4467,6 +4495,7 @@ function applyProfileToUI(){
   if(tipCard) tipCard.textContent = GROWTH_TIPS[Math.floor(Math.random() * GROWTH_TIPS.length)];
 
   updateAuthButtonsUI();
+  syncHeaderHeightVar();
 }
 
 function updateAuthButtonsUI(){
@@ -4716,13 +4745,44 @@ function carouselHTML(post){
   `;
 }
 
+function dedupeComments(list){
+  const seen = new Set();
+  const out = [];
+  (list || []).forEach(c => {
+    if(seen.has(c.id)) return;
+    seen.add(c.id);
+    out.push(c);
+  });
+  return out;
+}
+const COMMENT_PREVIEW_COUNT = 3;
+// Pinta el nombre del autor de un comentario dentro de un elemento [data-comment-author].
+// Si el usuario ya está en caché (o es la propia persona), se pinta al instante.
+// Si no, se muestra "Alguien" como marcador y se corrige solo en cuanto llega el perfil.
+function applyCommentAuthorLabel(el){
+  const uid = el.dataset.commentAuthor;
+  const strongEl = el.querySelector('strong');
+  if(!strongEl) return;
+  if(currentUser && uid === currentUser.id){
+    strongEl.textContent = 'Tú:';
+    return;
+  }
+  const cached = usersCache[uid];
+  if(cached){
+    strongEl.textContent = (cached.name || 'Alguien') + ':';
+    return;
+  }
+  strongEl.textContent = 'Alguien:';
+  getUserCached(uid).then(u => {
+    if(u && strongEl.isConnected) strongEl.textContent = u.name + ':';
+  }).catch(() => {});
+}
 function postCardHTML(post, authorName, authorObj, liked, saved){
   const likeCount = Number(post.likeCount ?? (post.likedBy || []).length);
-  const comments = post.comments || [];
+  const comments = dedupeComments(post.comments);
   const totalComments = Number(post.commentCount ?? comments.length);
   const expanded = expandedComments.has(post.id);
-  const shown = expanded ? comments : comments.slice(-2);
-  const hiddenCount = comments.length - shown.length;
+  const shown = expanded ? comments : comments.slice(-COMMENT_PREVIEW_COUNT);
   const isMine = currentUser && post.authorId === currentUser.id;
   const isProjectPost = !!post.projectId;
   return `
@@ -4861,11 +4921,7 @@ function bindPostCard(article){
   postViewObserver.observe(article);
   postCountSyncObserver.observe(article);
 
-  article.querySelectorAll('[data-comment-author]').forEach(el => {
-    const uid = el.dataset.commentAuthor;
-    const name = usersCache[uid]?.name || 'Alguien';
-    el.querySelector('strong').textContent = name + ':';
-  });
+  article.querySelectorAll('[data-comment-author]').forEach(el => applyCommentAuthorLabel(el));
 
   const car = article.querySelector('[data-carousel]');
   if(car){
@@ -5423,7 +5479,8 @@ function commentRowHTML(c){
 function renderCommentsList(post){
   const listEl = document.getElementById('commentsViewList');
   if(!listEl) return;
-  const comments = post.comments || [];
+  const comments = dedupeComments(post.comments);
+  post.comments = comments; // limpia duplicados que hayan quedado en caché
   if(!comments.length){ listEl.innerHTML = '<p class="comments-view-empty">Todavía no hay comentarios.</p>'; return; }
   const { roots, childrenOf } = buildCommentTree(comments);
   listEl.innerHTML = roots.map(c => {
@@ -5442,10 +5499,7 @@ function renderCommentsList(post){
     `;
   }).join('');
 
-  listEl.querySelectorAll('[data-comment-author]').forEach(el => {
-    const uid = el.dataset.commentAuthor;
-    el.querySelector('strong').textContent = (usersCache[uid]?.name || 'Alguien') + ':';
-  });
+  listEl.querySelectorAll('[data-comment-author]').forEach(el => applyCommentAuthorLabel(el));
   listEl.querySelectorAll('[data-comment-avatar]').forEach(el => {
     el.innerHTML = avatarHTML(usersCache[el.dataset.commentAvatar]);
   });
@@ -6514,6 +6568,7 @@ async function renderNotificationsPanel(){
 function toggleNotifPanel(){
   const panel = document.getElementById('notifPanel');
   if(!panel) return;
+  syncHeaderHeightVar();
   document.getElementById('dmPanel')?.classList.remove('open');
   const isOpen = panel.classList.contains('open');
   panel.classList.toggle('open', !isOpen);
@@ -6660,6 +6715,7 @@ async function openDmConversation(userId){
 }
 
 function toggleDmPanel(){
+  syncHeaderHeightVar();
   document.getElementById('notifPanel')?.classList.remove('open');
   const panel = document.getElementById('dmPanel');
   if(!panel) return;
