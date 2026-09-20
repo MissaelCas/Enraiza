@@ -5543,12 +5543,19 @@ function unsubscribeFromPostComments(){
 // a partir de una notificación. La usan tanto el canal en vivo como el respaldo
 // que corre al volver a la pestaña (por si el evento en vivo se perdió).
 async function refreshPostFromNotification(n){
-  if(!n || !n.post_id || !['like','comment','reply','commentLike'].includes(n.type)) return;
+  console.log('[refreshPostFromNotification] notificación:', n && { type: n.type, post_id: n.post_id, comment_id: n.comment_id }); // DEBUG TEMPORAL
+  if(!n || !n.post_id || !['like','comment','reply','commentLike'].includes(n.type)){
+    console.log('[refreshPostFromNotification] descartada (sin post_id o tipo no reconocido)'); // DEBUG TEMPORAL
+    return;
+  }
   let fresh;
-  try{ fresh = await DB.posts.getOne(n.post_id); }catch(err){ return; }
-  if(!fresh) return;
+  try{ fresh = await DB.posts.getOne(n.post_id); }
+  catch(err){ console.warn('[refreshPostFromNotification] getOne falló:', err); return; }
+  if(!fresh){ console.warn('[refreshPostFromNotification] getOne no devolvió post para', n.post_id); return; } // DEBUG TEMPORAL
+  console.log('[refreshPostFromNotification] post fresco de la BD:', { id: fresh.id, likeCount: fresh.likeCount, commentCount: fresh.commentCount }); // DEBUG TEMPORAL
   const cached = getCachedPost(fresh.id);
-  if(!cached) return;
+  if(!cached){ console.warn('[refreshPostFromNotification] este post NO está en la caché local (postsCache) — por eso no se ve reflejado'); return; } // DEBUG TEMPORAL
+  console.log('[refreshPostFromNotification] antes:', cached.likeCount, 'después:', fresh.likeCount); // DEBUG TEMPORAL
   cached.likeCount = fresh.likeCount;
   cached.commentCount = fresh.commentCount;
 
@@ -5569,11 +5576,14 @@ async function refreshPostFromNotification(n){
           cached.comments.sort((a,b) => a.date - b.date);
           await getUserCached(row.author_id);
         }
-      }catch(err){ /* si falla, al menos ya quedó al día el contador */ }
+      }catch(err){ console.warn('[refreshPostFromNotification] no se pudo traer el comentario:', err); }
     }
   }
 
+  const domCard = document.querySelector(`.ig-post[data-id="${fresh.id}"]`);
+  console.log('[refreshPostFromNotification] ¿tarjeta en pantalla?', !!domCard, '— re-renderizando…'); // DEBUG TEMPORAL
   rerenderCardFromCache(fresh.id);
+  updateLikeUI(fresh.id, currentUser ? (cached.likedBy||[]).includes(currentUser.id) : false, fresh.likeCount);
   const openList = document.getElementById('commentsViewList');
   if(openList && modalBackdrop.classList.contains('open')) renderCommentsList(cached);
 }
@@ -5582,11 +5592,17 @@ async function refreshPostFromNotification(n){
 // Separado de setupRealtime() porque este SÍ hay que rearmarlo cada vez que cambia
 // currentUser (login/logout), sin duplicar ni dejar canales viejos suscritos.
 let notifRealtimeChannel = null;
+let notifRealtimeUserId = null;
 function setupNotificationsRealtime(){
+  // Si ya hay un canal abierto para este mismo usuario, no lo recrees: evita
+  // cortar la conexión (y perder eventos) cada vez que Supabase renueva el
+  // token al volver a la pestaña (TOKEN_REFRESHED) sin que el usuario cambie.
+  if(notifRealtimeChannel && notifRealtimeUserId === currentUser?.id) return;
   if(notifRealtimeChannel){
     sb.removeChannel(notifRealtimeChannel);
     notifRealtimeChannel = null;
   }
+  notifRealtimeUserId = currentUser ? currentUser.id : null;
   if(!currentUser) return;
   notifRealtimeChannel = sb.channel(`enraiza-notifications-realtime-${currentUser.id}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, (payload) => {
