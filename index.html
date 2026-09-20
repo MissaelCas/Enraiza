@@ -5559,15 +5559,20 @@ async function refreshPostFromNotification(n){
   cached.likeCount = fresh.likeCount;
   cached.commentCount = fresh.commentCount;
 
+  console.log('[refreshPostFromNotification] tipo:', n.type, '¿trae comment_id?', !!n.comment_id); // DEBUG TEMPORAL
   if((n.type === 'comment' || n.type === 'reply') && n.comment_id){
     cached.comments = cached.comments || [];
     const already = cached.comments.some(c => c.id === n.comment_id);
-    if(!already){
+    if(already){
+      console.log('[refreshPostFromNotification] ese comentario ya estaba en caché:', n.comment_id); // DEBUG TEMPORAL
+    } else {
       try{
-        const { data: row } = await sb.from('post_comments')
+        const { data: row, error } = await sb.from('post_comments')
           .select('id, author_id, text, created_at, parent_id')
           .eq('id', n.comment_id).maybeSingle();
+        if(error) console.warn('[refreshPostFromNotification] error al traer el comentario:', error); // DEBUG TEMPORAL
         if(row){
+          console.log('[refreshPostFromNotification] comentario traído con éxito:', row); // DEBUG TEMPORAL
           cached.comments.push({
             id: row.id, authorId: row.author_id, text: row.text,
             date: new Date(row.created_at).getTime(),
@@ -5575,9 +5580,12 @@ async function refreshPostFromNotification(n){
           });
           cached.comments.sort((a,b) => a.date - b.date);
           await getUserCached(row.author_id);
+        } else {
+          console.warn('[refreshPostFromNotification] la consulta no devolvió fila para comment_id', n.comment_id); // DEBUG TEMPORAL
         }
-      }catch(err){ console.warn('[refreshPostFromNotification] no se pudo traer el comentario:', err); }
+      }catch(err){ console.warn('[refreshPostFromNotification] excepción al traer el comentario:', err); }
     }
+    console.log('[refreshPostFromNotification] comentarios en caché ahora:', cached.comments.length, 'de', cached.commentCount, 'totales'); // DEBUG TEMPORAL
   }
 
   const domCard = document.querySelector(`.ig-post[data-id="${fresh.id}"]`);
@@ -5593,6 +5601,7 @@ async function refreshPostFromNotification(n){
 // currentUser (login/logout), sin duplicar ni dejar canales viejos suscritos.
 let notifRealtimeChannel = null;
 let notifRealtimeUserId = null;
+let notifReconnectPending = false;
 function setupNotificationsRealtime(){
   // Si ya hay un canal abierto para este mismo usuario, no lo recrees: evita
   // cortar la conexión (y perder eventos) cada vez que Supabase renueva el
@@ -5623,7 +5632,13 @@ function setupNotificationsRealtime(){
       // DEBUG TEMPORAL: si el contador no se actualiza en vivo, abre la consola
       // y confirma que esto diga "SUBSCRIBED". Si dice CHANNEL_ERROR/TIMED_OUT,
       // el problema es la conexión/permiso del canal, no la lógica de arriba.
-      if(status !== 'SUBSCRIBED') console.warn('[notifRealtime]', status, err || '');
+      if(status !== 'SUBSCRIBED'){
+        console.warn('[notifRealtime]', status, err || '');
+        notifReconnectPending = true; // se cayó: cuando reconecte, hay que revisar lo perdido
+      } else if(notifReconnectPending){
+        notifReconnectPending = false;
+        catchUpOnNotifications(); // recupera lo que haya llegado durante la caída
+      }
     });
 }
 
@@ -6328,17 +6343,12 @@ async function refreshNotifUnreadCount(){
 }
 let lastNotifRefresh = 0;
 let lastSeenNotifDate = 0;
-async function refreshNotifOnReturn(){
-  if(document.visibilityState === 'hidden' || !currentUser) return;
-  const now = Date.now();
-  if(now - lastNotifRefresh < 30000) return; // máx. 1 consulta cada 30 s
-  lastNotifRefresh = now;
-  refreshNotifUnreadCount();
-
-  // Respaldo por si el canal en vivo se perdió algún evento (p. ej. el
-  // WebSocket se pausó mientras la pestaña estaba en segundo plano): se
-  // piden solo las notificaciones nuevas desde la última vez y se usan
-  // para refrescar puntualmente esos posts, sin recargar todo el feed.
+// Respaldo por si el canal en vivo se perdió algún evento (WebSocket cortado,
+// reconexión, pestaña en segundo plano, etc.): pide solo las notificaciones
+// nuevas desde la última vez y refresca puntualmente esos posts — nunca
+// recarga todo el feed ni abre canales extra.
+async function catchUpOnNotifications(){
+  if(!currentUser) return;
   try{
     const recent = await DB.notifications.list(currentUser.id, 15);
     const fresh = lastSeenNotifDate ? recent.filter(n => n.date > lastSeenNotifDate) : [];
@@ -6347,6 +6357,14 @@ async function refreshNotifOnReturn(){
       post_id: n.postId, comment_id: n.commentId, type: n.type,
     }));
   }catch(err){ /* silencioso: es solo un respaldo */ }
+}
+async function refreshNotifOnReturn(){
+  if(document.visibilityState === 'hidden' || !currentUser) return;
+  const now = Date.now();
+  if(now - lastNotifRefresh < 30000) return; // máx. 1 consulta cada 30 s
+  lastNotifRefresh = now;
+  refreshNotifUnreadCount();
+  catchUpOnNotifications();
 }
 document.addEventListener('visibilitychange', refreshNotifOnReturn);
 window.addEventListener('focus', refreshNotifOnReturn);
