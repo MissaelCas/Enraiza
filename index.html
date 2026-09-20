@@ -23,7 +23,9 @@
   }
   *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html{ scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-  html, body{ overflow-x: hidden; width: 100%; }
+  html{ overflow-x: hidden; width: 100%; }
+  /* clip (no hidden) para que el body NO se vuelva contenedor de scroll y position:sticky funcione */
+  body{ overflow-x: clip; width: 100%; }
   html::-webkit-scrollbar{ width: 10px; }
   html::-webkit-scrollbar-track{ background: transparent; }
   html::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 999px; border: 2px solid var(--paper); }
@@ -117,6 +119,19 @@
     align-items:center; justify-content:center; z-index: 500; padding: 20px;
   }
   .modal-backdrop.open{ display:flex; }
+  /* Animación de apertura: el fondo aparece suave y el recuadro "sube" con un pequeño rebote.
+     Solo se dispara al abrir (display none → flex), no cada vez que cambia el contenido interno.
+     El visor de historias se excluye del movimiento: usa position:fixed y un transform en un
+     ancestro cambiaría su contenedor; ahí solo se anima el fondo. */
+  @keyframes modalBackdropIn{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes modalPop{ from{ opacity:0; transform: translateY(14px) scale(0.96); } to{ opacity:1; transform:none; } }
+  .modal-backdrop.open{ animation: modalBackdropIn 0.18s ease-out; }
+  .modal-backdrop.open > .modal:not(.story-view-backdrop){ animation: modalPop 0.26s cubic-bezier(0.2, 0.8, 0.2, 1); }
+  @media (prefers-reduced-motion: reduce){
+    .modal-backdrop.open, .modal-backdrop.open > .modal{ animation: none; }
+  }
+  /* Login obligatorio: el contenido de atrás se ve difuminado y no es utilizable. */
+  #authBackdrop{ background: rgba(35,48,29,0.82); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
   body.story-open #modalBackdrop{ background: rgba(0,0,0,0.92); padding:0; overflow:hidden; }
   .modal{
     background: var(--white-ish); max-width: 560px; width:100%; max-height: 85vh; overflow-y:auto;
@@ -313,7 +328,7 @@
   .ig-icon-btn .avatar{ width:28px; height:28px; font-size:0.8rem; }
   .ig-dot{ position:absolute; top:0; right:0; width:8px; height:8px; border-radius:50%; background: var(--clay); border: 1.5px solid var(--paper); }
 
-  .feed-col{ max-width: 470px; margin: 0 auto; min-width:0; }
+  .feed-col{ max-width: 640px; margin: 0 auto; min-width:0; }
 
   .stories-row{
     display:flex;
@@ -1108,33 +1123,20 @@
 
   .inicio-layout{ display:block; min-width:0; }
   .side-panel{ display:none; }
+  /* Marcos laterales (espacio para anuncios próximos): pequeños, pegados a las publicaciones
+     y siempre a la vista al hacer scroll (sticky: se quedan en pantalla, no en la página). */
   @media (min-width: 1180px){
-    .inicio-layout{ display:grid; grid-template-columns: 240px minmax(0,470px) 240px; gap: 28px; align-items:start; justify-content:center; position:relative; }
-    .side-panel{ display:block; visibility:hidden; }
-    .side-panel-inner{
-      position:fixed; top:84px; width:240px; max-height: calc(100vh - 104px); overflow-y:auto;
-      visibility:visible; z-index: 10;
-      -ms-overflow-style:none; scrollbar-width:none;
-    }
-    .side-panel-inner::-webkit-scrollbar{ display:none; }
-    #sidePanelLeft .side-panel-inner{ left: max(24px, calc(50% - 540px)); }
-    #sidePanelRight .side-panel-inner{ right: max(24px, calc(50% - 540px)); }
+    .inicio-layout{ display:grid; grid-template-columns: 180px minmax(0, 640px) 180px; gap: 16px; align-items:start; justify-content:center; }
+    .side-panel{ display:block; position:sticky; top:92px; }
   }
-  .minigame-card{ border: 1px solid var(--line); border-radius: 6px; background: var(--white-ish); padding: 16px; margin-bottom: 20px; }
-  .minigame-card h4{ font-family: var(--serif); font-size: 0.98rem; margin: 0 0 4px; }
-  .minigame-card p.mg-desc{ font-size: 0.78rem; color: var(--ink-soft); margin: 0 0 12px; }
-  .mg-plant-scene{ text-align:center; font-size: 2.6rem; margin: 6px 0 4px; line-height:1; }
-  .mg-plant-stage-label{ text-align:center; font-size: 0.78rem; color: var(--ink-soft); margin-bottom: 10px; }
-  .mg-row{ display:flex; gap:8px; }
-  .mg-row .btn{ flex:1; text-align:center; }
-  .mg-quiz-options{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-  .mg-quiz-options button{
-    border:1px solid var(--line); background: var(--paper); padding:8px 10px; border-radius:4px;
-    font-size:0.82rem; cursor:pointer; text-align:left;
+  .ad-frame{
+    aspect-ratio: 3 / 4; border: 1px dashed var(--line); border-radius: 8px; background: var(--white-ish);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    padding:12px; text-align:center; color: var(--ink-soft);
   }
-  .mg-quiz-options button.correct{ border-color: var(--moss); background: #dfe9e0; }
-  .mg-quiz-options button.wrong{ border-color:#a3392c; background:#f3dedb; }
-  .mg-score{ font-size: 0.78rem; color: var(--ink-soft); margin-top:10px; text-align:center; }
+  .ad-frame-tag{ font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; }
+  .ad-frame strong{ font-family: var(--serif); font-size:0.98rem; color: var(--ink); }
+  .ad-frame small{ font-size:0.72rem; }
 
   .quick-preview-backdrop{
     position:fixed; inset:0; background: rgba(0,0,0,0.55); display:none;
@@ -1494,7 +1496,9 @@
   <!-- ===================== INICIO: SOLO RED SOCIAL ===================== -->
   <section id="inicio" class="view active" style="padding-top: 18px;">
     <div class="inicio-layout">
-      <aside class="side-panel" id="sidePanelLeft"></aside>
+      <aside class="side-panel" aria-label="Espacio reservado para anuncios">
+        <div class="ad-frame"><span class="ad-frame-tag">Anuncio</span><strong>Próximamente</strong><small>Espacio reservado</small></div>
+      </aside>
 
       <div class="feed-col">
         <div id="searchFilterBanner"></div>
@@ -1537,7 +1541,9 @@
         </div>
       </div>
 
-      <aside class="side-panel" id="sidePanelRight"></aside>
+      <aside class="side-panel" aria-label="Espacio reservado para anuncios">
+        <div class="ad-frame"><span class="ad-frame-tag">Anuncio</span><strong>Próximamente</strong><small>Espacio reservado</small></div>
+      </aside>
     </div>
   </section>
 
@@ -1980,7 +1986,6 @@
 <!-- MODAL DE AUTENTICACIÓN -->
 <div class="modal-backdrop" id="authBackdrop">
   <div class="modal" style="max-width:400px;">
-    <button class="modal-close" id="authClose">&times;</button>
     <div id="authContent"></div>
   </div>
 </div>
@@ -3974,9 +3979,36 @@ async function renderPostModalContent(postId){
 // ---------- MODAL DE AUTENTICACIÓN (Supabase Auth) ----------
 const authBackdrop = document.getElementById('authBackdrop');
 const authContent = document.getElementById('authContent');
-function closeAuthModal(){ authBackdrop.classList.remove('open'); }
-document.getElementById('authClose').addEventListener('click', closeAuthModal);
-authBackdrop.addEventListener('click', (e) => { if(e.target === authBackdrop) closeAuthModal(); });
+// El inicio de sesión es OBLIGATORIO: sin sesión el recuadro no tiene tache, ni cierra con clic fuera.
+// Solo se cierra solo cuando la sesión queda iniciada (closeAuthModal), y entonces vacía el
+// formulario: por privacidad no se deja correo ni contraseña escritos en la página.
+function closeAuthModal(){
+  authBackdrop.classList.remove('open');
+  authContent.innerHTML = '';
+}
+// Un enlace compartido (?post=ID) se abre solo con la sesión iniciada y se usa UNA sola vez:
+// se quita de la URL al abrirlo, así cerrar la publicación o recargar no la reabre.
+function openSharedPostIfAny(){
+  if(!currentUser) return;
+  let id = null;
+  try{
+    const url = new URL(window.location.href);
+    id = url.searchParams.get('post');
+    if(!id) return;
+    url.searchParams.delete('post');
+    history.replaceState(history.state, '', url);
+  }catch(err){ /* si no se puede limpiar la URL, igual se abre la publicación */ }
+  if(id) openPostModal(id);
+}
+// Punto único que hace cumplir el gate; se llama al arrancar y en cada cambio de sesión.
+function enforceAuthGate(){
+  if(!currentUser){
+    if(!authBackdrop.classList.contains('open')) openAuthModal('login');
+    return;
+  }
+  if(authBackdrop.classList.contains('open')) closeAuthModal();
+  openSharedPostIfAny();
+}
 
 const PW_ICON_SHOW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 const PW_ICON_HIDE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18 18 0 0 1 4.1-5"/><path d="M9.9 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a18 18 0 0 1-2.2 3.2"/><path d="M14.1 14.1a3 3 0 0 1-4.2-4.2"/><path d="m2 2 20 20"/></svg>';
@@ -4338,10 +4370,10 @@ async function refreshAppAfterAuthChange(){
   await Promise.all([reloadFeed(), renderStories()]);
 
   renderProfile();
-  renderSidePanels();
   await updateMessagesBadge();
   await refreshNotifUnreadCount();
   setupNotificationsRealtime(); // re-suscribe (o cancela) el canal de notificaciones para el usuario actual
+  enforceAuthGate();
 }
 async function logout(){
   try{
@@ -4350,8 +4382,7 @@ async function logout(){
     console.warn('Logout error:', err);
   }
   currentUser = null;
-  closeAuthModal();
-  await refreshAppAfterAuthChange();
+  await refreshAppAfterAuthChange(); // sin sesión, el gate vuelve a mostrar el inicio de sesión
   showView('inicio');
 }
 
@@ -4618,6 +4649,7 @@ async function resolveAuthorObjs(posts){
 // ---------- COMPARTIR PUBLICACIÓN (enlace directo + Web Share si está disponible) ----------
 function buildPostShareUrl(postId){
   const url = new URL(window.location.href);
+  url.search = '';
   url.hash = '';
   url.searchParams.set('post', postId);
   return url.toString();
@@ -7905,87 +7937,6 @@ try{
   if(pref) pref.addEventListener('change',()=>localStorage.setItem('enraiza:default_private_log', pref.checked ? '1':'0'));
 }catch(err){}
 
-// =====================================================================
-// MINIJUEGOS DE LOS PANELES LATERALES
-// =====================================================================
-let waterStage = 0;
-const WATER_STAGES = ['🌰','🌱','🌿','🪴','🌳'];
-const WATER_LABELS = ['Semilla seca','Recién germinada','Con un par de hojas','Ya es una planta','¡Árbol frondoso!'];
-function renderWaterGame(){
-  return `
-    <div class="minigame-card">
-      <h4>Riega la planta</h4>
-      <p class="mg-desc">Un mini-juego sin ciencia: dale clic y mira crecer tu planta.</p>
-      <div class="mg-plant-scene" id="waterScene">${WATER_STAGES[waterStage]}</div>
-      <div class="mg-plant-stage-label" id="waterLabel">${WATER_LABELS[waterStage]}</div>
-      <div class="mg-row">
-        <button class="btn btn-primary btn-small" id="waterBtn">💧 Regar</button>
-        ${waterStage === WATER_STAGES.length-1 ? `<button class="btn btn-outline btn-small" id="waterResetBtn">Reiniciar</button>` : ''}
-      </div>
-    </div>
-  `;
-}
-function bindWaterGame(container){
-  const btn = container.querySelector('#waterBtn');
-  if(btn) btn.addEventListener('click', () => {
-    if(waterStage < WATER_STAGES.length - 1) waterStage++;
-    container.querySelector('#waterScene').textContent = WATER_STAGES[waterStage];
-    container.querySelector('#waterLabel').textContent = WATER_LABELS[waterStage];
-    if(waterStage === WATER_STAGES.length - 1) renderSidePanels();
-  });
-  const resetBtn = container.querySelector('#waterResetBtn');
-  if(resetBtn) resetBtn.addEventListener('click', () => { waterStage = 0; renderSidePanels(); });
-}
-
-const QUIZ_QUESTIONS = [
-  { q:'¿Qué parte del aguacate se usa para sembrarlo?', options:['La cáscara','El hueso','Una hoja'], correct:1 },
-  { q:'¿La lengua de suegra se riega...?', options:['Cada día','Cuando la tierra está bien seca','Nunca'], correct:1 },
-  { q:'¿La piña se vuelve a sembrar desde...?', options:['Una semilla','Su corona de hojas','Su cáscara'], correct:1 },
-  { q:'¿Qué le pasa al cilantro si trasplantas sus raíces?', options:['Nada, crece igual','Se estresa y se daña fácil','Crece más rápido'], correct:1 },
-  { q:'¿Para qué sirve estratificar en frío el hueso de durazno?', options:['Para que sepa mejor','Para simular el invierno y que germine','Para que no se pudra'], correct:1 },
-];
-let quizIndex = 0, quizScore = 0, quizAnswered = false;
-function renderQuizGame(){
-  const item = QUIZ_QUESTIONS[quizIndex];
-  return `
-    <div class="minigame-card">
-      <h4>Adivina la planta 🌿</h4>
-      <p class="mg-desc">${item.q}</p>
-      <div class="mg-quiz-options" id="quizOptions">
-        ${item.options.map((o,i) => `<button data-i="${i}">${o}</button>`).join('')}
-      </div>
-      <div class="mg-score">Aciertos: ${quizScore} / ${QUIZ_QUESTIONS.length}</div>
-    </div>
-  `;
-}
-function bindQuizGame(container){
-  const opts = container.querySelectorAll('#quizOptions button');
-  opts.forEach(btn => btn.addEventListener('click', () => {
-    if(quizAnswered) return;
-    quizAnswered = true;
-    const item = QUIZ_QUESTIONS[quizIndex];
-    const i = parseInt(btn.dataset.i, 10);
-    if(i === item.correct){ btn.classList.add('correct'); quizScore++; }
-    else { btn.classList.add('wrong'); opts[item.correct].classList.add('correct'); }
-    setTimeout(() => {
-      quizIndex = (quizIndex + 1) % QUIZ_QUESTIONS.length;
-      quizAnswered = false;
-      if(quizIndex === 0) quizScore = 0;
-      renderSidePanels();
-    }, 1100);
-  }));
-}
-
-function renderSidePanels(){
-  const left = document.getElementById('sidePanelLeft');
-  const right = document.getElementById('sidePanelRight');
-  if(!left || !right) return;
-  left.innerHTML = `<div class="side-panel-inner">${renderWaterGame()}</div>`;
-  right.innerHTML = `<div class="side-panel-inner">${renderQuizGame()}</div>`;
-  bindWaterGame(left);
-  bindQuizGame(right);
-}
-
 if('serviceWorker' in navigator && !['localhost','127.0.0.1'].includes(location.hostname)){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => { /* si falla, la app sigue funcionando normal */ });
@@ -8050,7 +8001,6 @@ window.addEventListener('unhandledrejection', (event) => {
     await resyncPointsTotalIfNeeded();
 
     renderProfile();
-    renderSidePanels();
     refreshNotifUnreadCount();
     setupRealtime();
     authReady = true;
@@ -8069,16 +8019,12 @@ window.addEventListener('unhandledrejection', (event) => {
       showView('inicio', { silentReplace: true, force: true });
     }
 
-    try{
-      const sharedPostId = new URLSearchParams(window.location.search).get('post');
-      if(sharedPostId) openPostModal(sharedPostId);
-    }catch(err){ /* ignore */ }
     const loadingScreen = document.getElementById('appLoadingScreen');
     if(loadingScreen){
       loadingScreen.classList.add('hide');
       setTimeout(() => loadingScreen.remove(), 350);
     }
-    if(!currentUser){ openAuthModal('login'); }
+    enforceAuthGate(); // sin sesión: login obligatorio; con sesión: abre la publicación compartida, si hay
   } catch(err) {
     console.error('Error al iniciar Enraíza:', err);
     const loadingScreen = document.getElementById('appLoadingScreen');
