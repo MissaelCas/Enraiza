@@ -1241,7 +1241,15 @@
   }
   .messages-screen {
     background: var(--white-ish); border: 1px solid var(--line); border-radius: 18px; overflow: hidden;
-    box-shadow: 0 10px 28px rgba(35,48,29,0.08); height: calc(100vh - var(--header-h)); width: min(1200px, calc(100vw - 32px)); margin: 0 auto;
+    box-shadow: 0 10px 28px rgba(35,48,29,0.08);
+    /* dvh = alto visible REAL en el momento (ya descuenta barras del navegador/sistema).
+       Se deja vh primero como respaldo para navegadores viejos que no conocen dvh —
+       si no lo reconocen, ignoran esa línea y se quedan con la de arriba. Sin esto, en
+       celular la barra de navegación del sistema tapaba el cuadro de escribir mensaje,
+       porque vh se calcula sobre el alto máximo posible, no sobre el que en verdad se ve. */
+    height: calc(100vh - var(--header-h));
+    height: calc(100dvh - var(--header-h));
+    width: min(1200px, calc(100vw - 32px)); margin: 0 auto;
   }
   .messages-layout{ display:flex; min-height:100%; height:100%; }
   .messages-sidebar{ width: 340px; border-right:1px solid var(--line); background: var(--paper); display:flex; flex-direction:column; min-height:0; }
@@ -1344,7 +1352,11 @@
   .messages-mobile-back{ display:none; }
   @media (max-width:840px){
     #mensajes.view{ inset: var(--header-h) 0 0 0; }
-    .messages-screen{ width: calc(100vw - 16px); height: calc(100vh - var(--header-h)); border-radius: 12px; }
+    .messages-screen{
+      width: calc(100vw - 16px); border-radius: 12px;
+      height: calc(100vh - var(--header-h));
+      height: calc(100dvh - var(--header-h));
+    }
     .messages-layout{ display:block; height:100%; }
     .messages-sidebar, .messages-chat{ width:100%; height:100%; }
     .messages-chat{ display:none; }
@@ -7397,6 +7409,20 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
         });
         shell.classList.toggle('open');
         msgDidHold = true;
+        // Se arma "cerrar con el siguiente clic afuera" hasta el próximo tick, y solo si
+        // el clic cae fuera del propio menú. Antes esto se armaba una sola vez al pintar
+        // toda la pantalla de mensajes (no al abrir el menú), así que en celular el clic
+        // sintetizado que el navegador dispara justo al soltar el dedo tras la pulsación
+        // larga —que suele caer sobre el menú recién aparecido, no sobre la burbuja—
+        // lo cerraba de inmediato: se veía abrir y cerrarse solo.
+        if(shell.classList.contains('open')){
+          setTimeout(() => {
+            document.addEventListener('click', function onOutsideClick(ev){
+              if(ev.target.closest('.message-bubble-shell')) return;
+              closeMessageMenu();
+            }, { once:true });
+          }, 0);
+        }
       };
       bubble.addEventListener('pointerdown', (event) => {
         if(event.target.closest('.message-reply-quote')) return;
@@ -7479,8 +7505,6 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
         }
       });
     });
-
-    document.addEventListener('click', closeMessageMenu, { once: true });
 
     if(composer) composer.style.display = 'flex';
     renderReplyPreview();
