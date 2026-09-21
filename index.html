@@ -1315,6 +1315,18 @@
     background:rgba(255,255,255,0.12); border-radius:6px; font-size:0.76rem; opacity:0.9; cursor:pointer;
   }
   .message-row.them .message-reply-quote{ border-left-color:var(--moss); background:rgba(63,107,74,0.08); }
+
+  /* Chip de "respondió a tu historia": mismo lenguaje visual que message-reply-quote,
+     pero con miniatura en vez de texto citado (la historia ya expiró/no es un mensaje
+     de este hilo, así que no hay a dónde hacer scroll — no es clicable). */
+  .message-story-reply{
+    display:flex; align-items:center; gap:8px; margin-bottom:6px; padding:5px 8px 5px 6px;
+    border-left:3px solid rgba(255,255,255,0.55); background:rgba(255,255,255,0.12);
+    border-radius:6px; font-size:0.76rem; opacity:0.9;
+  }
+  .message-row.them .message-story-reply{ border-left-color:var(--moss); background:rgba(63,107,74,0.08); }
+  .message-story-reply img{ width:32px; height:44px; object-fit:cover; border-radius:4px; flex-shrink:0; }
+  .message-story-reply span{ opacity:0.85; }
   .message-thread-header{ position:relative; }
   .thread-menu-btn{ margin-left:auto; background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:1.1rem; padding:4px 8px; }
   .thread-menu-dropdown{
@@ -3349,21 +3361,38 @@ const DB = {
         text: row.deleted_for_everyone ? '' : row.text,
         createdAt: new Date(row.created_at).getTime(),
         replyToId: row.reply_to_id || null,
+        replyStoryPhoto: row.reply_story_photo || null,
         deletedForEveryone: !!row.deleted_for_everyone
       }))
       .sort((a, b) => a.createdAt - b.createdAt);
     },
-    async send(conversationId, senderId, text, replyToId){
+    // storyReply opcional: { storyId, photo } cuando el mensaje nace de "Responder"
+    // en el visor de historias. photo se guarda tal cual (snapshot) porque la
+    // historia original puede expirar/borrarse a las 24h y el mensaje debe seguir
+    // mostrando la miniatura igual. Ver responder_historia.sql para las columnas.
+    async send(conversationId, senderId, text, replyToId, storyReply){
       const clean = (text || '').trim();
       if(!conversationId || !senderId || !clean) return null;
       const payload = { conversation_id: conversationId, sender_id: senderId, text: clean };
       if(replyToId) payload.reply_to_id = replyToId;
-      const { data, error } = await sb.from('direct_messages').insert(payload).select().single();
+      if(storyReply?.storyId){
+        payload.reply_story_id = storyReply.storyId;
+        payload.reply_story_photo = storyReply.photo || null;
+      }
+      let { data, error } = await sb.from('direct_messages').insert(payload).select().single();
+      if(error && error.code === '42703' && (payload.reply_story_id || payload.reply_story_photo)){
+        // Todavía no se corrió responder_historia.sql en esta base: se manda el
+        // mensaje igual, sin la miniatura, en vez de fallar por completo.
+        delete payload.reply_story_id;
+        delete payload.reply_story_photo;
+        ({ data, error } = await sb.from('direct_messages').insert(payload).select().single());
+      }
       if(error) throw error;
       await sb.from('direct_conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId);
       return {
         id: data.id, conversationId: data.conversation_id, senderId: data.sender_id,
-        text: data.text, createdAt: new Date(data.created_at).getTime(), replyToId: data.reply_to_id || null
+        text: data.text, createdAt: new Date(data.created_at).getTime(), replyToId: data.reply_to_id || null,
+        replyStoryPhoto: data.reply_story_photo || null
       };
     },
     async updateMessage(messageId, senderId, nextText){
@@ -6805,7 +6834,7 @@ function renderStoryViewer(){
         }
         const conversation = await DB.messages.findOrCreateConversation(currentUser.id, s.authorId);
         if(!conversation) throw new Error('No se pudo abrir la conversación.');
-        const sent = await DB.messages.send(conversation.id, currentUser.id, text);
+        const sent = await DB.messages.send(conversation.id, currentUser.id, text, null, { storyId: s.id, photo: img });
         if(!sent) throw new Error('No se pudo enviar el mensaje.');
         replyInput.value = '';
         closeModal();
@@ -7490,11 +7519,13 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
       const isMine = msg.senderId === currentUser.id;
       const quoted = msg.replyToId ? msgById.get(msg.replyToId) : null;
       const quotedAuthor = quoted ? (quoted.senderId === currentUser.id ? 'Tú' : (threadUser.name || 'Usuario')) : '';
+      const storyReplyLabel = isMine ? `Respondiste a la historia de ${escapeHtml(threadUser.name || 'esta persona')}` : 'Respondió a tu historia';
       const canDeleteForEveryone = isMine && (Date.now() - msg.createdAt) <= DELETE_EVERYONE_WINDOW_MS;
       return `
         <div class="message-row ${isMine ? 'me' : 'them'} ${enterIds.has(msg.id) ? 'msg-enter' : ''}">
           <div class="message-bubble-shell ${isMine ? 'mine' : 'theirs'}" data-message-id="${msg.id}" data-msg-sender="${msg.senderId}">
             <div class="message-bubble ${msg.deletedForEveryone ? 'deleted' : ''}">
+              ${msg.replyStoryPhoto ? `<span class="message-story-reply"><img src="${escapeHtml(msg.replyStoryPhoto)}" alt=""><span>${storyReplyLabel}</span></span>` : ''}
               ${quoted ? `<span class="message-reply-quote" data-scroll-to="${quoted.id}"><strong>${escapeHtml(quotedAuthor)}:</strong> ${escapeHtml((quoted.text || '').slice(0,60))}</span>` : ''}
               <span class="message-text">${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(msg.text)}</span>
               <span class="message-meta">${fmtRelative(msg.createdAt)}</span>
