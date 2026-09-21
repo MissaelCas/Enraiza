@@ -4447,6 +4447,7 @@ async function refreshAppAfterAuthChange(){
   await updateMessagesBadge();
   await refreshNotifUnreadCount();
   setupNotificationsRealtime(); // re-suscribe (o cancela) el canal de notificaciones para el usuario actual
+  setupDmRealtime(); // idem, para mensajes directos en vivo
   enforceAuthGate();
 }
 async function logout(){
@@ -5608,6 +5609,7 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 // =====================================================================
 function setupRealtime(){
   setupNotificationsRealtime();
+  setupDmRealtime();
 }
 
 // Canal de comentarios con alcance a UN solo post. Se abre cuando el usuario
@@ -5757,7 +5759,92 @@ function setupNotificationsRealtime(){
     });
 }
 
-// ---------- HISTORIAS ----------
+// ---------- MENSAJES DIRECTOS EN VIVO ----------
+// Igual que con las notificaciones, este canal se re-arma cada vez que cambia
+// currentUser (login/logout) y nunca deja dos canales abiertos para el mismo usuario.
+// direct_messages no tiene una columna "recipient_id" (solo conversation_id +
+// sender_id), así que no se puede filtrar por igualdad simple como sí se hace
+// con notifications. En su lugar, este canal se suscribe SIN filtro de columna
+// a los INSERT/UPDATE de la tabla; lo que de verdad limita qué filas llegan a
+// cada cliente es la política RLS de SELECT sobre direct_messages (la misma
+// que ya protege las lecturas normales de DB.messages.listMessages): un
+// usuario solo puede seleccionar filas de conversaciones donde participa, así
+// que Realtime, al evaluar esa misma política por cliente conectado, jamás le
+// entrega a este canal un mensaje de una conversación ajena.
+//
+// Requisito en Supabase (una sola vez, desde el dashboard o SQL):
+//   1. Database → Replication → agregar "direct_messages" a la publicación supabase_realtime.
+//   2. alter table public.direct_messages replica identity full;
+//      (para que los eventos UPDATE traigan la fila completa, no solo la clave)
+let dmRealtimeChannel = null;
+let dmRealtimeUserId = null;
+let dmOpenConversationId = null; // conversación abierta en la pantalla completa de Mensajes (null si no hay ninguna o la pantalla está cerrada)
+
+function isMensajesViewActive(){
+  return document.getElementById('mensajes')?.classList.contains('active');
+}
+
+function handleIncomingDmRealtime(row, isUpdate){
+  if(!currentUser || !row) return;
+  // Los mensajes que envié yo mismo desde esta pestaña ya se pintaron de forma
+  // optimista al enviarlos; no hace falta re-procesarlos aquí.
+  if(!isUpdate && row.sender_id === currentUser.id) return;
+
+  const conversationId = row.conversation_id;
+  const threadIsOpenHere = isMensajesViewActive() && dmOpenConversationId === conversationId;
+
+  // Pantalla completa de Mensajes: si el hilo abierto es justo este, se
+  // refresca en el momento (trae el mensaje nuevo, o el texto editado/borrado).
+  // preserveDraft:true evita que esto borre lo que la persona esté escribiendo
+  // en ese momento (incluso si el mensaje entrante es de otra conversación).
+  if(isMensajesViewActive()){
+    renderMessagesScreen(dmOpenConversationId, { preserveDraft: true });
+  }
+
+  // Panelito desplegable de mensajes (el que se abre desde el ícono del avión
+  // en la barra superior): si está abierto, también se actualiza.
+  if(document.getElementById('dmPanel')?.classList.contains('open')){
+    renderDmPanel();
+  }
+
+  // El punto rojo del ícono de mensajes se actualiza sin importar en qué
+  // pantalla esté la persona en ese momento.
+  updateMessagesBadge();
+
+  // Aviso discreto solo cuando el mensaje nuevo llega a una conversación que
+  // la persona no está viendo en este momento (igual que Instagram: si ya
+  // tienes el chat abierto, no hace falta interrumpir con un toast).
+  if(!isUpdate && !threadIsOpenHere){
+    showToast('💬 Tienes un mensaje nuevo');
+  }
+}
+
+function setupDmRealtime(){
+  // Si ya hay un canal abierto para este mismo usuario, no lo recrees: evita
+  // cortar la conexión (y perder mensajes) cada vez que Supabase renueva el
+  // token al volver a la pestaña (TOKEN_REFRESHED) sin que el usuario cambie.
+  if(dmRealtimeChannel && dmRealtimeUserId === currentUser?.id) return;
+  if(dmRealtimeChannel){
+    sb.removeChannel(dmRealtimeChannel);
+    dmRealtimeChannel = null;
+  }
+  dmRealtimeUserId = currentUser ? currentUser.id : null;
+  if(!currentUser) return;
+  dmRealtimeChannel = sb.channel(`enraiza-dm-realtime-${currentUser.id}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'direct_messages' }, (payload) => {
+      handleIncomingDmRealtime(payload.new, false);
+    })
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'direct_messages' }, (payload) => {
+      // Cubre ediciones ("Editar mensaje") y "Eliminar para todos" hechos
+      // desde otra pestaña o dispositivo, para que se vean sin recargar.
+      handleIncomingDmRealtime(payload.new, true);
+    })
+    .subscribe((status, err) => {
+      if(status !== 'SUBSCRIBED') console.warn('[dmRealtime]', status, err || '');
+    });
+}
+
+
 let storyGroups = [];
 let currentGroupIndex = 0;
 let currentStoryIndex = 0;
@@ -6579,6 +6666,10 @@ function closeNotifPanel(){ document.getElementById('notifPanel')?.classList.rem
 async function renderDmPanel(){
   const panel = document.getElementById('dmPanelContent');
   if(!panel) return;
+  // El panel reconstruye su HTML por completo en cada llamada; se guarda lo
+  // que la persona ya haya escrito para no perderlo si esto se dispara por
+  // un mensaje entrante en vivo mientras estaba a mitad de una respuesta.
+  const preservedDmDraft = document.getElementById('dmComposerInput')?.value || '';
   if(!currentUser){
     panel.innerHTML = '<div class="dm-panel-empty">💬 Inicia sesión para ver y enviar mensajes directos.</div>';
     return;
@@ -6629,7 +6720,7 @@ const msgs = activeConversation ? await DB.messages.listMessages(activeConversat
               `).join('') || '<div class="dm-panel-empty" style="padding:18px 16px;">Aún no hay mensajes en esta conversación.</div>'}
             </div>
             <form class="dm-composer" id="dmComposerForm">
-              <input type="text" id="dmComposerInput" placeholder="Escribe un mensaje…" autocomplete="off" maxlength="500" required>
+              <input type="text" id="dmComposerInput" placeholder="Escribe un mensaje…" autocomplete="off" maxlength="500" value="${escapeHtml(preservedDmDraft)}" required>
               <button type="submit">Enviar</button>
             </form>
           </div>
@@ -6775,7 +6866,8 @@ function scrollMessagesThreadToBottom(threadBodyEl){
   });
 }
 
-async function renderMessagesScreen(activeConversationId = null){
+async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false } = {}){
+  dmOpenConversationId = activeConversationId; // para que el canal de DMs en vivo sepa si el hilo abierto es este
   const listEl = document.getElementById('messagesList');
   const threadHeaderEl = document.getElementById('messageThreadHeader');
   const threadBodyEl = document.getElementById('messageThreadBody');
@@ -7071,7 +7163,7 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
     if(composer) composer.style.display = 'flex';
     renderReplyPreview();
     const composerInput = document.getElementById('messageComposerInput');
-    if(composerInput){ composerInput.value = ''; }
+    if(composerInput && !preserveDraft){ composerInput.value = ''; }
     const form = document.getElementById('messageComposerForm');
     if(form){
       let isSendingMessage = false;
