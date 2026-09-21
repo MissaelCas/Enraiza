@@ -590,6 +590,14 @@
   .photo-picker-btn{ border: 1.5px dashed var(--line); background: var(--paper); border-radius: 3px; padding: 10px 12px; font-size: 0.85rem; color: var(--ink-soft); cursor:pointer; width:100%; text-align:left; margin-bottom:10px; box-sizing:border-box; }
   .photo-preview-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 10px; max-width:100%; overflow:hidden; }
   .photo-preview-item{ position:relative; width:64px; height:64px; border-radius:4px; overflow:hidden; background: var(--paper-alt); flex-shrink:0; }
+  .photo-preview-item video{ width:100%; height:100%; object-fit:cover; display:block; }
+  .photo-preview-video-badge{ position:absolute; bottom:2px; left:2px; background: rgba(0,0,0,0.55); color:#fff; font-size:0.6rem; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; pointer-events:none; }
+  .ig-carousel-track video{ flex: 0 0 100%; width:100%; height:100%; object-fit:cover; scroll-snap-align:center; background:#000; }
+  .story-view-img-wrap video{ width:100%; height:100%; object-fit:contain; display:block; background:#000; }
+  .message-video-bubble{ position:relative; width:220px; max-width:60vw; border-radius:12px; overflow:hidden; cursor:pointer; background:#000; }
+  .message-video-bubble video{ width:100%; display:block; max-height:280px; object-fit:contain; background:#000; }
+  .message-video-play{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:2rem; pointer-events:none; text-shadow:0 2px 6px rgba(0,0,0,0.6); }
+  .message-video-play.hidden{ display:none; }
   .photo-preview-item img{ width:100%; height:100%; object-fit:cover; }
   .photo-preview-item button{ position:absolute; top:2px; right:2px; background: rgba(35,48,29,0.7); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:0.7rem; cursor:pointer; line-height:1; }
   .upload-note{ font-size: 0.76rem; color: var(--ink-soft); margin: -4px 0 10px; }
@@ -1620,8 +1628,8 @@
             </select>
           </div>
           <textarea id="postNotes" placeholder="Cuenta cómo te fue, qué aprendiste o qué dudas tienes" required></textarea>
-          <button type="button" class="photo-picker-btn" id="postPhotoPickBtn">📷 Agregar fotos (puedes elegir varias)</button>
-          <input type="file" id="postPhotoInput" accept="image/*" multiple class="visually-hidden">
+          <button type="button" class="photo-picker-btn" id="postPhotoPickBtn">📷 Agregar fotos o video (máx. 1 min, puedes elegir varias)</button>
+          <input type="file" id="postPhotoInput" accept="image/*,video/*" multiple class="visually-hidden">
           <div class="photo-preview-row" id="postPhotoPreview"></div>
           <p class="upload-note" id="postPhotoNote"></p>
           <div class="composer-footer" style="justify-content:flex-end;">
@@ -2678,6 +2686,154 @@ async function uploadImageFile(file, folder){
   if(error) throw error;
   const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
   return data.publicUrl;
+}
+
+// =====================================================================
+// VIDEO: duración máxima de 1 minuto, recorte en el navegador si es más largo
+// =====================================================================
+const MAX_VIDEO_SECONDS = 60;
+function isVideoUrl(url){
+  return /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(url || '');
+}
+function isVideoFile(file){
+  return !!file && file.type && file.type.startsWith('video/');
+}
+function getVideoDuration(file){
+  return new Promise((resolve, reject) => {
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.onloadedmetadata = () => { const d = v.duration; URL.revokeObjectURL(v.src); resolve(d); };
+    v.onerror = () => { URL.revokeObjectURL(v.src); reject(new Error('No se pudo leer el video.')); };
+    v.src = URL.createObjectURL(file);
+  });
+}
+// Recorta [startSec, endSec) de un video capturando su propio stream (video+audio) con
+// MediaRecorder mientras se reproduce esa sección — sin canvas ni dependencias externas.
+function trimVideoFile(file, startSec, endSec){
+  return new Promise((resolve, reject) => {
+    const v = document.createElement('video');
+    v.muted = false;
+    v.playsInline = true;
+    v.preload = 'auto';
+    const objUrl = URL.createObjectURL(file);
+    v.src = objUrl;
+    v.addEventListener('loadedmetadata', () => {
+      const onSeeked = async () => {
+        v.removeEventListener('seeked', onSeeked);
+        try{
+          const stream = v.captureStream ? v.captureStream() : (v.mozCaptureStream ? v.mozCaptureStream() : null);
+          if(!stream) throw new Error('Tu navegador no soporta recortar video.');
+          const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+          const recorder = new MediaRecorder(stream, { mimeType });
+          const chunks = [];
+          recorder.ondataavailable = (e) => { if(e.data && e.data.size) chunks.push(e.data); };
+          recorder.onstop = () => {
+            URL.revokeObjectURL(objUrl);
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.webm', { type: 'video/webm' }));
+          };
+          recorder.onerror = (e) => reject(e.error || new Error('Error al recortar el video.'));
+          recorder.start();
+          await v.play().catch(() => {});
+          const checkEnd = () => {
+            if(v.currentTime >= endSec || v.ended){
+              v.pause();
+              recorder.stop();
+            } else {
+              requestAnimationFrame(checkEnd);
+            }
+          };
+          requestAnimationFrame(checkEnd);
+        }catch(err){ URL.revokeObjectURL(objUrl); reject(err); }
+      };
+      v.addEventListener('seeked', onSeeked);
+      v.currentTime = startSec;
+    });
+    v.addEventListener('error', () => { URL.revokeObjectURL(objUrl); reject(new Error('No se pudo cargar el video.')); });
+  });
+}
+// Modal para elegir qué segundo a qué segundo recortar (máx. 60s de ventana).
+// Devuelve el File recortado, o null si la persona cancela.
+function openVideoTrimModal(file){
+  return new Promise(async (resolve) => {
+    let duration;
+    try{ duration = await getVideoDuration(file); }
+    catch(err){ showToast('No se pudo leer ese video.'); resolve(null); return; }
+    const previewUrl = URL.createObjectURL(file);
+    let start = 0;
+    let end = Math.min(duration, MAX_VIDEO_SECONDS);
+    modalBox.className = 'modal';
+    modalContent.innerHTML = `
+      <h3>Recorta tu video</h3>
+      <p class="section-desc" style="margin-bottom:14px;">Dura ${duration.toFixed(0)}s, más del minuto permitido. Elige qué parte quieres usar (máximo 60s).</p>
+      <video id="trimPreviewVideo" src="${previewUrl}" muted playsinline style="width:100%; border-radius:6px; margin-bottom:12px; max-height:320px; background:#000;"></video>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+        <label style="font-size:0.85rem; color:var(--ink-soft);">Inicio: <span id="trimStartLabel">0.0s</span></label>
+        <input type="range" id="trimStartRange" min="0" max="${duration}" step="0.1" value="0">
+        <label style="font-size:0.85rem; color:var(--ink-soft);">Fin: <span id="trimEndLabel">${end.toFixed(1)}s</span> (<span id="trimLenLabel"></span>)</label>
+        <input type="range" id="trimEndRange" min="0" max="${duration}" step="0.1" value="${end}">
+      </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end;">
+        <button type="button" class="btn btn-outline btn-small" id="trimCancelBtn">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-small" id="trimConfirmBtn">Recortar y usar</button>
+      </div>
+    `;
+    modalBackdrop.classList.add('open');
+    const videoEl = document.getElementById('trimPreviewVideo');
+    const startRange = document.getElementById('trimStartRange');
+    const endRange = document.getElementById('trimEndRange');
+    const startLabel = document.getElementById('trimStartLabel');
+    const endLabel = document.getElementById('trimEndLabel');
+    const lenLabel = document.getElementById('trimLenLabel');
+    function refreshLabels(){
+      lenLabel.textContent = (end - start).toFixed(1) + 's';
+    }
+    refreshLabels();
+    startRange.addEventListener('input', () => {
+      start = Math.min(Number(startRange.value), end - 0.2);
+      if(end - start > MAX_VIDEO_SECONDS){ end = start + MAX_VIDEO_SECONDS; endRange.value = end; endLabel.textContent = end.toFixed(1) + 's'; }
+      startRange.value = start;
+      startLabel.textContent = start.toFixed(1) + 's';
+      videoEl.currentTime = start;
+      refreshLabels();
+    });
+    endRange.addEventListener('input', () => {
+      end = Math.max(Number(endRange.value), start + 0.2);
+      if(end - start > MAX_VIDEO_SECONDS){ start = end - MAX_VIDEO_SECONDS; startRange.value = start; startLabel.textContent = start.toFixed(1) + 's'; }
+      endRange.value = end;
+      endLabel.textContent = end.toFixed(1) + 's';
+      videoEl.currentTime = end;
+      refreshLabels();
+    });
+    const cleanup = () => { URL.revokeObjectURL(previewUrl); modalOnClose = null; };
+    document.getElementById('trimCancelBtn').addEventListener('click', () => { closeModal(); cleanup(); resolve(null); });
+    document.getElementById('trimConfirmBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('trimConfirmBtn');
+      btn.disabled = true;
+      btn.textContent = 'Recortando…';
+      try{
+        const trimmed = await trimVideoFile(file, start, end);
+        closeModal();
+        cleanup();
+        resolve(trimmed);
+      }catch(err){
+        showToast('No se pudo recortar el video: ' + (err.message || err));
+        btn.disabled = false;
+        btn.textContent = 'Recortar y usar';
+      }
+    });
+    modalOnClose = () => { cleanup(); resolve(null); };
+  });
+}
+// Si el archivo es video y dura más de MAX_VIDEO_SECONDS, abre el editor de recorte;
+// si no, lo regresa tal cual. Devuelve null si la persona cancela el recorte.
+async function prepareVideoFile(file){
+  if(!isVideoFile(file)) return file;
+  let duration;
+  try{ duration = await getVideoDuration(file); }
+  catch(err){ showToast('No se pudo leer ese video.'); return null; }
+  if(duration <= MAX_VIDEO_SECONDS) return file;
+  return await openVideoTrimModal(file);
 }
 
 // =====================================================================
@@ -4690,20 +4846,31 @@ document.getElementById('createBar').addEventListener('click', openComposer);
 document.getElementById('composerCancel').addEventListener('click', closeComposer);
 
 document.getElementById('postPhotoPickBtn').addEventListener('click', () => document.getElementById('postPhotoInput').click());
-document.getElementById('postPhotoInput').addEventListener('change', (e) => {
+document.getElementById('postPhotoInput').addEventListener('change', async (e) => {
   const files = Array.from(e.target.files || []);
   e.target.value = '';
-  files.forEach(file => pendingPhotos.push({ file, url: URL.createObjectURL(file) }));
-  renderPhotoPreview();
+  for(const file of files){
+    if(isVideoFile(file)){
+      const ready = await prepareVideoFile(file);
+      if(!ready) continue; // canceló el recorte
+      pendingPhotos.push({ file: ready, url: URL.createObjectURL(ready), isVideo: true });
+    } else {
+      pendingPhotos.push({ file, url: URL.createObjectURL(file) });
+    }
+    renderPhotoPreview();
+  }
 });
 function renderPhotoPreview(){
   const row = document.getElementById('postPhotoPreview');
-  row.innerHTML = pendingPhotos.map((p, i) => `
+  row.innerHTML = pendingPhotos.map((p, i) => {
+    const isVid = p.isVideo || isVideoUrl(p.url);
+    return `
     <div class="photo-preview-item">
-      <img src="${p.url}" alt="">
+      ${isVid ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>` : `<img src="${p.url}" alt="">`}
       <button type="button" data-removeidx="${i}">&times;</button>
     </div>
-  `).join('');
+  `;
+  }).join('');
   row.querySelectorAll('[data-removeidx]').forEach(btn => btn.addEventListener('click', () => {
     const idx = parseInt(btn.dataset.removeidx, 10);
     const removed = pendingPhotos[idx];
@@ -4902,7 +5069,10 @@ function carouselHTML(post){
   return `
     <div class="ig-post-carousel" data-carousel="${post.id}">
       <div class="ig-carousel-track" data-doublelike="${post.id}">
-        ${photos.map((src,i) => `<img src="${escapeHtml(src)}" alt="Imagen ${i+1} de ${escapeHtml(post.title)}" data-idx="${i}" onerror="this.src='${placeholderImage(post.id+i, post.category)}'">`).join('')}
+        ${photos.map((src,i) => isVideoUrl(src)
+          ? `<video data-idx="${i}" muted playsinline loop preload="metadata"><source src="${escapeHtml(src)}"></video>`
+          : `<img src="${escapeHtml(src)}" alt="Imagen ${i+1} de ${escapeHtml(post.title)}" data-idx="${i}" onerror="this.src='${placeholderImage(post.id+i, post.category)}'">`
+        ).join('')}
       </div>
       ${multi ? `
         <button type="button" class="ig-carousel-arrow prev" data-caract="prev" disabled>‹</button>
