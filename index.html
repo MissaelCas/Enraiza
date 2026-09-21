@@ -2394,6 +2394,12 @@ function showView(name, options = {}){
   if(targetView === 'configuracion'){ renderSettingsPage(); if(window.settingsResetToMenu) window.settingsResetToMenu(); }
   if(targetView === 'perfilVisita') renderUserProfileVisit();
   if(targetView === 'bitacora') renderBitacoraProjectList();
+  // Antes solo el clic en el ícono del avión llamaba a renderMessagesScreen()
+  // explícitamente, así que recargar la página, usar el botón atrás, o
+  // restaurar la sesión dejaban la pantalla de Mensajes vacía hasta que la
+  // persona volvía a tocar el ícono. Ahora cualquier forma de llegar aquí
+  // la pinta de verdad, conservando qué conversación tenías abierta si la había.
+  if(targetView === 'mensajes') renderMessagesScreen(dmOpenConversationId);
 }
 window.addEventListener('popstate', (event) => {
   if(activeInlineFeedClose){
@@ -3177,8 +3183,6 @@ const DB = {
 
       if(error) throw error;
 
-      return data || [];
-      if(error) throw error;
       return (data || []).map(row => ({
         id: row.id,
         participantA: row.participant_a,
@@ -4593,6 +4597,39 @@ if(profileAvatarEditBtn){
     if(input) input.click();
   });
 }
+
+// La subida real de la foto (qué hacer cuando ya se eligió un archivo) se
+// ata UNA sola vez aquí, de forma incondicional. Antes este listener vivía
+// dentro de renderSettingsPage(), protegido por "solo la primera vez que se
+// pinte Configuración" — así que si alguien tocaba el lápiz ✎ del perfil sin
+// haber entrado nunca a Configuración → Perfil en esa sesión, el selector de
+// archivos se abría pero elegir una foto no hacía absolutamente nada.
+function initAvatarUploadHandler(){
+  const avatarInput = document.getElementById('settingsAvatarInput');
+  if(!avatarInput || avatarInput.dataset.uploadBound) return;
+  avatarInput.dataset.uploadBound = '1';
+  avatarInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if(!file || !currentUser) return;
+    const avatarBtnRef = document.getElementById('settingsAvatarBtn');
+    if(avatarBtnRef) avatarBtnRef.disabled = true;
+    try{
+      const url = await uploadImageFile(file, 'avatars');
+      currentUser = await DB.users.updateAvatar(currentUser.id, url);
+      usersCache[currentUser.id] = currentUser;
+      applyProfileToUI();
+      renderProfile();
+      if(document.getElementById('configuracion')?.classList.contains('active')) renderSettingsPage();
+      showToast('Foto de perfil actualizada');
+    }catch(err){
+      alert('No se pudo cambiar la foto: ' + (err.message || err));
+    }finally{
+      if(avatarBtnRef) avatarBtnRef.disabled = false;
+    }
+  });
+}
+initAvatarUploadHandler();
 
 const profilePostsPanel = document.getElementById('profilePostsPanel');
 const profileLogsPanel = document.getElementById('profileLogsPanel');
@@ -6868,6 +6905,12 @@ function scrollMessagesThreadToBottom(threadBodyEl){
 
 async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false } = {}){
   dmOpenConversationId = activeConversationId; // para que el canal de DMs en vivo sepa si el hilo abierto es este
+  // Se marca como leída AQUÍ, antes de calcular los contadores de "no leído"
+  // de la barra lateral (más abajo). Antes esto se hacía al final de la
+  // función, así que la primera vez que abrías un chat, su propio punto de
+  // "no leído" seguía apareciendo en la lista hasta el siguiente refresco —
+  // tenías que salir y volver a entrar para que se quitara.
+  if(activeConversationId) markConversationRead(activeConversationId);
   const listEl = document.getElementById('messagesList');
   const threadHeaderEl = document.getElementById('messageThreadHeader');
   const threadBodyEl = document.getElementById('messageThreadBody');
@@ -6975,7 +7018,6 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
 
     const threadUser = activeConversation.otherUser || { id: activeConversation.otherUserId, name: 'Usuario' };
 const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.id);
-    markConversationRead(activeConversation.id);
     threadHeaderEl.innerHTML = `
       <button class="btn btn-outline btn-small messages-mobile-back" id="messagesMobileBackBtn" type="button">←</button>
       <div class="avatar" style="width:32px;height:32px;font-size:0.68rem;">${avatarHTML(threadUser)}</div>
