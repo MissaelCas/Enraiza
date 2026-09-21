@@ -1303,6 +1303,10 @@
     box-shadow: 0 1px 1px rgba(35,48,29,0.06);
     cursor:pointer; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
   }
+  .message-bubble.has-media{ padding:4px 4px 8px; }
+  .message-bubble.has-media .message-text{ padding:6px 10px 0; }
+  .message-bubble.has-media .message-meta{ padding:0 10px; }
+  .message-image-bubble{ display:block; width:220px; max-width:60vw; max-height:280px; object-fit:cover; border-radius:14px; cursor:pointer; }
   /* Estilo por defecto: todas las burbujas redondeadas de las 4 esquinas */
   .message-row.me .message-bubble{ background: var(--moss); color:#fff; }
   .message-row.them .message-bubble{ background: #fff; color: var(--ink); border:1px solid var(--line); }
@@ -1367,6 +1371,10 @@
   .message-composer textarea:focus{ outline:none; border-color:var(--moss); }
   .message-composer button{ border:none; border-radius:999px; background:var(--moss); color:#fff; padding:10px 14px; font-weight:700; cursor:pointer; }
   .message-composer button:disabled{ opacity:0.7; cursor:wait; }
+  .message-attach-btn{ background:transparent !important; color:var(--ink-soft) !important; font-size:1.25rem; padding:6px 8px !important; line-height:1; flex-shrink:0; }
+  .message-attach-btn:hover{ color:var(--moss) !important; }
+  .message-attach-preview:empty{ display:none; }
+  .message-attach-preview{ padding:8px 16px 0; }
   .message-reply-preview{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 16px 0; font-size:0.76rem; color:var(--ink-soft); }
   .message-reply-preview strong{ color:var(--ink); }
   .message-reply-preview button{ border:none; background:none; color:var(--ink-soft); cursor:pointer; }
@@ -1581,7 +1589,10 @@
       <main class="messages-chat">
         <div class="message-thread-header" id="messageThreadHeader"></div>
         <div class="message-thread-body" id="messageThreadBody"></div>
+        <div class="message-attach-preview" id="messageAttachPreview"></div>
         <form class="message-composer" id="messageComposerForm">
+          <button type="button" class="message-attach-btn" id="messageAttachBtn" aria-label="Adjuntar foto o video" title="Adjuntar foto o video (máx. 1 min)">📎</button>
+          <input type="file" id="messageAttachInput" accept="image/*,video/*" class="visually-hidden">
           <textarea id="messageComposerInput" rows="1" maxlength="1000" placeholder="Escribe un mensaje…" autocomplete="off"></textarea>
           <button type="submit">Enviar</button>
         </form>
@@ -3521,6 +3532,8 @@ const DB = {
         createdAt: new Date(row.created_at).getTime(),
         replyToId: row.reply_to_id || null,
         replyStoryPhoto: row.reply_story_photo || null,
+        mediaUrl: row.deleted_for_everyone ? null : (row.media_url || null),
+        mediaType: row.media_type || null, // 'image' | 'video'
         deletedForEveryone: !!row.deleted_for_everyone
       }))
       .sort((a, b) => a.createdAt - b.createdAt);
@@ -3529,14 +3542,21 @@ const DB = {
     // en el visor de historias. photo se guarda tal cual (snapshot) porque la
     // historia original puede expirar/borrarse a las 24h y el mensaje debe seguir
     // mostrando la miniatura igual. Ver responder_historia.sql para las columnas.
-    async send(conversationId, senderId, text, replyToId, storyReply){
+    // media opcional: { url, type } ('image' | 'video') cuando se adjunta una
+    // foto o un video al mensaje (ver adjuntar_media_mensajes.sql). El texto
+    // puede ir vacío si el mensaje es solo la foto/video.
+    async send(conversationId, senderId, text, replyToId, storyReply, media){
       const clean = (text || '').trim();
-      if(!conversationId || !senderId || !clean) return null;
+      if(!conversationId || !senderId || (!clean && !media?.url)) return null;
       const payload = { conversation_id: conversationId, sender_id: senderId, text: clean };
       if(replyToId) payload.reply_to_id = replyToId;
       if(storyReply?.storyId){
         payload.reply_story_id = storyReply.storyId;
         payload.reply_story_photo = storyReply.photo || null;
+      }
+      if(media?.url){
+        payload.media_url = media.url;
+        payload.media_type = media.type || 'image';
       }
       let { data, error } = await sb.from('direct_messages').insert(payload).select().single();
       if(error && error.code === '42703' && (payload.reply_story_id || payload.reply_story_photo)){
@@ -3546,12 +3566,22 @@ const DB = {
         delete payload.reply_story_photo;
         ({ data, error } = await sb.from('direct_messages').insert(payload).select().single());
       }
+      if(error && error.code === '42703' && (payload.media_url || payload.media_type)){
+        // Todavía no se corrió adjuntar_media_mensajes.sql: si el mensaje tenía
+        // texto, se manda igual sin el adjunto en vez de fallar por completo;
+        // si era solo la foto/video, no hay nada que mandar.
+        delete payload.media_url;
+        delete payload.media_type;
+        if(!payload.text) throw new Error('Para enviar fotos o videos en los chats hace falta correr adjuntar_media_mensajes.sql en Supabase.');
+        ({ data, error } = await sb.from('direct_messages').insert(payload).select().single());
+      }
       if(error) throw error;
       await sb.from('direct_conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId);
       return {
         id: data.id, conversationId: data.conversation_id, senderId: data.sender_id,
         text: data.text, createdAt: new Date(data.created_at).getTime(), replyToId: data.reply_to_id || null,
-        replyStoryPhoto: data.reply_story_photo || null
+        replyStoryPhoto: data.reply_story_photo || null,
+        mediaUrl: data.media_url || null, mediaType: data.media_type || null
       };
     },
     async updateMessage(messageId, senderId, nextText){
@@ -4997,15 +5027,57 @@ const postViewObserver = new IntersectionObserver((entries) => {
     if(!id) return;
     if(entry.isIntersecting){
       viewTimers[id] = Date.now();
-    } else if(viewTimers[id]){
-      const dwell = Date.now() - viewTimers[id];
-      delete viewTimers[id];
-      if(currentUser && dwell >= 1200){
-        pendingViews[id] = (pendingViews[id] || 0) + dwell; // se acumula, no se manda todavía
+      visiblePostIds.add(id);
+      playActiveVideoIn(entry.target);
+    } else {
+      visiblePostIds.delete(id);
+      pauseAllVideosIn(entry.target);
+      if(viewTimers[id]){
+        const dwell = Date.now() - viewTimers[id];
+        delete viewTimers[id];
+        if(currentUser && dwell >= 1200){
+          pendingViews[id] = (pendingViews[id] || 0) + dwell; // se acumula, no se manda todavía
+        }
       }
     }
   });
 }, { threshold: 0.6 });
+
+// ---------- VIDEO EN EL FEED: solo se reproduce el que de verdad se está viendo ----------
+// Reutiliza el mismo IntersectionObserver de arriba (threshold 0.6, "post
+// mayormente en pantalla") en vez de abrir uno nuevo por video: así el costo
+// sigue siendo, como mucho, un observer por tarjeta visible, no uno por video.
+// Dentro de un carrusel con varias fotos/videos, solo se reproduce el que
+// está activo en ese momento (el que se ve en pantalla), nunca los de al lado.
+const visiblePostIds = new Set();
+function pauseAllVideosIn(article){
+  article.querySelectorAll('video').forEach(v => { if(!v.paused) v.pause(); });
+}
+function activeVideoIn(article){
+  const car = article.querySelector('[data-carousel]');
+  if(!car) return null;
+  const track = car.querySelector('.ig-carousel-track');
+  if(!track || !track.children.length) return null;
+  const idx = Math.max(0, Math.round(track.scrollLeft / (track.clientWidth || 1)));
+  return track.querySelector(`video[data-idx="${idx}"]`) || null;
+}
+function playActiveVideoIn(article){
+  const v = activeVideoIn(article);
+  if(v && v.paused) v.play().catch(() => {}); // el navegador puede rechazar si aún no hay gesto del usuario; no pasa nada, se reintenta al scrollear
+}
+// El navegador puede seguir "reproduciendo" un video de fondo aunque la
+// pestaña esté oculta; se pausan todos y, al volver, solo se retoma el que
+// sigue realmente visible (nunca uno de otra tarjeta que quedó fuera de vista).
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden'){
+    document.querySelectorAll('.ig-post video').forEach(v => { if(!v.paused) v.pause(); });
+  } else {
+    visiblePostIds.forEach(id => {
+      const article = document.querySelector(`.ig-post[data-id="${id}"]`);
+      if(article) playActiveVideoIn(article);
+    });
+  }
+});
 
 // ---------- SINCRONÍA EN VIVO DE CONTADORES (likes / comentarios) ----------
 // Optimizada a propósito para muchos usuarios conectados a la vez: NO hay un
@@ -5277,6 +5349,11 @@ function bindPostCard(article){
         if(countEl) countEl.textContent = `${idx+1}/${total}`;
         if(prevBtn) prevBtn.disabled = idx === 0;
         if(nextBtn) nextBtn.disabled = idx === total - 1;
+        // Cambió el slide activo del carrusel: pausa cualquier video que haya
+        // quedado sonando/reproduciéndose fuera de vista y arranca el nuevo
+        // activo, pero solo si esta tarjeta sigue realmente en pantalla.
+        pauseAllVideosIn(article);
+        if(visiblePostIds.has(id)) playActiveVideoIn(article);
       };
       track.addEventListener('scroll', () => syncUI(Math.round(track.scrollLeft / track.clientWidth)));
       if(prevBtn) prevBtn.addEventListener('click', () => { const idx = Math.max(0, Math.round(track.scrollLeft/track.clientWidth)-1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
@@ -6393,12 +6470,17 @@ function bindMessageComposer(){
 bindMessageComposer();
 
 // Burbuja provisional al enviar: aparece al instante (como en Instagram) y se reemplaza al confirmarse.
-function appendPendingBubble(bodyEl, text){
+function appendPendingBubble(bodyEl, text, attachment){
   document.getElementById('messageReadStatus')?.remove();
   bodyEl.querySelector('.messages-empty-state')?.remove();
+  const mediaHTML = attachment
+    ? (attachment.isVideo
+        ? `<div class="message-video-bubble"><video src="${attachment.url}" muted></video><span class="message-video-play">▶</span></div>`
+        : `<img class="message-image-bubble" src="${attachment.url}" alt="">`)
+    : '';
   const wrap = document.createElement('div');
   wrap.className = 'message-group me';
-  wrap.innerHTML = `<div class="message-group-bubbles"><div class="message-row me msg-enter pending"><div class="message-bubble-shell mine"><div class="message-bubble"><span class="message-text">${escapeHtml(text)}</span><span class="message-meta">Enviando…</span></div></div></div></div>`;
+  wrap.innerHTML = `<div class="message-group-bubbles"><div class="message-row me msg-enter pending"><div class="message-bubble-shell mine"><div class="message-bubble ${mediaHTML ? 'has-media' : ''}">${mediaHTML}${text ? `<span class="message-text">${escapeHtml(text)}</span>` : ''}<span class="message-meta">${attachment ? 'Subiendo…' : 'Enviando…'}</span></div></div></div></div>`;
   bodyEl.insertBefore(wrap, document.getElementById('typingIndicator'));
   scrollMessagesThreadToBottom(bodyEl);
   return wrap;
@@ -6634,13 +6716,13 @@ function openAddStoryModal(){
         class="photo-picker-btn"
         id="storyPhotoPickBtn"
       >
-        📷 Elegir una foto (opcional)
+        📷 Elegir una foto o video (opcional, máx. 1 min)
       </button>
 
       <input
         type="file"
         id="storyPhotoInput"
-        accept="image/*"
+        accept="image/*,video/*"
         class="visually-hidden"
       >
 
@@ -6718,7 +6800,7 @@ function openAddStoryModal(){
     storyPhotoInput.click();
   });
 
-  storyPhotoInput.addEventListener('change', (e) => {
+  storyPhotoInput.addEventListener('change', async (e) => {
 
     const file = e.target.files[0];
 
@@ -6727,17 +6809,25 @@ function openAddStoryModal(){
 
     if(!file) return;
 
-    storyFile = file;
+    let ready = file;
+    if(isVideoFile(file)){
+      storyPhotoPickBtn.disabled = true;
+      ready = await prepareVideoFile(file); // abre el recortador solo si dura más de 1 min
+      storyPhotoPickBtn.disabled = false;
+      if(!ready) return; // canceló el recorte
+    }
 
-    const previewUrl = URL.createObjectURL(file);
+    storyFile = ready;
+
+    const previewUrl = URL.createObjectURL(ready);
+    const isVid = isVideoFile(ready);
 
     storyPhotoPreview.innerHTML = `
       <div class="photo-preview-item">
 
-        <img
-          src="${previewUrl}"
-          alt="Vista previa"
-        >
+        ${isVid
+          ? `<video src="${previewUrl}" muted></video><span class="photo-preview-video-badge">▶</span>`
+          : `<img src="${previewUrl}" alt="Vista previa">`}
 
         <button
           type="button"
@@ -6858,6 +6948,7 @@ function openAddStoryModal(){
 
 let storyRemainingMs = STORY_DURATION_MS;
 let storyTickStart = 0;
+let currentStoryVideoEl = null; // el <video> de la historia activa, si la hay (para pausar/reanudar en sync con la barra)
 
 function openStoryViewer(groupIndex){
   if(!storyGroups.length || !storyGroups[groupIndex]){
@@ -6892,6 +6983,7 @@ function openStoryViewer(groupIndex){
 }
 
 function pauseStory(){
+  if(currentStoryVideoEl) currentStoryVideoEl.pause();
   if(!storyTimer) return;
   clearTimeout(storyTimer);
   storyTimer = null;
@@ -6900,6 +6992,7 @@ function pauseStory(){
   document.querySelectorAll('.story-progress-fill.animating').forEach(el => el.classList.add('paused'));
 }
 function resumeStory(){
+  if(currentStoryVideoEl) currentStoryVideoEl.play().catch(() => {});
   if(storyTimer) return;
   if(storyRemainingMs <= 0){ advanceStory(); return; }
   storyTickStart = Date.now();
@@ -6910,6 +7003,8 @@ function resumeStory(){
 function renderStoryViewer(){
   if(storyTimer) clearTimeout(storyTimer);
   storyTimer = null;
+  if(currentStoryVideoEl) currentStoryVideoEl.pause();
+  currentStoryVideoEl = null;
   const group = storyGroups[currentGroupIndex];
   if(!group){ closeModal(); return; }
   const s = group.stories[currentStoryIndex];
@@ -6917,6 +7012,7 @@ function renderStoryViewer(){
   const authorObj = usersCache[s.authorId];
   const name = authorObj?.name || 'Comunidad Enraíza';
   const img = s.photo || placeholderImage(s.id + name, 'planta');
+  const isVideoStory = isVideoUrl(img);
   const isMine = currentUser && s.authorId === currentUser.id;
   markStoryViewed(s.id);
   if(!isMine && currentUser) DB.storyViews.record(s.id, currentUser.id);
@@ -6935,7 +7031,9 @@ function renderStoryViewer(){
         <div class="avatar">${avatarHTML(authorObj)}</div>
         <span>${escapeHtml(name)}${s.demo ? ' · ejemplo' : ''} · ${fmtRelative(s.date)}</span>
       </div>
-      <div class="story-view-img-wrap"><img src="${img}" alt=""></div>
+      <div class="story-view-img-wrap">${isVideoStory
+        ? `<video id="storyMediaVideo" src="${escapeHtml(img)}" muted playsinline preload="auto"></video>`
+        : `<img src="${escapeHtml(img)}" alt="">`}</div>
       ${s.text ? `<p class="story-view-text">${escapeHtml(s.text)}</p>` : ''}
       <button type="button" class="story-nav-arrow story-nav-prev" id="storyNavPrev" ${(currentGroupIndex===0 && currentStoryIndex===0) ? 'disabled' : ''} aria-label="Historia anterior">‹</button>
       <button type="button" class="story-nav-arrow story-nav-next" id="storyNavNext" aria-label="Siguiente historia">›</button>
@@ -6962,7 +7060,7 @@ function renderStoryViewer(){
     });
   }
 
-  // Mantener presionado pausa (imagen y barra); soltar reanuda. Un toque corto sigue navegando normal.
+  // Mantener presionado pausa (imagen/video y barra); soltar reanuda. Un toque corto sigue navegando normal.
   let holdTimer = null;
   let didHoldPause = false;
   const isControlEl = (el) => !!el.closest('.story-view-close, .story-owner-menu-btn, .story-nav-arrow, .story-owner-dropdown, .story-viewers-list');
@@ -7021,9 +7119,36 @@ function renderStoryViewer(){
   }
 
   setupStorySwipeToClose();
-  storyRemainingMs = STORY_DURATION_MS;
-  storyTickStart = Date.now();
-  storyTimer = setTimeout(() => advanceStory(), storyRemainingMs);
+
+  const videoEl = isVideoStory ? document.getElementById('storyMediaVideo') : null;
+  currentStoryVideoEl = videoEl;
+  if(videoEl){
+    // La duración de la barra de progreso se adapta a la duración real del
+    // video (en vez del tiempo fijo de las fotos), y avanza a la siguiente
+    // historia justo cuando el video termina, no antes ni después.
+    const bar = document.getElementById(`storyBar-${currentStoryIndex}`);
+    const startTimerWithRealDuration = () => {
+      const secs = (isFinite(videoEl.duration) && videoEl.duration > 0)
+        ? Math.min(videoEl.duration, MAX_VIDEO_SECONDS)
+        : (STORY_DURATION_MS / 1000);
+      storyRemainingMs = secs * 1000;
+      if(bar){
+        bar.style.animationDuration = storyRemainingMs + 'ms';
+        bar.classList.remove('animating'); void bar.offsetWidth; bar.classList.add('animating'); // reinicia la animación CSS con la duración correcta
+      }
+      storyTickStart = Date.now();
+      if(storyTimer) clearTimeout(storyTimer);
+      storyTimer = setTimeout(() => advanceStory(), storyRemainingMs);
+    };
+    if(videoEl.readyState >= 1) startTimerWithRealDuration();
+    else videoEl.addEventListener('loadedmetadata', startTimerWithRealDuration, { once:true });
+    videoEl.addEventListener('error', () => { showToast('No se pudo reproducir ese video.'); advanceStory(); }, { once:true });
+    videoEl.play().catch(() => {});
+  } else {
+    storyRemainingMs = STORY_DURATION_MS;
+    storyTickStart = Date.now();
+    storyTimer = setTimeout(() => advanceStory(), storyRemainingMs);
+  }
 }
 
 function goPrevStory(){
@@ -7502,6 +7627,8 @@ async function loadConversationSummaries(){
 }
 let activeReplyTarget = null;
 let dmIsSending = false;
+let pendingMessageAttachment = null; // { file, url, isVideo } — foto o video elegido, listo para mandar
+let pendingAttachmentConvId = null; // para limpiar el adjunto pendiente al cambiar de conversación
 
 function closeMessageMenu(){
   document.querySelectorAll('.message-bubble-shell.open').forEach(el => el.classList.remove('open'));
@@ -7538,6 +7665,25 @@ function scrollMessagesThreadToBottom(threadBodyEl){
   });
 }
 
+function clearPendingAttachment(){
+  if(pendingMessageAttachment?.url) URL.revokeObjectURL(pendingMessageAttachment.url);
+  pendingMessageAttachment = null;
+  renderMessageAttachPreview();
+}
+function renderMessageAttachPreview(){
+  const box = document.getElementById('messageAttachPreview');
+  if(!box) return;
+  if(!pendingMessageAttachment){ box.innerHTML = ''; return; }
+  const p = pendingMessageAttachment;
+  box.innerHTML = `
+    <div class="photo-preview-item">
+      ${p.isVideo ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>` : `<img src="${p.url}" alt="">`}
+      <button type="button" id="messageAttachRemove">&times;</button>
+    </div>
+  `;
+  document.getElementById('messageAttachRemove').addEventListener('click', clearPendingAttachment);
+}
+
 let dmScreenRenderSeq = 0;
 async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false, forceScroll = false } = {}){
   // Candado de secuencia: si mientras esta llamada esperaba a la red se disparó
@@ -7550,6 +7696,12 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
   const renderSeq = ++dmScreenRenderSeq;
   const isStale = () => renderSeq !== dmScreenRenderSeq;
   dmOpenConversationId = activeConversationId; // para que el canal de DMs en vivo sepa si el hilo abierto es este
+  if(activeConversationId !== pendingAttachmentConvId){
+    // Cambiaste de conversación: el adjunto que tenías listo para mandar era para la otra.
+    if(pendingMessageAttachment?.url) URL.revokeObjectURL(pendingMessageAttachment.url);
+    pendingMessageAttachment = null;
+    pendingAttachmentConvId = activeConversationId;
+  }
   syncDmThreadChannel();
   // Se marca como leída AQUÍ, antes de calcular los contadores de "no leído"
   // de la barra lateral (más abajo). Antes esto se hacía al final de la
@@ -7747,13 +7899,21 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       const quotedAuthor = quoted ? (quoted.senderId === currentUser.id ? 'Tú' : (threadUser.name || 'Usuario')) : '';
       const storyReplyLabel = isMine ? `Respondiste a la historia de ${escapeHtml(threadUser.name || 'esta persona')}` : 'Respondió a tu historia';
       const canDeleteForEveryone = isMine && (Date.now() - msg.createdAt) <= DELETE_EVERYONE_WINDOW_MS;
+      // El video del chat NUNCA se reproduce solo: se ve pausado (con ▶ encima)
+      // hasta que la persona le da clic, a diferencia del feed que sí autoreproduce.
+      const mediaHTML = (!msg.deletedForEveryone && msg.mediaUrl) ? (
+        msg.mediaType === 'video'
+          ? `<div class="message-video-bubble" data-msgvideo="${msg.id}"><video src="${escapeHtml(msg.mediaUrl)}" playsinline preload="metadata"></video><span class="message-video-play">▶</span></div>`
+          : `<img class="message-image-bubble" src="${escapeHtml(msg.mediaUrl)}" alt="">`
+      ) : '';
       return `
         <div class="message-row ${isMine ? 'me' : 'them'} ${enterIds.has(msg.id) ? 'msg-enter' : ''}">
           <div class="message-bubble-shell ${isMine ? 'mine' : 'theirs'}" data-message-id="${msg.id}" data-msg-sender="${msg.senderId}">
-            <div class="message-bubble ${msg.deletedForEveryone ? 'deleted' : ''}">
+            <div class="message-bubble ${msg.deletedForEveryone ? 'deleted' : ''} ${mediaHTML ? 'has-media' : ''}">
               ${msg.replyStoryPhoto ? `<span class="message-story-reply"><img src="${escapeHtml(msg.replyStoryPhoto)}" alt=""><span>${storyReplyLabel}</span></span>` : ''}
               ${quoted ? `<span class="message-reply-quote" data-scroll-to="${quoted.id}"><strong>${escapeHtml(quotedAuthor)}:</strong> ${escapeHtml((quoted.text || '').slice(0,60))}</span>` : ''}
-              <span class="message-text">${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(msg.text)}</span>
+              ${mediaHTML}
+              ${(!msg.deletedForEveryone && !msg.text) ? '' : `<span class="message-text">${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(msg.text)}</span>`}
               <span class="message-meta">${fmtRelative(msg.createdAt)}</span>
             </div>
             ${!msg.deletedForEveryone ? `
@@ -7793,6 +7953,26 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       target.classList.add('message-highlight-flash');
       setTimeout(() => target.classList.remove('message-highlight-flash'), 2000);
     }));
+
+    // Video de chat: nunca se reproduce solo. Un clic lo arranca/pausa, y si
+    // otro video del hilo estaba sonando se pausa primero (nunca dos a la vez).
+    threadBodyEl.querySelectorAll('[data-msgvideo]').forEach(wrap => {
+      const video = wrap.querySelector('video');
+      const playIcon = wrap.querySelector('.message-video-play');
+      if(!video) return;
+      wrap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if(video.paused){
+          document.querySelectorAll('.message-video-bubble video').forEach(v => { if(v !== video && !v.paused) v.pause(); });
+          video.play().catch(() => showToast('No se pudo reproducir ese video.'));
+        } else {
+          video.pause();
+        }
+      });
+      video.addEventListener('play', () => playIcon?.classList.add('hidden'));
+      video.addEventListener('pause', () => playIcon?.classList.remove('hidden'));
+      video.addEventListener('ended', () => playIcon?.classList.remove('hidden'));
+    });
 
     let msgHoldTimer = null;
     let msgDidHold = false;
@@ -7904,8 +8084,31 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
 
     if(composer) composer.style.display = 'flex';
     renderReplyPreview();
+    renderMessageAttachPreview();
     const composerInput = document.getElementById('messageComposerInput');
     if(composerInput && !preserveDraft){ composerInput.value = ''; }
+
+    const attachBtn = document.getElementById('messageAttachBtn');
+    const attachInput = document.getElementById('messageAttachInput');
+    if(attachBtn && attachInput){
+      attachBtn.onclick = () => attachInput.click();
+      attachInput.onchange = async (e) => {
+        const file = e.target.files[0];
+        e.target.value = ''; // permite volver a elegir el mismo archivo
+        if(!file) return;
+        let ready = file;
+        if(isVideoFile(file)){
+          attachBtn.disabled = true;
+          ready = await prepareVideoFile(file); // abre el recortador solo si dura más de 1 min
+          attachBtn.disabled = false;
+          if(!ready) return; // canceló el recorte
+        }
+        if(pendingMessageAttachment?.url) URL.revokeObjectURL(pendingMessageAttachment.url);
+        pendingMessageAttachment = { file: ready, url: URL.createObjectURL(ready), isVideo: isVideoFile(ready) };
+        renderMessageAttachPreview();
+      };
+    }
+
     const form = document.getElementById('messageComposerForm');
     if(form){
       form.onsubmit = async (e) => {
@@ -7913,17 +8116,26 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
         if(dmIsSending) return;
         const inputEl = document.getElementById('messageComposerInput');
         const text = ((inputEl || {}).value || '').trim();
-        if(!text) return;
+        const attachment = pendingMessageAttachment;
+        if(!text && !attachment) return;
         dmIsSending = true;
         stopTyping();
         const replyId = activeReplyTarget ? activeReplyTarget.messageId : null;
-        // Se limpia el campo y aparece la burbuja al instante; si falla, se restaura el texto.
+        // Se limpia el campo y aparece la burbuja al instante; si falla, se restaura el texto/adjunto.
         inputEl.value = '';
         autoGrowComposer(inputEl);
-        const pending = appendPendingBubble(threadBodyEl, text);
+        pendingMessageAttachment = null; // se revoca su URL local más abajo, ya con la subida resuelta
+        renderMessageAttachPreview();
+        const pending = appendPendingBubble(threadBodyEl, text, attachment);
         try{
-          const sent = await DB.messages.send(activeConversation.id, currentUser.id, text, replyId).catch(() => null);
+          let media = null;
+          if(attachment){
+            const url = await uploadImageFile(attachment.file, 'messages');
+            media = { url, type: attachment.isVideo ? 'video' : 'image' };
+          }
+          const sent = await DB.messages.send(activeConversation.id, currentUser.id, text, replyId, null, media).catch(() => null);
           if(sent){
+            if(attachment?.url) URL.revokeObjectURL(attachment.url);
             clearActiveReplyTarget();
             dmRenderedIds.get(activeConversation.id)?.add(sent.id); // ya se animó como provisional
             // Antes esto ponía una bandera global (dmForceScroll) que cualquier
@@ -7936,8 +8148,14 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
           } else {
             pending.remove();
             if(!inputEl.value){ inputEl.value = text; autoGrowComposer(inputEl); }
+            if(attachment){ pendingMessageAttachment = attachment; renderMessageAttachPreview(); }
             showToast('No se pudo enviar el mensaje.');
           }
+        } catch(err){
+          pending.remove();
+          if(!inputEl.value){ inputEl.value = text; autoGrowComposer(inputEl); }
+          if(attachment){ pendingMessageAttachment = attachment; renderMessageAttachPreview(); }
+          showToast(err?.message || 'No se pudo enviar el mensaje.');
         } finally {
           dmIsSending = false;
         }
