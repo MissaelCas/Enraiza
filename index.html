@@ -1880,7 +1880,7 @@
             <input type="checkbox" id="privacyShowInSearch" checked>
           </label>
           <label class="privacy-setting-item">
-            <div><strong>Solo mensajes de quienes sigo mutuamente</strong><small>Si lo desactivas, cualquiera podrá escribirte aunque no se sigan entre sí — como una cuenta pública en Instagram.</small></div>
+            <div><strong>Solo mensajes de quienes sigo mutuamente</strong><small>Si lo desactivas, cualquiera podrá escribirte aunque no se sigan entre sí.</small></div>
             <input type="checkbox" id="privacyRequireMutualForMessages" checked>
           </label>
         </div>
@@ -4551,6 +4551,7 @@ async function refreshAppAfterAuthChange(){
   await refreshNotifUnreadCount();
   setupNotificationsRealtime(); // re-suscribe (o cancela) el canal de notificaciones para el usuario actual
   setupDmRealtime(); // idem, para mensajes directos en vivo
+  setupProfilesRealtime(); // idem, para cambios de foto/nombre/bio de cualquier perfil
   enforceAuthGate();
 }
 async function logout(){
@@ -5746,7 +5747,73 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 function setupRealtime(){
   setupNotificationsRealtime();
   setupDmRealtime();
+  setupProfilesRealtime();
 }
+// ---------- CAMBIOS DE PERFIL EN VIVO (foto, nombre, bio) ----------
+// Antes no existía ningún canal para esto: usersCache se llenaba una sola vez
+// por usuario y nunca se refrescaba, así que si alguien más cambiaba su foto
+// de perfil, seguías viendo la vieja en todos lados (feed, comentarios,
+// mensajes, su perfil) hasta recargar la página. Igual que con direct_messages,
+// se suscribe SIN filtro (Realtime no filtra por "id IN (...)" de forma
+// simple) y es la política RLS de SELECT sobre profiles la que de todos modos
+// ya permite leer perfiles públicos, así que esto no expone nada que
+// getUserCached()/getUsersBatch() no pudieran leer ya.
+let profilesRealtimeChannel = null;
+let profilesRealtimeUserId = null;
+function setupProfilesRealtime(){
+  if(profilesRealtimeChannel && profilesRealtimeUserId === currentUser?.id) return;
+  if(profilesRealtimeChannel){
+    sb.removeChannel(profilesRealtimeChannel);
+    profilesRealtimeChannel = null;
+  }
+  profilesRealtimeUserId = currentUser ? currentUser.id : null;
+  if(!currentUser) return;
+  profilesRealtimeChannel = sb.channel(`enraiza-profiles-realtime-${currentUser.id}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+      handleProfileRealtimeUpdate(payload.new);
+    })
+    .subscribe((status, err) => {
+      if(status !== 'SUBSCRIBED'){
+        console.warn('[profilesRealtime]', status, err || '');
+        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+          if(profilesRealtimeChannel){ sb.removeChannel(profilesRealtimeChannel); }
+          profilesRealtimeChannel = null;
+        }
+      }
+    });
+}
+// Actualiza la caché y refresca en el momento SOLO lo que ya está en pantalla
+// (nunca vuelve a pedir nada a la red): el feed y los mensajes se redibujan
+// desde su propia caché, que ya lee usersCache al momento de renderizar.
+function handleProfileRealtimeUpdate(row){
+  if(!row || !row.id || !usersCache[row.id]) return; // nadie ha cargado a esta persona: nada que actualizar
+  usersCache[row.id] = mapProfileRow(row);
+  if(row.id === currentUser?.id){
+    applyProfileToUI();
+    renderProfile();
+  }
+  if(row.id === viewingUserId){
+    renderUserProfileVisit();
+  }
+  if(postsCacheReady) renderFeedFromCache();
+  if(isMensajesViewActive()) renderMessagesScreen(dmOpenConversationId, { preserveDraft: true });
+}
+// Antes, setupRealtime() solo se volvía a llamar cuando Supabase disparaba
+// TOKEN_REFRESHED (login inicial aparte). Si el WebSocket se cortaba entre
+// una renovación de token y la siguiente (red inestable, laptop dormida,
+// pestaña mucho tiempo en segundo plano), el canal se quedaba muerto hasta
+// la próxima renovación de token, que puede tardar bastante. Ahora, cada vez
+// que la pestaña vuelve a estar visible o el navegador recupera conexión,
+// se intenta reconectar: si el canal seguía vivo, las funciones de arriba no
+// hacen nada (su propio candado lo evita); si se había marcado como muerto
+// (ver el 'CHANNEL_ERROR'/'TIMED_OUT'/'CLOSED' en los .subscribe() de cada
+// canal), aquí sí se vuelve a crear.
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && currentUser) setupRealtime();
+});
+window.addEventListener('online', () => {
+  if(currentUser) setupRealtime();
+});
 
 // Canal de comentarios con alcance a UN solo post. Se abre cuando el usuario
 // entra a ver los comentarios de esa publicación y se cierra al salir —
@@ -5888,6 +5955,14 @@ function setupNotificationsRealtime(){
       if(status !== 'SUBSCRIBED'){
         console.warn('[notifRealtime]', status, err || '');
         notifReconnectPending = true; // se cayó: cuando reconecte, hay que revisar lo perdido
+        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+          // El canal ya está muerto: hay que soltar la referencia, porque si no
+          // el candado de arriba ("ya hay un canal para este usuario, no lo
+          // recrees") va a creer para siempre que sigue vivo y jamás lo va a
+          // volver a armar, aunque se llame setupNotificationsRealtime() de nuevo.
+          if(notifRealtimeChannel){ sb.removeChannel(notifRealtimeChannel); }
+          notifRealtimeChannel = null;
+        }
       } else if(notifReconnectPending){
         notifReconnectPending = false;
         catchUpOnNotifications(); // recupera lo que haya llegado durante la caída
@@ -5914,6 +5989,7 @@ function setupNotificationsRealtime(){
 //      (para que los eventos UPDATE traigan la fila completa, no solo la clave)
 let dmRealtimeChannel = null;
 let dmRealtimeUserId = null;
+let dmReconnectPending = false;
 let dmOpenConversationId = null; // conversación abierta en la pantalla completa de Mensajes (null si no hay ninguna o la pantalla está cerrada)
 
 function isMensajesViewActive(){
@@ -6132,6 +6208,7 @@ function onDmReturn(){
   if(!currentUser || document.visibilityState !== 'visible') return;
   if(isMensajesViewActive() && dmOpenConversationId) markConversationRead(dmOpenConversationId, { force: true });
   updateMessagesBadge();
+  catchUpOnDms(); // respaldo: por si el canal en vivo se perdió algo mientras la pestaña estaba oculta
 }
 document.addEventListener('visibilitychange', onDmReturn);
 window.addEventListener('focus', onDmReturn);
@@ -6161,8 +6238,35 @@ function setupDmRealtime(){
       handleConversationRealtime(payload.new);
     })
     .subscribe((status, err) => {
-      if(status !== 'SUBSCRIBED') console.warn('[dmRealtime]', status, err || '');
+      if(status !== 'SUBSCRIBED'){
+        console.warn('[dmRealtime]', status, err || '');
+        dmReconnectPending = true; // se cayó: cuando reconecte, hay que refrescar lo que se haya perdido
+        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+          // Mismo problema que en notifRealtime: si no se suelta la referencia,
+          // el candado de arriba nunca deja que este canal (ya muerto) se vuelva
+          // a crear, así que los mensajes/estados nuevos dejan de llegar en vivo
+          // hasta que se recargue la página.
+          if(dmRealtimeChannel){ sb.removeChannel(dmRealtimeChannel); }
+          dmRealtimeChannel = null;
+        }
+      } else if(dmReconnectPending){
+        dmReconnectPending = false;
+        catchUpOnDms(); // refresca la lista/hilo abierto con lo que llegó durante la caída
+      }
     });
+}
+// Respaldo por si el canal de DMs en vivo se perdió algo (WebSocket cortado,
+// pestaña en segundo plano, laptop dormida, etc.): re-dibuja la pantalla de
+// Mensajes desde la base de datos (lista y/o hilo abierto), igual que si la
+// hubieras cerrado y vuelto a abrir. Solo hace algo si esa pantalla está
+// activa; si no, el badge ya se refresca aparte en onDmReturn/updateMessagesBadge.
+let lastDmCatchUp = 0;
+async function catchUpOnDms(){
+  if(!currentUser || !isMensajesViewActive()) return;
+  const now = Date.now();
+  if(now - lastDmCatchUp < 15000) return; // máx. 1 recarga cada 15 s
+  lastDmCatchUp = now;
+  try{ await renderMessagesScreen(dmOpenConversationId, { preserveDraft: true }); }catch(err){ /* silencioso: es solo un respaldo */ }
 }
 
 
