@@ -1270,7 +1270,7 @@
   .messages-chat{ flex:1; display:flex; flex-direction:column; min-width:0; background: var(--white-ish); }
   .message-thread-header{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line); min-height:68px; }
   .message-thread-header strong{ font-size:0.96rem; }
-  .message-thread-body{ flex:1; overflow-y:auto; overflow-x:hidden; padding:12px 16px; display:flex; flex-direction:column; gap:10px; background: linear-gradient(180deg, rgba(132,170,101,0.04), rgba(132,170,101,0)); }
+  .message-thread-body{ flex:1; overflow-y:auto; overflow-x:hidden; padding:12px 16px; display:flex; flex-direction:column; justify-content:flex-end; gap:10px; background: linear-gradient(180deg, rgba(132,170,101,0.04), rgba(132,170,101,0)); }
   .message-row{ max-width:100%; min-width:0; width:fit-content; }
   .message-row.me{ margin-left:auto; }
   .message-row.them{ margin-right:auto; }
@@ -1309,6 +1309,10 @@
   .message-group.them .message-group-bubbles .message-row:first-child .message-bubble{ border-top-left-radius:18px; }
 
   .message-bubble.deleted{ font-style:italic; opacity:0.65; }
+
+  /* Sombra azul que aparece al saltar a un mensaje citado y se desvanece sola. */
+  .message-bubble-shell{ border-radius:18px; transition: box-shadow 1.1s ease; }
+  .message-bubble-shell.message-highlight-flash{ box-shadow: 0 0 0 3px rgba(60,120,220,0.55); transition: box-shadow 0.15s ease; }
 
   .message-reply-quote{
     display:block; margin-bottom:6px; padding:6px 8px; border-left:3px solid rgba(255,255,255,0.55);
@@ -1563,7 +1567,6 @@
       <aside class="messages-sidebar">
         <div class="messages-header">
           <h2>Mensajes</h2>
-          <button class="btn btn-outline btn-small" id="messagesBackToHomeBtn" type="button">Inicio</button>
         </div>
         <div class="messages-list" id="messagesList"></div>
       </aside>
@@ -6108,7 +6111,6 @@ let dmTypingSentAt = 0;
 let dmTypingStopTimer = null;
 let dmRenderedConv = null;          // conversación cuyo hilo se pintó por última vez
 const dmRenderedIds = new Map();    // conversación → ids ya pintados (para animar SOLO los mensajes nuevos)
-let dmForceScroll = false;
 
 function leaveDmThreadChannel(){
   if(dmThreadChannel) sb.removeChannel(dmThreadChannel);
@@ -7366,7 +7368,17 @@ function scrollMessagesThreadToBottom(threadBodyEl){
   });
 }
 
-async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false } = {}){
+let dmScreenRenderSeq = 0;
+async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false, forceScroll = false } = {}){
+  // Candado de secuencia: si mientras esta llamada esperaba a la red se disparó
+  // OTRA llamada más nueva a renderMessagesScreen() (por ejemplo: entras a
+  // Mensajes, sales, vuelves a entrar antes de que la primera terminara), esta
+  // versión vieja ya no debe pintar nada al terminar — si lo hiciera, podría
+  // pisar con datos viejos (o con la pantalla vacía, si a esta le tocó fallar)
+  // lo que la llamada más nueva ya pintó bien. Antes no existía este candado,
+  // así que la lista de chats a veces se veía vacía tras entrar/salir rápido.
+  const renderSeq = ++dmScreenRenderSeq;
+  const isStale = () => renderSeq !== dmScreenRenderSeq;
   dmOpenConversationId = activeConversationId; // para que el canal de DMs en vivo sepa si el hilo abierto es este
   syncDmThreadChannel();
   // Se marca como leída AQUÍ, antes de calcular los contadores de "no leído"
@@ -7392,6 +7404,7 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
 
   try{
     const summaries = await loadConversationSummaries();
+    if(isStale()) return; // llegó una llamada más nueva mientras esperábamos: que pinte ella
     const enriched = await Promise.all(summaries.map(async (conv) => {
       const otherUser = await getUserCached(conv.otherUserId);
       return {
@@ -7399,11 +7412,25 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
         otherUser: otherUser || { id: conv.otherUserId, name: 'Usuario' },
         unreadCount: conv.unread,
         pinned: false,
-        sortTs: conv.updatedAt || 0
+        // Antes usaba conv.updatedAt (hora del servidor, global), que no baja cuando
+        // yo borro mensajes solo de mi lado — así que tras borrar, la conversación
+        // se quedaba mal ordenada en la lista aunque su vista previa ya mostrara
+        // "Sin mensajes aún". conv.lastMessage ya respeta lo que borré para mí
+        // (ver DB.messages.lastVisibleMessages), así que ordenar por su hora deja
+        // la lista consistente con lo que la propia vista previa muestra.
+        sortTs: conv.lastMessage ? conv.lastMessage.createdAt : (conv.updatedAt || 0)
       };
     }));
+    if(isStale()) return;
 
-    const sorted = enriched.sort((a, b) => {
+    // Una conversación que ya borré por completo de mi lado (y que nadie ha vuelto
+    // a escribir desde entonces) se oculta de la lista, igual que en WhatsApp/IG:
+    // si te vuelven a escribir, reaparece sola (ver clearConversationForMe). Una
+    // conversación recién creada que nunca tuvo mensajes (clearedAtMine === 0) SÍ
+    // se sigue mostrando, para poder retomarla desde el perfil de alguien.
+    const visible = enriched.filter(conv => !(conv.clearedAtMine > 0 && !conv.lastMessage));
+
+    const sorted = visible.sort((a, b) => {
       if (a.pinned !== b.pinned) return Number(b.pinned) - Number(a.pinned);
       if ((a.unreadCount > 0) !== (b.unreadCount > 0)) return Number(b.unreadCount > 0) - Number(a.unreadCount > 0);
       return (b.sortTs || 0) - (a.sortTs || 0);
@@ -7432,9 +7459,37 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     }).join('') : '<div class="message-item-empty">💬 Aquí aparecerán tus conversaciones.</div>';
 
     listEl.innerHTML = listHtml;
+    let convHoldTimer = null;
+    let convDidHold = false;
     listEl.querySelectorAll('[data-msg-conversation]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-msg-conversation');
+      const id = btn.getAttribute('data-msg-conversation');
+      const conv = sorted.find(c => c.id === id);
+      // Igual que en las burbujas de mensaje: mantener presionado abre una acción
+      // (aquí, borrar la conversación) sin necesidad de un menú intermedio; un
+      // toque corto sigue abriendo el chat normalmente.
+      btn.addEventListener('pointerdown', () => {
+        convDidHold = false;
+        clearTimeout(convHoldTimer);
+        convHoldTimer = setTimeout(() => {
+          convDidHold = true;
+          showConfirmDialog({
+            title: 'Eliminar conversación',
+            message: `Vas a borrar esta conversación con ${conv?.otherUser?.name || 'esta persona'} solo para ti. La otra persona seguirá viendo sus mensajes, y si te vuelve a escribir, la conversación aparecerá vacía desde ese momento. Esto no la deja de seguir ni la elimina como contacto.`,
+            confirmLabel: 'Eliminar para mí',
+            danger: true,
+            onConfirm: async () => {
+              try{
+                await DB.messages.clearConversationForMe(id, currentUser.id);
+                showToast('Conversación eliminada para ti.');
+                await renderMessagesScreen(dmOpenConversationId === id ? null : dmOpenConversationId);
+              }catch(err){ showToast('No se pudo eliminar la conversación.'); }
+            }
+          });
+        }, 450);
+      });
+      ['pointerup','pointerleave','pointercancel'].forEach(evt => btn.addEventListener(evt, () => clearTimeout(convHoldTimer)));
+      btn.addEventListener('click', async (e) => {
+        if(convDidHold){ e.preventDefault(); e.stopPropagation(); convDidHold = false; return; }
         if(!id) return;
         screen.classList.add('chat-open');
         closeMessageMenu();
@@ -7458,7 +7513,8 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     }
 
     const threadUser = activeConversation.otherUser || { id: activeConversation.otherUserId, name: 'Usuario' };
-const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.id, activeConversation.clearedAtMine);
+    const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.id, activeConversation.clearedAtMine);
+    if(isStale()) return; // otra llamada más nueva ya tomó el control de esta pantalla
     threadHeaderEl.innerHTML = `
       <button class="btn btn-outline btn-small messages-mobile-back" id="messagesMobileBackBtn" type="button">←</button>
       <div class="avatar" style="width:32px;height:32px;font-size:0.68rem;">${avatarHTML(threadUser)}</div>
@@ -7559,7 +7615,13 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
 
     threadBodyEl.querySelectorAll('[data-scroll-to]').forEach(el => el.addEventListener('click', () => {
       const target = threadBodyEl.querySelector(`[data-message-id="${el.dataset.scrollTo}"]`);
-      if(target) target.scrollIntoView({ behavior:'smooth', block:'center' });
+      if(!target) return;
+      target.scrollIntoView({ behavior:'smooth', block:'center' });
+      // Resalta el mensaje original con una sombra azul que se desvanece sola,
+      // para que sea obvio a cuál mensaje te llevó el clic en la cita.
+      target.classList.remove('message-highlight-flash'); void target.offsetWidth;
+      target.classList.add('message-highlight-flash');
+      setTimeout(() => target.classList.remove('message-highlight-flash'), 2000);
     }));
 
     let msgHoldTimer = null;
@@ -7694,8 +7756,12 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
           if(sent){
             clearActiveReplyTarget();
             dmRenderedIds.get(activeConversation.id)?.add(sent.id); // ya se animó como provisional
-            dmForceScroll = true;
-            await renderMessagesScreen(activeConversation.id, { preserveDraft: true });
+            // Antes esto ponía una bandera global (dmForceScroll) que cualquier
+            // otro renderMessagesScreen() en curso (por ejemplo el refresco por
+            // un mensaje entrante en vivo, ver scheduleDmRefresh) podía consumir
+            // primero, dejando este envío sin bajar el scroll. Pasarlo como
+            // parámetro de ESTA llamada evita esa carrera.
+            await renderMessagesScreen(activeConversation.id, { preserveDraft: true, forceScroll: true });
             await updateMessagesBadge();
           } else {
             pending.remove();
@@ -7710,7 +7776,7 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
     if(composerInput && !preserveDraft) autoGrowComposer(composerInput);
 
     // Scroll: al abrir o al enviar baja al final; si estabas leyendo mensajes antiguos, no te mueve.
-    if(!prevIds || prevScroll.near || dmForceScroll){ dmForceScroll = false; scrollMessagesThreadToBottom(threadBodyEl); }
+    if(!prevIds || prevScroll.near || forceScroll){ scrollMessagesThreadToBottom(threadBodyEl); }
     else { threadBodyEl.scrollTop = prevScroll.top; }
     paintThreadStatus();
     syncDmThreadChannel();
@@ -7721,9 +7787,6 @@ const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.i
       syncDmThreadChannel();
     });
 
-    document.getElementById('messagesBackToHomeBtn')?.addEventListener('click', () => {
-      showView('inicio');
-    });
     await updateMessagesBadge();
   }catch(err){
     listEl.innerHTML = '<div class="message-item-empty">No se pudieron cargar los mensajes.</div>';
