@@ -1879,6 +1879,10 @@
             <div><strong>Mostrar mi perfil en búsquedas</strong><small>Si lo desactivas, no aparecerás en la búsqueda de personas.</small></div>
             <input type="checkbox" id="privacyShowInSearch" checked>
           </label>
+          <label class="privacy-setting-item">
+            <div><strong>Solo mensajes de quienes sigo mutuamente</strong><small>Si lo desactivas, cualquiera podrá escribirte aunque no se sigan entre sí — como una cuenta pública en Instagram.</small></div>
+            <input type="checkbox" id="privacyRequireMutualForMessages" checked>
+          </label>
         </div>
       </div>
       <div class="settings-group" data-settings-panel="comunidad">
@@ -3633,6 +3637,7 @@ function normalizePrivacySettings(value){
     allowFollowersToOthers: source.allowFollowersToOthers !== false,
     allowFollowingToOthers: source.allowFollowingToOthers !== false,
     showInSearch: source.showInSearch !== false,
+    requireMutualForMessages: source.requireMutualForMessages !== false,
   };
 }
 function getProfilePrivacy(user){
@@ -3869,7 +3874,9 @@ async function renderUserProfileVisit(){
     const canSeeButton = currentUser && currentUser.id !== uid;
     messageBtn.style.display = canSeeButton ? 'inline-flex' : 'none';
     if(canSeeButton){
-      const mutual = await areMutualFollowers(currentUser.id, uid).catch(() => false);
+      const targetPrivacy = getProfilePrivacy(freshUser || usersCache[uid] || {});
+      const needsMutual = targetPrivacy.requireMutualForMessages !== false;
+      const mutual = needsMutual ? await areMutualFollowers(currentUser.id, uid).catch(() => false) : true;
       messageBtn.disabled = !mutual;
       messageBtn.textContent = mutual ? 'Mensaje' : 'Síganse para escribirse';
       messageBtn.onclick = async () => { if(!mutual) return; await openDmConversation(uid); };
@@ -6686,8 +6693,12 @@ function renderStoryViewer(){
       const text = replyInput.value.trim();
       if(!text || !currentUser || !s || s.authorId === currentUser.id) return;
       try{
-        const mutual = await areMutualFollowers(currentUser.id, s.authorId).catch(() => false);
-        if(!mutual){ showToast('Solo pueden escribirse quienes se siguen mutuamente.'); resumeStory(); return; }
+        const storyAuthor = await getUserCached(s.authorId).catch(() => null);
+        const authorPrivacy = getProfilePrivacy(storyAuthor || {});
+        if(authorPrivacy.requireMutualForMessages !== false){
+          const mutual = await areMutualFollowers(currentUser.id, s.authorId).catch(() => false);
+          if(!mutual){ showToast('Solo pueden escribirse quienes se siguen mutuamente.'); resumeStory(); return; }
+        }
         const conversation = await DB.messages.findOrCreateConversation(currentUser.id, s.authorId);
         if(!conversation) throw new Error('No se pudo abrir la conversación.');
         const sent = await DB.messages.send(conversation.id, currentUser.id, text);
@@ -7090,12 +7101,18 @@ async function areMutualFollowers(userA, userB){
 async function openDmConversation(userId){
   if(!currentUser || !userId || userId === currentUser.id) return;
 
-  // Privacidad: para abrir un chat, ambos usuarios deben seguirse.
-  const mutual = await areMutualFollowers(currentUser.id, userId).catch(() => false);
-
-  if(!mutual){
-    showToast('Solo pueden escribirse quienes se siguen mutuamente.');
-    return;
+  // Privacidad: el requisito de "deben seguirse mutuamente" ahora depende de la
+  // configuración de la persona a la que le vas a escribir (como Instagram: si su
+  // cuenta lo permite, cualquiera puede escribirle; si no, hace falta seguirse).
+  // Antes esto era fijo para todos sin importar su configuración.
+  const targetUser = await getUserCached(userId).catch(() => null);
+  const targetPrivacy = getProfilePrivacy(targetUser || {});
+  if(targetPrivacy.requireMutualForMessages !== false){
+    const mutual = await areMutualFollowers(currentUser.id, userId).catch(() => false);
+    if(!mutual){
+      showToast('Solo pueden escribirse quienes se siguen mutuamente.');
+      return;
+    }
   }
 
   const conversation = await DB.messages
@@ -8293,11 +8310,13 @@ function renderSettingsPage(){
   const allowFollowersToOthersEl=document.getElementById('privacyAllowFollowersToOthers');
   const allowFollowingToOthersEl=document.getElementById('privacyAllowFollowingToOthers');
   const showInSearchEl=document.getElementById('privacyShowInSearch');
+  const requireMutualForMessagesEl=document.getElementById('privacyRequireMutualForMessages');
   if(showFollowersEl) showFollowersEl.checked = privacySettings.showFollowers !== false;
   if(showFollowingEl) showFollowingEl.checked = privacySettings.showFollowing !== false;
   if(allowFollowersToOthersEl) allowFollowersToOthersEl.checked = privacySettings.allowFollowersToOthers !== false;
   if(allowFollowingToOthersEl) allowFollowingToOthersEl.checked = privacySettings.allowFollowingToOthers !== false;
   if(showInSearchEl) showInSearchEl.checked = privacySettings.showInSearch !== false;
+  if(requireMutualForMessagesEl) requireMutualForMessagesEl.checked = privacySettings.requireMutualForMessages !== false;
   if(form && !form.dataset.bound){
     form.dataset.bound='1';
     form.addEventListener('submit', async (e)=>{
@@ -8320,6 +8339,7 @@ function renderSettingsPage(){
         allowFollowersToOthers: !!document.getElementById('privacyAllowFollowersToOthers')?.checked,
         allowFollowingToOthers: !!document.getElementById('privacyAllowFollowingToOthers')?.checked,
         showInSearch: !!document.getElementById('privacyShowInSearch')?.checked,
+        requireMutualForMessages: !!document.getElementById('privacyRequireMutualForMessages')?.checked,
       };
       if(!name) return;
       try{
