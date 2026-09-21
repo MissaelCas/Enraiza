@@ -1232,8 +1232,19 @@
     display:none;
   }
   .notif-panel.open, .dm-panel.open{ display:block; }
-  @media (max-width:600px){
-    .notif-panel, .dm-panel{ position:fixed; top: calc(var(--header-h) + 8px); left:8px; right:8px; width:auto; max-width:none; }
+  /* Antes esto cambiaba a fijo-al-viewport solo por debajo de 600px. Entre 600 y ~860px
+     el panel seguía anclado a la campana con position:absolute + right:0 — que es relativo
+     al ÍCONO, no al borde de la pantalla — así que en pantallas medianas/chicas donde la
+     campana no está pegada al borde derecho real, el panel se salía por la izquierda y se
+     veía recortado. Fijarlo al viewport (con left/right:8px) desde antes lo hace a prueba
+     de desbordes sin importar dónde esté la campana. El alto también respeta la barra
+     superior real (min() entre 70vh y lo que en verdad quepa debajo del header). */
+  @media (max-width:860px){
+    .notif-panel, .dm-panel{
+      position:fixed; top: calc(var(--header-h) + 8px); left:8px; right:8px; width:auto; max-width:none;
+      max-height: min(70vh, calc(100vh - var(--header-h) - 16px));
+      max-height: min(70dvh, calc(100dvh - var(--header-h) - 16px));
+    }
   }
   .notif-panel-head{ font-family:var(--serif); font-weight:700; padding:14px 16px; border-bottom:1px solid var(--line); }
   #mensajes.view{
@@ -3372,11 +3383,12 @@ const DB = {
     },
     async deleteForMe(messageId, userId){
       if(!messageId || !userId) return false;
-      const { data: existing, error: fetchErr } = await sb.from('direct_messages').select('deleted_for').eq('id', messageId).maybeSingle();
-      if(fetchErr) throw fetchErr;
-      if(!existing) return false;
-      const nextDeletedFor = Array.from(new Set([...(existing.deleted_for || []), userId]));
-      const { error } = await sb.from('direct_messages').update({ deleted_for: nextDeletedFor }).eq('id', messageId);
+      // RPC en vez de leer+escribir desde aquí: la política de UPDATE de direct_messages
+      // solo deja al remitente editar su propio mensaje, así que si QUIEN RECIBIÓ el
+      // mensaje intentaba ocultarlo, Supabase lo rechazaba (ver borrar_mensaje_para_mi.sql).
+      // El RPC corre con permisos elevados pero solo para esto: agregar tu propio id a
+      // deleted_for, después de verificar que sí eres participante de la conversación.
+      const { error } = await sb.rpc('delete_message_for_me', { p_message_id: messageId });
       if(error) throw error;
       return true;
     },
@@ -8324,22 +8336,11 @@ function renderSettingsPage(){
   const avatarInput=document.getElementById('settingsAvatarInput');
   if(avatarBtn && avatarInput && !avatarBtn.dataset.bound){
     avatarBtn.dataset.bound='1';
+    // Solo abre el selector de archivos. La subida en sí ('change') ya la maneja
+    // initAvatarUploadHandler() una sola vez, de forma centralizada (ver más arriba) —
+    // antes este mismo evento se ataba OTRA VEZ aquí, así que cada foto elegida
+    // disparaba dos subidas en paralelo compitiendo entre sí.
     avatarBtn.onclick=()=>{ if(requireLogin('cambiar tu foto de perfil')) avatarInput.click(); };
-    avatarInput.addEventListener('change', async (e)=>{
-      const file=e.target.files[0]; e.target.value='';
-      if(!file || !currentUser) return;
-      avatarBtn.disabled=true;
-      try{
-        const url=await uploadImageFile(file,'avatars');
-        currentUser=await DB.users.updateAvatar(currentUser.id,url);
-        usersCache[currentUser.id]=currentUser;
-        applyProfileToUI();
-        renderProfile();
-        renderSettingsPage();
-        showToast('Foto de perfil actualizada');
-      }catch(err){ alert('No se pudo cambiar la foto: '+(err.message||err)); }
-      finally{ avatarBtn.disabled=false; }
-    });
   }
 }
 
