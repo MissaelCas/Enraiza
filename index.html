@@ -887,6 +887,18 @@
     outline-offset:2px;
   }
   .profile-settings-btn svg{width:22px;height:22px}
+  .admin-panel-btn{ font-size:1.05rem; }
+  .admin-panel-btn:hover{ transform:none; background:#fff4dd; }
+  .admin-panel-btn[hidden]{ display:none; }
+  .admin-report-row{ border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; }
+  .admin-report-row.reviewed{ opacity:0.55; }
+  .admin-report-row .admin-report-meta{ font-size:0.76rem; color:var(--ink-soft); display:flex; flex-wrap:wrap; gap:6px 10px; margin-bottom:6px; }
+  .admin-report-row p{ margin:0 0 10px; font-size:0.88rem; }
+  .admin-report-row .btn{ padding:6px 12px; font-size:0.78rem; }
+  .admin-panel-empty{ text-align:center; color:var(--ink-soft); padding:30px 10px; font-size:0.88rem; }
+  .admin-panel-tabs{ display:flex; gap:6px; margin-bottom:14px; }
+  .admin-panel-tabs button{ flex:1; border:1px solid var(--line); background:var(--paper); border-radius:8px; padding:8px; font-size:0.8rem; cursor:pointer; }
+  .admin-panel-tabs button.active{ background:var(--moss); color:#fff; border-color:var(--moss); }
   .profile-tabs{
     display:grid;
     grid-template-columns:repeat(2,1fr);
@@ -1352,6 +1364,7 @@
   .thread-menu-dropdown button{ display:block; width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:0.84rem; cursor:pointer; color:var(--ink); }
   .thread-menu-dropdown button:hover{ background:var(--paper-alt); }
   .thread-menu-dropdown button.danger{ color:#a3392c; }
+  .thread-menu-dropdown.conversation-list-menu{ top:100%; right:8px; margin-top:4px; left:auto; }
 
   .message-menu{
     position:absolute; bottom:calc(100% + 6px); background:var(--white-ish); border:1px solid var(--line);
@@ -1491,7 +1504,7 @@
   .project-day-entry .log-date{ font-size:0.78rem; color:var(--ink-soft); }
   .project-day-entry h4{ font-family:var(--serif); margin:2px 0 6px; }
   .project-day-entry p{ margin:0 0 10px; font-size:0.92rem; color:var(--ink); white-space:pre-wrap; }
-  .project-day-entry img{ border-radius:6px; max-height:340px; object-fit:cover; width:100%; }
+  .project-day-entry .ig-post-carousel{ border-radius:6px; }
   .project-social-bar{ border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:12px 0; margin:18px 0; display:flex; align-items:center; gap:16px; }
 
   /* Escritorio ancho: portada a un lado, información al otro; entradas en dos columnas */
@@ -1994,6 +2007,9 @@
             <p class="profile-ig-name" id="profileDisplayName">Sin nombre todavía</p>
             <span class="verified-badge" id="profileVerifiedBadge" title="Cuenta verificada" aria-label="Cuenta verificada">✓</span>
             <div class="profile-header-actions">
+              <button type="button" class="profile-settings-btn admin-panel-btn" id="adminPanelBtn" title="Panel de administrador" aria-label="Abrir panel de administrador" hidden>
+                🛡️
+              </button>
               <button type="button" class="profile-settings-btn" id="profileSettingsBtn" title="Configuración" aria-label="Abrir configuración">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                   <circle cx="12" cy="12" r="3.1"/>
@@ -2857,6 +2873,11 @@ async function prepareVideoFile(file){
 // dentro de DB.users (findById, search, updateProfile, updateAvatar, ensureProfile).
 // Privacidad: el nombre real es PRIVADO. `name` es el nombre público que pinta toda la app
 // (= el usuario); `fullName` solo se llena en la cuenta propia (ver PROFILE_OWN_COLS).
+// is_admin NO va en ninguna de las dos listas de columnas a propósito: la
+// columna está bloqueada por REVOKE a nivel de Postgres (ver admin_seguridad.sql)
+// y solo se puede leer, para la sesión propia, a través del RPC
+// get_my_admin_flag() — así nadie puede pedir "¿es admin este OTRO perfil?"
+// aunque llame a la API de Supabase directo, sin pasar por esta app.
 const PROFILE_PUBLIC_COLS = 'id,username,avatar_url,bio,privacy_settings';
 const PROFILE_OWN_COLS = PROFILE_PUBLIC_COLS + ',name';
 function mapProfileRow(row){
@@ -2867,7 +2888,7 @@ function mapProfileRow(row){
     username: row.username || '',
     avatarUrl: row.avatar_url,
     bio: row.bio || '',
-    privacySettings: normalizePrivacySettings(row.privacy_settings || {})
+    privacySettings: normalizePrivacySettings(row.privacy_settings || {}),
   };
 }
 
@@ -3119,6 +3140,17 @@ const DB = {
       return ids
         .map(id => byId.get(id))
         .filter(Boolean);
+    },
+    // Ver post_reports.sql. Cualquier persona puede reportar (no hace falta ser
+    // admin); lo que sí es exclusivo de admin es LEER/cerrar esos reportes,
+    // eso vive en DB.admin.listPostReports/dismissPostReport.
+    async report(postId, reporterId, reason){
+      const { error } = await sb.from('post_reports').insert({
+        post_id: postId, reporter_id: reporterId, reason: reason || null
+      });
+      if(error && error.code === '42P01') throw new Error('Todavía no se corrió post_reports.sql en Supabase.');
+      if(error) throw error;
+      return true;
     },
     async listRecent(limit = 50){
       const { data, error } = await sb
@@ -3404,8 +3436,10 @@ const DB = {
         if(before) q = q.lt('updated_at', before);
         return q;
       };
-      let { data, error } = await run(base + ', last_read_at_a, last_read_at_b');
-      // Si todavía no se corrió mensajes_leidos.sql, todo sigue funcionando (sin "Visto" compartido).
+      let { data, error } = await run(base + ', last_read_at_a, last_read_at_b, pinned_by_a, pinned_by_b');
+      // Si todavía no se corrió mensajes_leidos.sql / anclar_reportar.sql, todo sigue
+      // funcionando (sin "Visto" compartido y/o sin anclar), en vez de romperse entero.
+      if(error && error.code === '42703') ({ data, error } = await run(base + ', last_read_at_a, last_read_at_b'));
       if(error && error.code === '42703') ({ data, error } = await run(base));
       if(error) throw error;
 
@@ -3420,9 +3454,28 @@ const DB = {
           otherUserId: isA ? row.participant_b : row.participant_a,
           clearedAtMine: ts(isA ? row.cleared_at_a : row.cleared_at_b),
           lastReadAtMine: ts(isA ? row.last_read_at_a : row.last_read_at_b),   // cuándo leí yo (servidor)
-          lastReadAtOther: ts(isA ? row.last_read_at_b : row.last_read_at_a)   // cuándo leyó la otra persona → "Visto"
+          lastReadAtOther: ts(isA ? row.last_read_at_b : row.last_read_at_a),  // cuándo leyó la otra persona → "Visto"
+          pinnedMine: !!(isA ? row.pinned_by_a : row.pinned_by_b),
         };
       });
+    },
+    // Ancla/desancla la conversación SOLO para quien llama (columna a o b según
+    // de qué lado esté). No usa RPC porque la política de UPDATE de
+    // direct_conversations ya deja a cualquier participante modificar su fila.
+    async setPinned(conversationId, isA, pinned){
+      const col = isA ? 'pinned_by_a' : 'pinned_by_b';
+      const { error } = await sb.from('direct_conversations').update({ [col]: pinned }).eq('id', conversationId);
+      if(error) throw error;
+    },
+    // Deja un registro para revisar después; nadie puede leerlo desde el cliente
+    // (ver anclar_reportar.sql). No hay panel de moderación todavía — es solo
+    // un buzón.
+    async report(conversationId, reportedUserId, reporterId, reason){
+      const { error } = await sb.from('conversation_reports').insert({
+        conversation_id: conversationId, reported_user_id: reportedUserId,
+        reporter_id: reporterId, reason: reason || null
+      });
+      if(error) throw error;
     },
     // Avisa al servidor que leí la conversación (hora del SERVIDOR, sin depender del reloj del dispositivo).
     // Devuelve esa hora en ms, o null si la función aún no existe en la base.
@@ -3701,8 +3754,23 @@ const DB = {
       if(error) throw error;
       return (data||[]).map(mapLogRow);
     },
-    async create({ userId, projectId, title, category, notes, photo }){
-      const { data, error } = await sb.from('logbook_entries').insert({ user_id: userId, project_id: projectId, title, category, notes, photo: photo||null }).select().single();
+    async create({ userId, projectId, title, category, notes, media }){
+      const mediaList = Array.isArray(media) ? media.filter(Boolean) : [];
+      const first = mediaList[0] || null;
+      const { data, error } = await sb.from('logbook_entries').insert({
+        user_id: userId,
+        project_id: projectId,
+        title,
+        category,
+        notes,
+        media: mediaList,
+        // Se conservan por compatibilidad con cualquier lectura vieja que
+        // aún espere un solo archivo en vez del arreglo.
+        photo: (first && !isVideoUrl(first)) ? first : null,
+        media_url: first || null,
+        media_type: first ? (isVideoUrl(first) ? 'video' : 'image') : null
+      }).select().single();
+
       if(error) throw error;
       return mapLogRow(data);
     },
@@ -3783,6 +3851,41 @@ const DB = {
       if(error) throw error;
     },
   },
+
+  // ---------- ADMIN ----------
+  // Todo aquí pasa por RPCs security-definer (ver admin_seguridad.sql) que
+  // vuelven a comprobar is_admin + 2FA (aal2) del lado del servidor antes de
+  // devolver o cambiar nada — que el botón esté oculto en el cliente no es
+  // la protección real, es solo comodidad. Aunque alguien llamara estas
+  // funciones a mano desde la consola sin ser admin, el servidor las rechaza.
+  admin: {
+    async listConversationReports(){
+      const { data, error } = await sb.rpc('admin_list_conversation_reports');
+      if(error) throw error;
+      return (data||[]).map(r => ({
+        id: r.id, createdAt: new Date(r.created_at).getTime(), reason: r.reason,
+        reviewedAt: r.reviewed_at ? new Date(r.reviewed_at).getTime() : null,
+        reporterName: r.reporter_name || null, reportedName: r.reported_name || null,
+      }));
+    },
+    async dismissConversationReport(reportId){
+      const { error } = await sb.rpc('admin_dismiss_conversation_report', { p_report_id: reportId });
+      if(error) throw error;
+    },
+    async listPostReports(){
+      const { data, error } = await sb.rpc('admin_list_post_reports');
+      if(error) throw error;
+      return (data||[]).map(r => ({
+        id: r.id, createdAt: new Date(r.created_at).getTime(), reason: r.reason,
+        reviewedAt: r.reviewed_at ? new Date(r.reviewed_at).getTime() : null,
+        reporterName: r.reporter_name || null, reportedName: r.post_title || r.reported_name || null,
+      }));
+    },
+    async dismissPostReport(reportId){
+      const { error } = await sb.rpc('admin_dismiss_post_report', { p_report_id: reportId });
+      if(error) throw error;
+    },
+  },
 };
 
 function mapPostRow(row){
@@ -3826,7 +3929,25 @@ function mapStoryRow(row){
   return { id: row.id, authorId: row.author_id, photo: row.photo, text: row.text, date: new Date(row.created_at).getTime(), demo: !!row.is_demo };
 }
 function mapLogRow(row){
-  return { id: row.id, projectId: row.project_id, title: row.title, category: row.category, notes: row.notes, photo: row.photo, date: new Date(row.created_at).getTime() };
+  // "media" es el arreglo nuevo (fotos y/o videos, como carrusel). Las
+  // entradas viejas, de antes de que existiera el carrusel, solo tenían
+  // photo/media_url sueltos — se envuelven en un arreglo de un solo
+  // elemento para que el mismo carrusel las pinte sin distinguir casos.
+  const media = Array.isArray(row.media) && row.media.length
+    ? row.media
+    : [row.media_url, row.photo].filter(Boolean);
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    title: row.title,
+    category: row.category,
+    notes: row.notes,
+    photo: row.photo,
+    mediaUrl: row.media_url || row.photo || null,
+    mediaType: row.media_type || (row.photo ? 'image' : null),
+    media,
+    date: new Date(row.created_at).getTime()
+  };
 }
 function mapProjectRow(row){
   return { id: row.id, ownerId: row.owner_id, title: row.title, category: row.category, coverPhoto: row.cover_photo, shared: row.shared, linkedPostId: row.linked_post_id || null, date: new Date(row.created_at).getTime() };
@@ -4708,6 +4829,75 @@ function openRecoveryModal(){
   });
 }
 
+// ---------- "OLVIDÉ MI CONTRASEÑA": PASO 2 (el paso 1 es openRecoveryModal, que
+// solo manda el correo) ----------
+// Al abrir el enlace del correo, Supabase dispara PASSWORD_RECOVERY con una
+// sesión temporal (ver el listener de sb.auth.onAuthStateChange más abajo).
+// Antes no había NADA escuchando ese evento: el enlace te regresaba a la app ya
+// con sesión iniciada pero sin ninguna pantalla para poner la contraseña nueva,
+// así que "olvidé mi contraseña" en la práctica no servía para recuperar nada.
+function showSetNewPasswordModal(session){
+  authContent.innerHTML = `
+    <h3>Elige una nueva contraseña</h3>
+    <p class="section-desc">Abriste el enlace de recuperación. Escribe tu nueva contraseña para terminar de entrar.</p>
+    <form class="auth-form" id="setNewPasswordForm">
+      <div>
+        <label for="newRecoveryPassword">Nueva contraseña</label>
+        ${passwordFieldHTML('newRecoveryPassword','new-password')}
+        <div class="security-hint">Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.</div>
+      </div>
+      <div>
+        <label for="confirmRecoveryPassword">Repite la contraseña</label>
+        ${passwordFieldHTML('confirmRecoveryPassword','new-password')}
+      </div>
+      <p class="auth-error" id="recoverySetError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" id="recoverySetBtn">Guardar y entrar</button>
+    </form>
+  `;
+  authBackdrop.classList.add('open');
+  bindPasswordToggles(document.getElementById('setNewPasswordForm'));
+  document.getElementById('setNewPasswordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('recoverySetError');
+    errorEl.style.display = 'none';
+    const password = document.getElementById('newRecoveryPassword').value;
+    const confirm = document.getElementById('confirmRecoveryPassword').value;
+    if(!isStrongPassword(password)){
+      errorEl.textContent = 'Mínimo 10 caracteres, incluyendo mayúscula, minúscula, número y símbolo.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    if(password !== confirm){
+      errorEl.textContent = 'Las contraseñas no coinciden.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('recoverySetBtn');
+    btn.disabled = true;
+    try{
+      const { error } = await sb.auth.updateUser({ password });
+      if(error) throw error;
+      passwordRecoveryInProgress = false;
+      // Aunque venga de recuperar por correo, si la cuenta tiene 2FA se sigue
+      // pidiendo — probar el correo no reemplaza el segundo factor.
+      if(!(await ensureMfaSatisfied())){
+        authBackdrop.classList.remove('open');
+        showToast('Contraseña actualizada. Inicia sesión de nuevo para completar el 2FA.');
+        return;
+      }
+      authBackdrop.classList.remove('open');
+      showToast('Contraseña actualizada. Ya iniciaste sesión.');
+      await loadCurrentUserFromSession(session);
+      await refreshAppAfterAuthChange();
+      showView('inicio');
+    }catch(err){
+      errorEl.textContent = translateAuthError(err.message || String(err));
+      errorEl.style.display = 'block';
+    }finally{
+      btn.disabled = false;
+    }
+  });
+}
 function translateAuthError(msg){
   if(!msg) return 'Algo salió mal, intenta de nuevo.';
   if(/invalid login credentials/i.test(msg)) return 'Correo o contraseña incorrectos.';
@@ -4763,8 +4953,9 @@ async function refreshAppAfterAuthChange(){
   await loadUserStatsAndBadges();
   await reconcileHistoricalStats();
   await Promise.all([reloadFeed(), renderStories()]);
-
+  await refreshAdminStatus(); // ¿esta sesión es la del admin Y ya pasó 2FA? (ver admin_seguridad.sql) — antes de renderProfile(), que pinta la palomita de verificado según esto
   renderProfile();
+  renderAdminEntryPoint();
   await updateMessagesBadge();
   await refreshNotifUnreadCount();
   setupNotificationsRealtime(); // re-suscribe (o cancela) el canal de notificaciones para el usuario actual
@@ -5157,6 +5348,53 @@ function carouselHTML(post){
   `;
 }
 
+// Carrusel para avances de bitácora (fotos y/o videos). Reutiliza las mismas
+// clases CSS del carrusel de publicaciones (ya responsivo en todos los
+// tamaños de pantalla) pero sin doble-tap-para-like ni el observer de
+// autoplay-al-hacer-scroll del feed, que no aplican aquí.
+function logCarouselHTML(entry){
+  const media = (entry.media && entry.media.length) ? entry.media : [];
+  if(!media.length) return '';
+  const multi = media.length > 1;
+  return `
+    <div class="ig-post-carousel" data-logcarousel="${entry.id}">
+      <div class="ig-carousel-track">
+        ${media.map((src,i) => isVideoUrl(src)
+          ? `<video data-idx="${i}" muted playsinline loop preload="metadata" controls><source src="${escapeHtml(src)}"></video>`
+          : `<img src="${escapeHtml(src)}" alt="" data-idx="${i}" onerror="this.style.display='none'">`
+        ).join('')}
+      </div>
+      ${multi ? `
+        <button type="button" class="ig-carousel-arrow prev" data-caract="prev" disabled>‹</button>
+        <button type="button" class="ig-carousel-arrow next" data-caract="next">›</button>
+        <div class="ig-carousel-count">1/${media.length}</div>
+        <div class="ig-carousel-dots">${media.map((_,i)=>`<span class="${i===0?'active':''}"></span>`).join('')}</div>
+      ` : ''}
+    </div>
+  `;
+}
+// Ata flechas/puntos/contador de un carrusel de bitácora ya insertado en el DOM.
+// Genérico a propósito: solo sincroniza la UI con el scroll, nada de likes.
+function bindLogCarousel(container){
+  const track = container.querySelector('.ig-carousel-track');
+  const dots = container.querySelectorAll('.ig-carousel-dots span');
+  const countEl = container.querySelector('.ig-carousel-count');
+  const prevBtn = container.querySelector('[data-caract="prev"]');
+  const nextBtn = container.querySelector('[data-caract="next"]');
+  if(!track || track.children.length < 2) return;
+  const total = track.children.length;
+  const syncUI = (idx) => {
+    dots.forEach((d,i) => d.classList.toggle('active', i===idx));
+    if(countEl) countEl.textContent = `${idx+1}/${total}`;
+    if(prevBtn) prevBtn.disabled = idx === 0;
+    if(nextBtn) nextBtn.disabled = idx === total - 1;
+    track.querySelectorAll('video').forEach(v => { if(!v.paused) v.pause(); });
+  };
+  track.addEventListener('scroll', () => syncUI(Math.round(track.scrollLeft / track.clientWidth)));
+  if(prevBtn) prevBtn.addEventListener('click', () => { const idx = Math.max(0, Math.round(track.scrollLeft/track.clientWidth)-1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
+  if(nextBtn) nextBtn.addEventListener('click', () => { const idx = Math.min(total-1, Math.round(track.scrollLeft/track.clientWidth)+1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
+}
+
 function dedupeComments(list){
   const seen = new Set();
   const out = [];
@@ -5417,7 +5655,22 @@ function bindPostCard(article){
   article.querySelectorAll('[data-closemenu]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; rerenderCardFromCache(id); }));
   article.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeletePost(id)));
   article.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => handleEditPost(id)));
-  article.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => { openMenuId = null; rerenderCardFromCache(id); }));
+  article.querySelectorAll('[data-report]').forEach(btn => btn.addEventListener('click', () => {
+    openMenuId = null;
+    rerenderCardFromCache(id);
+    const postId = btn.dataset.report;
+    showConfirmDialog({
+      title: 'Reportar publicación',
+      message: 'Vamos a mandar un reporte al equipo para que lo revise. Esto no borra la publicación ni bloquea a la persona.',
+      confirmLabel: 'Reportar',
+      onConfirm: async () => {
+        try{
+          await DB.posts.report(postId, currentUser.id, 'reportado desde el feed');
+          showToast('Reporte enviado. Gracias por avisarnos 🌱');
+        }catch(err){ showToast(err?.message || 'No se pudo enviar el reporte.'); }
+      }
+    });
+  }));
   article.querySelectorAll('[data-openprofile]').forEach(btn => btn.addEventListener('click', (e) => {
     e.stopPropagation();
     openUserProfile(btn.dataset.openprofile, usersCache[btn.dataset.openprofile]?.name || 'Alguien de la comunidad');
@@ -7733,7 +7986,7 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
         ...conv,
         otherUser: otherUser || { id: conv.otherUserId, name: 'Usuario' },
         unreadCount: conv.unread,
-        pinned: false,
+        pinned: !!conv.pinnedMine,
         // Antes usaba conv.updatedAt (hora del servidor, global), que no baja cuando
         // yo borro mensajes solo de mi lado — así que tras borrar, la conversación
         // se quedaba mal ordenada en la lista aunque su vista previa ya mostrara
@@ -7783,30 +8036,74 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     listEl.innerHTML = listHtml;
     let convHoldTimer = null;
     let convDidHold = false;
+    function openConversationMenu(anchorBtn, conv){
+      document.querySelector('.thread-menu-dropdown')?.remove();
+      const isA = conv.participantA === currentUser.id;
+      const isPinned = !!conv.pinned;
+      const dd = document.createElement('div');
+      dd.className = 'thread-menu-dropdown conversation-list-menu';
+      dd.innerHTML = `
+        <button type="button" id="listPinConversationBtn">${isPinned ? '📌 Desanclar conversación' : '📌 Anclar conversación'}</button>
+        <button type="button" id="listReportConversationBtn">🚩 Reportar</button>
+        <button type="button" class="danger" id="listDeleteConversationBtn">Eliminar conversación (solo para mí)</button>
+      `;
+      anchorBtn.style.position = 'relative';
+      anchorBtn.appendChild(dd);
+      document.getElementById('listPinConversationBtn').addEventListener('click', async (e) => {
+        e.stopPropagation(); dd.remove();
+        try{
+          await DB.messages.setPinned(conv.id, isA, !isPinned);
+          showToast(isPinned ? 'Conversación desanclada' : '📌 Conversación anclada');
+          await renderMessagesScreen(dmOpenConversationId, { preserveDraft: true });
+        }catch(err){ showToast('No se pudo anclar la conversación.'); }
+      });
+      document.getElementById('listReportConversationBtn').addEventListener('click', (e) => {
+        e.stopPropagation(); dd.remove();
+        showConfirmDialog({
+          title: 'Reportar conversación',
+          message: `Vamos a mandar un reporte sobre esta conversación con ${conv.otherUser?.name || 'esta persona'} para que el equipo lo revise. Esto no bloquea a la persona ni borra nada — si necesitas dejar de recibir sus mensajes, usa "Eliminar conversación".`,
+          confirmLabel: 'Reportar',
+          danger: true,
+          onConfirm: async () => {
+            try{
+              await DB.messages.report(conv.id, conv.otherUserId, currentUser.id, 'reportado desde la lista');
+              showToast('Gracias, lo vamos a revisar.');
+            }catch(err){ showToast('No se pudo enviar el reporte.'); }
+          }
+        });
+      });
+      document.getElementById('listDeleteConversationBtn').addEventListener('click', (e) => {
+        e.stopPropagation(); dd.remove();
+        showConfirmDialog({
+          title: 'Eliminar conversación',
+          message: `Vas a borrar esta conversación con ${conv.otherUser?.name || 'esta persona'} solo para ti. La otra persona seguirá viendo sus mensajes, y si te vuelve a escribir, la conversación aparecerá vacía desde ese momento. Esto no la deja de seguir ni la elimina como contacto.`,
+          confirmLabel: 'Eliminar para mí',
+          danger: true,
+          onConfirm: async () => {
+            try{
+              await DB.messages.clearConversationForMe(conv.id, currentUser.id);
+              showToast('Conversación eliminada para ti.');
+              await renderMessagesScreen(dmOpenConversationId === conv.id ? null : dmOpenConversationId);
+            }catch(err){ showToast('No se pudo eliminar la conversación.'); }
+          }
+        });
+      });
+      setTimeout(() => document.addEventListener('click', function outside(ev){
+        if(!dd.contains(ev.target)){ dd.remove(); document.removeEventListener('click', outside); }
+      }), 0);
+    }
     listEl.querySelectorAll('[data-msg-conversation]').forEach((btn) => {
       const id = btn.getAttribute('data-msg-conversation');
       const conv = sorted.find(c => c.id === id);
-      // Igual que en las burbujas de mensaje: mantener presionado abre una acción
-      // (aquí, borrar la conversación) sin necesidad de un menú intermedio; un
-      // toque corto sigue abriendo el chat normalmente.
+      // Igual que en las burbujas de mensaje: mantener presionado abre un menú
+      // de acciones (anclar, reportar, eliminar) sin necesidad de entrar al chat;
+      // un toque corto sigue abriendo el chat normalmente.
       btn.addEventListener('pointerdown', () => {
         convDidHold = false;
         clearTimeout(convHoldTimer);
         convHoldTimer = setTimeout(() => {
           convDidHold = true;
-          showConfirmDialog({
-            title: 'Eliminar conversación',
-            message: `Vas a borrar esta conversación con ${conv?.otherUser?.name || 'esta persona'} solo para ti. La otra persona seguirá viendo sus mensajes, y si te vuelve a escribir, la conversación aparecerá vacía desde ese momento. Esto no la deja de seguir ni la elimina como contacto.`,
-            confirmLabel: 'Eliminar para mí',
-            danger: true,
-            onConfirm: async () => {
-              try{
-                await DB.messages.clearConversationForMe(id, currentUser.id);
-                showToast('Conversación eliminada para ti.');
-                await renderMessagesScreen(dmOpenConversationId === id ? null : dmOpenConversationId);
-              }catch(err){ showToast('No se pudo eliminar la conversación.'); }
-            }
-          });
+          if(conv) openConversationMenu(btn, conv);
         }, 450);
       });
       ['pointerup','pointerleave','pointercancel'].forEach(evt => btn.addEventListener(evt, () => clearTimeout(convHoldTimer)));
@@ -7849,8 +8146,37 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       if(existing){ existing.remove(); return; }
       const dd = document.createElement('div');
       dd.className = 'thread-menu-dropdown';
-      dd.innerHTML = `<button type="button" class="danger" id="deleteConversationBtn">Eliminar conversación (solo para mí)</button>`;
+      const isA = activeConversation.participantA === currentUser.id;
+      const isPinned = !!activeConversation.pinned;
+      dd.innerHTML = `
+        <button type="button" id="pinConversationBtn">${isPinned ? '📌 Desanclar conversación' : '📌 Anclar conversación'}</button>
+        <button type="button" id="reportConversationBtn">🚩 Reportar</button>
+        <button type="button" class="danger" id="deleteConversationBtn">Eliminar conversación (solo para mí)</button>
+      `;
       threadHeaderEl.appendChild(dd);
+      document.getElementById('pinConversationBtn').addEventListener('click', async () => {
+        dd.remove();
+        try{
+          await DB.messages.setPinned(activeConversation.id, isA, !isPinned);
+          showToast(isPinned ? 'Conversación desanclada' : '📌 Conversación anclada');
+          await renderMessagesScreen(activeConversation.id, { preserveDraft: true });
+        }catch(err){ showToast('No se pudo anclar la conversación.'); }
+      });
+      document.getElementById('reportConversationBtn').addEventListener('click', () => {
+        dd.remove();
+        showConfirmDialog({
+          title: 'Reportar conversación',
+          message: `Vamos a mandar un reporte sobre esta conversación con ${threadUser.name || 'esta persona'} para que el equipo lo revise. Esto no bloquea a la persona ni borra nada — si necesitas dejar de recibir sus mensajes, usa "Eliminar conversación".`,
+          confirmLabel: 'Reportar',
+          danger: true,
+          onConfirm: async () => {
+            try{
+              await DB.messages.report(activeConversation.id, threadUser.id, currentUser.id, 'reportado desde el chat');
+              showToast('Gracias, lo vamos a revisar.');
+            }catch(err){ showToast('No se pudo enviar el reporte.'); }
+          }
+        });
+      });
       document.getElementById('deleteConversationBtn').addEventListener('click', () => {
         dd.remove();
         showConfirmDialog({
@@ -8431,18 +8757,66 @@ async function renderProjectView(){
 
     <div id="projectEntriesList" class="${entries.length > 1 ? 'project-entries-grid' : ''}">
       ${entries.length ? entries.slice().reverse().map(e => `
-        <div class="project-day-entry">
-          <span class="log-date">${fmtDate(e.date)}${e.title ? ' · ' + escapeHtml(e.title) : ''}</span>
+        <div class="project-day-entry" data-entry-id="${escapeHtml(e.id)}">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <span class="log-date">
+              ${fmtDate(e.date)}${e.title ? ' · ' + escapeHtml(e.title) : ''}
+            </span>
+
+            ${isOwner ? `
+              <button
+                type="button"
+                class="danger"
+                data-delete-entry="${escapeHtml(e.id)}"
+                style="font-size:.78rem; padding:4px 8px;"
+              >
+                Eliminar
+              </button>
+            ` : ''}
+          </div>
+
           ${e.notes ? `<p>${escapeHtml(e.notes)}</p>` : ''}
-          ${e.photo ? `<img src="${escapeHtml(e.photo)}" alt="" onerror="this.style.display='none'">` : ''}
+
+          ${logCarouselHTML(e)}
         </div>
       `).join('') : '<p class="empty-note">Todavía no hay avances registrados en esta bitácora.</p>'}
     </div>
   `;
 
+  wrap.querySelectorAll('[data-logcarousel]').forEach(bindLogCarousel);
+
   if(isOwner){
     document.getElementById('projectVisibilityPill').addEventListener('click', () => toggleProjectVisibility(project));
-    document.getElementById('addProjectEntryBtn').addEventListener('click', () => openAddProjectEntryModal(project));
+
+    document.getElementById('addProjectEntryBtn').addEventListener('click', () => {
+      openAddProjectEntryModal(project);
+    });
+
+    document.querySelectorAll('[data-delete-entry]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const entryId = btn.dataset.deleteEntry;
+
+        const confirmed = confirm(
+          '¿Seguro que quieres eliminar este día de la bitácora?\n\nEsta acción no se puede deshacer.'
+        );
+
+        if(!confirmed) return;
+
+        btn.disabled = true;
+        btn.textContent = 'Eliminando…';
+
+        try{
+          await DB.logbook.remove(currentUser.id, entryId);
+          showToast('Avance eliminado');
+          await renderProjectView();
+        }catch(err){
+          console.error(err);
+          alert('No se pudo eliminar el avance: ' + (err.message || err));
+          btn.disabled = false;
+          btn.textContent = 'Eliminar';
+        }
+      });
+    });
   }
   if(linkedPost){
     document.querySelector(`[data-projectlike="${linkedPost.id}"]`).addEventListener('click', () => handleLike(linkedPost.id));
@@ -8483,8 +8857,7 @@ function openAddProjectEntryModal(project){
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>Nuevo avance</h3>
-    <p class="section-desc" style="margin-bottom:14px;">Cuenta qué pasó con "${escapeHtml(project.title)}" y agrega una foto si quieres.</p>
-    <form id="addEntryForm">
+      <p class="section-desc" style="margin-bottom:14px;">Cuenta qué pasó con "${escapeHtml(project.title)}" y agrega fotos o videos si quieres (los videos se recortan solos si duran más de 1 minuto).</p>    <form id="addEntryForm">
       <div style="margin-bottom:12px;">
         <label style="font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:4px;">Título breve (opcional)</label>
         <input type="text" id="entryTitle" placeholder="Ej. Ya salió la primera raíz" maxlength="120" style="width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:6px;">
@@ -8493,43 +8866,86 @@ function openAddProjectEntryModal(project){
         <label style="font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:4px;">Notas</label>
         <textarea id="entryNotes" placeholder="¿Qué observaste o hiciste?" required style="width:100%; min-height:80px; padding:9px 11px; border:1px solid var(--line); border-radius:6px; font-family:var(--sans);"></textarea>
       </div>
-      <button type="button" class="photo-picker-btn" id="entryPhotoPickBtn">📷 Añadir foto (opcional)</button>
-      <input type="file" id="entryPhotoInput" accept="image/*" class="visually-hidden">
+      <button type="button" class="photo-picker-btn" id="entryPhotoPickBtn">📷 Añadir fotos o videos (puedes elegir varios)</button>
+      <input type="file" id="entryPhotoInput" accept="image/*,video/*" multiple class="visually-hidden">
       <div class="photo-preview-row" id="entryPhotoPreview"></div>
+      <p class="upload-note" id="entryPhotoNote"></p>
       <button type="submit" class="btn btn-primary btn-small" id="entrySubmitBtn">Guardar avance</button>
     </form>
   `;
   modalBackdrop.classList.add('open');
-  let entryFile = null;
+
+  // pendingEntryMedia: {file, url(preview local), isVideo} — mismo patrón
+  // que pendingPhotos en el composer principal, para que varias fotos y/o
+  // videos se puedan elegir, previsualizar y quitar antes de guardar.
+  let pendingEntryMedia = [];
+
+  function renderEntryMediaPreview(){
+    const row = document.getElementById('entryPhotoPreview');
+    row.innerHTML = pendingEntryMedia.map((p, i) => `
+      <div class="photo-preview-item">
+        ${p.isVideo
+          ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>`
+          : `<img src="${p.url}" alt="">`}
+        <button type="button" data-removeentryidx="${i}">&times;</button>
+      </div>
+    `).join('');
+    row.querySelectorAll('[data-removeentryidx]').forEach(btn => btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.removeentryidx, 10);
+      const removed = pendingEntryMedia[idx];
+      if(removed && removed.url) URL.revokeObjectURL(removed.url);
+      pendingEntryMedia.splice(idx, 1);
+      renderEntryMediaPreview();
+    }));
+  }
+
   document.getElementById('entryPhotoPickBtn').addEventListener('click', () => document.getElementById('entryPhotoInput').click());
-  document.getElementById('entryPhotoInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
+  document.getElementById('entryPhotoInput').addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
-    if(!file) return;
-    entryFile = file;
-    document.getElementById('entryPhotoPreview').innerHTML = `
-      <div class="photo-preview-item"><img src="${URL.createObjectURL(file)}" alt=""><button type="button" id="entryPhotoRemove">&times;</button></div>
-    `;
-    const entryPreviewImg = document.querySelector('#entryPhotoPreview img');
-    const entryPreviewUrl = entryPreviewImg ? entryPreviewImg.src : null;
-    document.getElementById('entryPhotoRemove').addEventListener('click', () => {
-      entryFile = null;
-      if(entryPreviewUrl) URL.revokeObjectURL(entryPreviewUrl);
-      document.getElementById('entryPhotoPreview').innerHTML = '';
-    });
+    for(const file of files){
+      try{
+        if(isVideoFile(file)){
+          const ready = await prepareVideoFile(file); // abre el recortador solo si dura más de 1 min
+          if(!ready) continue; // la persona canceló el recorte de ese video
+          pendingEntryMedia.push({ file: ready, url: URL.createObjectURL(ready), isVideo: true });
+        } else {
+          pendingEntryMedia.push({ file, url: URL.createObjectURL(file), isVideo: false });
+        }
+        renderEntryMediaPreview();
+      }catch(err){
+        console.error(err);
+        showToast('No se pudo preparar uno de los archivos.');
+      }
+    }
   });
+
   document.getElementById('addEntryForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('entryTitle').value.trim();
     const notes = document.getElementById('entryNotes').value.trim();
     if(!notes) return;
     const btn = document.getElementById('entrySubmitBtn');
+    const note = document.getElementById('entryPhotoNote');
     btn.disabled = true;
     try{
-      let photo = '';
-      if(entryFile) photo = await uploadImageFile(entryFile, 'logbook');
-      await DB.logbook.create({ userId: currentUser.id, projectId: project.id, title, category: project.category, notes, photo });
+      const media = [];
+      for(let i=0;i<pendingEntryMedia.length;i++){
+        note.textContent = `Subiendo ${i+1} de ${pendingEntryMedia.length}…`;
+        media.push(await uploadImageFile(pendingEntryMedia[i].file, 'logbook'));
+      }
+      note.textContent = '';
+
+      await DB.logbook.create({
+        userId: currentUser.id,
+        projectId: project.id,
+        title,
+        category: project.category,
+        notes,
+        media
+      });
       incrementStat('logbook_entries');
+      pendingEntryMedia.forEach(p => { if(p.url) URL.revokeObjectURL(p.url); });
       closeModal();
       await renderProjectView();
     }catch(err){
@@ -9109,6 +9525,73 @@ async function unenrollMfaFactor(factorId){
   }
 }
 
+// ---------- EXIGIR 2FA AL INICIAR SESIÓN (antes solo se podía configurar, pero
+// nunca se pedía de vuelta: cualquiera con la contraseña entraba igual) ----------
+// Único punto de entrada para todo inicio de sesión (login con contraseña Y
+// restaurar sesión al abrir la página): Supabase ya deja crear la sesión en
+// cuanto la contraseña es correcta (queda en aal1); si la cuenta tiene 2FA
+// verificado, aquí se detiene el login hasta pedir el código y subir a aal2.
+// Si cancela, se cierra esa sesión a medias en vez de dejarla abierta sin el
+// segundo factor.
+async function ensureMfaSatisfied(){
+  if(passwordRecoveryInProgress) return true; // el modal de "nueva contraseña" ya se encarga de pedirlo aparte
+  try{
+    const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(error || !data) return true; // no bloqueamos el login por un error de red al consultar
+    if(data.nextLevel !== 'aal2' || data.currentLevel === data.nextLevel) return true; // no tiene 2FA, o ya se cumplió
+    const { data: factors } = await sb.auth.mfa.listFactors();
+    const factor = (factors?.totp || []).find(f => f.status === 'verified');
+    if(!factor) return true; // caso raro (factor a medio verificar): no lo bloqueamos por eso
+    return await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve));
+  }catch(err){ return true; }
+}
+function showMfaChallengeModal(factorId, resolve){
+  authContent.innerHTML = `
+    <h3>Verificación en dos pasos</h3>
+    <p class="section-desc">Tu cuenta tiene 2FA activo. Escribe el código de 6 dígitos de tu aplicación autenticadora para terminar de iniciar sesión.</p>
+    <form class="auth-form" id="mfaChallengeForm">
+      <div class="security-field">
+        <label for="mfaChallengeCode">Código</label>
+        <input id="mfaChallengeCode" class="security-code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+      </div>
+      <p class="auth-error" id="mfaChallengeError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" id="mfaChallengeSubmitBtn">Verificar</button>
+      <button type="button" class="btn-text" id="mfaChallengeCancelBtn">Cancelar</button>
+    </form>
+  `;
+  authBackdrop.classList.add('open');
+  document.getElementById('mfaChallengeCode')?.focus();
+  let settled = false;
+  const finish = (ok) => { if(settled) return; settled = true; resolve(ok); };
+  document.getElementById('mfaChallengeCancelBtn').addEventListener('click', async () => {
+    try{ await sb.auth.signOut(); }catch(err){ /* aunque falle, no dejamos la sesión a medias visible */ }
+    authBackdrop.classList.remove('open');
+    finish(false);
+  });
+  document.getElementById('mfaChallengeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('mfaChallengeError');
+    errorEl.style.display = 'none';
+    const code = (document.getElementById('mfaChallengeCode').value || '').replace(/\D/g,'');
+    if(code.length !== 6){ errorEl.textContent = 'El código debe tener 6 dígitos.'; errorEl.style.display = 'block'; return; }
+    const btn = document.getElementById('mfaChallengeSubmitBtn');
+    btn.disabled = true;
+    try{
+      const challenge = await sb.auth.mfa.challenge({ factorId });
+      if(challenge.error) throw challenge.error;
+      const verified = await sb.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
+      if(verified.error) throw verified.error;
+      authBackdrop.classList.remove('open');
+      finish(true);
+    }catch(err){
+      errorEl.textContent = 'Código incorrecto o vencido. Intenta de nuevo.';
+      errorEl.style.display = 'block';
+    }finally{
+      btn.disabled = false;
+    }
+  });
+}
+
 function initDeleteAccountSecurity(){
   const openBtn=document.getElementById('openDeleteAccountBtn');
   const backdrop=document.getElementById('securityActionBackdrop');
@@ -9282,10 +9765,113 @@ async function renderProfile(){
   if(!document.getElementById('profileLogsPanel').hidden) renderProfileLogs();
 }
 let currentAuthEmail = '';
+// ---------- ADMINISTRADOR (soporte.enraiza@gmail.com) ----------
+// isPlatformAdmin es la bandera de PRIVILEGIOS reales (panel de admin, ver
+// reportes). Se arma en dos pasos independientes, y los DOS tienen que dar
+// que sí para activarla:
+//  1) currentUserIsAdmin: viene del RPC get_my_admin_flag(), que en el
+//     servidor solo puede devolver el is_admin de TU PROPIA fila (auth.uid()),
+//     nunca la de nadie más — ver admin_seguridad.sql, la columna está
+//     bloqueada por REVOKE para cualquier SELECT normal.
+//  2) aal2: la sesión ACTUAL ya pasó el segundo factor (2FA). Así, aunque
+//     alguien robe la contraseña de esta cuenta, no puede activar el panel
+//     de administrador sin también tener el segundo factor.
+let currentUserIsAdmin = false;
+let isPlatformAdmin = false;
+async function refreshAdminStatus(){
+  currentUserIsAdmin = false;
+  isPlatformAdmin = false;
+  if(!currentUser) return;
+  try{
+    const { data, error } = await sb.rpc('get_my_admin_flag');
+    if(error || !data) return;
+    currentUserIsAdmin = true;
+  }catch(err){ return; }
+  try{
+    const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(error || !data) return;
+    isPlatformAdmin = data.currentLevel === 'aal2';
+  }catch(err){ /* si falla la consulta, nunca se activa por accidente */ }
+}
 function isVerifiedOwner(user){
   if(!user) return false;
   const ownerId=window.ENRAIZA_OWNER_ID||'';
-  return !!((ownerId&&user.id===ownerId) || (currentAuthEmail && currentAuthEmail === 'missael.cas.esc23@gmail.com'));
+  const isSelfAdmin = currentUser && user.id === currentUser.id && currentUserIsAdmin;
+  return !!((ownerId&&user.id===ownerId) || (currentAuthEmail && currentAuthEmail === 'missael.cas.esc23@gmail.com') || isSelfAdmin);
+}
+
+// El botón 🛡️ solo se muestra si esta sesión ya pasó por refreshAdminStatus()
+// y de verdad tiene los privilegios activos (is_admin=true + 2FA aal2). No es
+// una decoración: si isPlatformAdmin es false el botón queda oculto y, aunque
+// alguien lo mostrara a mano desde el inspector, las funciones de abajo llaman
+// a RPCs que vuelven a comprobar todo esto en el servidor antes de hacer nada.
+function renderAdminEntryPoint(){
+  const btn = document.getElementById('adminPanelBtn');
+  if(!btn) return;
+  btn.hidden = !isPlatformAdmin;
+  btn.onclick = openAdminPanel;
+}
+
+let adminReportsTab = 'conversaciones';
+async function openAdminPanel(){
+  if(!isPlatformAdmin){
+    // No debería poder llegar aquí (el botón está oculto), pero por si acaso:
+    // se vuelve a comprobar antes de mostrar nada, en vez de confiar en que
+    // el botón siga oculto.
+    await refreshAdminStatus();
+    if(!isPlatformAdmin){ showToast('Esta sesión no tiene privilegios de administrador activos.'); return; }
+  }
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>🛡️ Panel de administrador</h3>
+    <p class="section-desc" style="margin-bottom:14px;">Reportes enviados por la comunidad. Solo tú puedes ver esto — cada acción aquí se vuelve a verificar en el servidor con tu sesión y tu segundo factor.</p>
+    <div class="admin-panel-tabs">
+      <button type="button" data-admintab="conversaciones" class="${adminReportsTab==='conversaciones'?'active':''}">Conversaciones</button>
+      <button type="button" data-admintab="publicaciones" class="${adminReportsTab==='publicaciones'?'active':''}">Publicaciones</button>
+    </div>
+    <div id="adminPanelBody"><p class="admin-panel-empty">Cargando…</p></div>
+  `;
+  modalBackdrop.classList.add('open');
+  modalContent.querySelectorAll('[data-admintab]').forEach(b => b.addEventListener('click', () => {
+    adminReportsTab = b.dataset.admintab;
+    openAdminPanel();
+  }));
+  await renderAdminPanelBody();
+}
+async function renderAdminPanelBody(){
+  const body = document.getElementById('adminPanelBody');
+  if(!body) return;
+  try{
+    const rows = adminReportsTab === 'conversaciones'
+      ? await DB.admin.listConversationReports()
+      : await DB.admin.listPostReports();
+    if(!rows.length){ body.innerHTML = '<p class="admin-panel-empty">No hay reportes por revisar 🌱</p>'; return; }
+    body.innerHTML = rows.map(r => `
+      <div class="admin-report-row ${r.reviewedAt ? 'reviewed' : ''}" data-reportid="${r.id}">
+        <div class="admin-report-meta">
+          <span>${fmtRelative(r.createdAt)}</span>
+          <span>Reportó: ${escapeHtml(r.reporterName || 'usuario eliminado')}</span>
+          <span>Contra: ${escapeHtml(r.reportedName || 'usuario eliminado')}</span>
+          ${r.reviewedAt ? '<span>· ya revisado</span>' : ''}
+        </div>
+        <p>${escapeHtml(r.reason || 'Sin motivo especificado.')}</p>
+        ${!r.reviewedAt ? `<button type="button" class="btn btn-primary" data-admindismiss="${r.id}">Marcar revisado</button>` : ''}
+      </div>
+    `).join('');
+    body.querySelectorAll('[data-admindismiss]').forEach(btn => btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try{
+        if(adminReportsTab === 'conversaciones') await DB.admin.dismissConversationReport(btn.dataset.admindismiss);
+        else await DB.admin.dismissPostReport(btn.dataset.admindismiss);
+        await renderAdminPanelBody();
+      }catch(err){
+        showToast(err?.message || 'No se pudo actualizar el reporte.');
+        btn.disabled = false;
+      }
+    }));
+  }catch(err){
+    body.innerHTML = `<p class="admin-panel-empty">No se pudieron cargar los reportes${err?.message ? ': ' + escapeHtml(err.message) : ''}.</p>`;
+  }
 }
 const START_THRESHOLDS = [1,2,3,5,10,20];
 function getBadgeTarget(b){
@@ -9359,11 +9945,22 @@ if('serviceWorker' in navigator && !['localhost','127.0.0.1'].includes(location.
 
 // ---------- ARRANQUE ----------
 let authReady = false;
+let passwordRecoveryInProgress = false; // true mientras se atiende el enlace de "olvidé mi contraseña"
 
 sb.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    // Esto puede llegar ANTES de que termine el arranque (el enlace del correo
+    // trae el token en la URL desde que carga la página), así que se atiende
+    // aparte del candado de authReady de abajo: mostrar el formulario no
+    // depende de que el resto de la app ya haya cargado.
+    passwordRecoveryInProgress = true;
+    showSetNewPasswordModal(session);
+    return;
+  }
   if(!authReady) return;
 
   if(session && event === 'SIGNED_IN'){
+    if(!(await ensureMfaSatisfied())) return; // canceló el código: ya se cerró la sesión, no cargues nada
     await loadCurrentUserFromSession(session);
     await refreshAppAfterAuthChange();
 
@@ -9401,7 +9998,14 @@ window.addEventListener('unhandledrejection', (event) => {
 (async () => {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if(session){ await loadCurrentUserFromSession(session); }
+    if(session && !passwordRecoveryInProgress){
+      if(await ensureMfaSatisfied()) await loadCurrentUserFromSession(session);
+      // si canceló el código, la sesión (a medias, sin 2FA) ya se cerró dentro de
+      // ensureMfaSatisfied(); seguimos abajo como si no hubiera sesión.
+    }
+    // Si es una sesión de recuperación (passwordRecoveryInProgress), el propio
+    // modal de "nueva contraseña" se encarga de cargar al usuario cuando termine
+    // — cargarlo aquí también duplicaría el trabajo y pelearía por el mismo modal.
 
     applyProfileToUI();
     await loadUserStatsAndBadges();
