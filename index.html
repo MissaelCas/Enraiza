@@ -927,7 +927,12 @@
     .profile-settings-btn{width:32px;height:32px}
     .profile-settings-btn svg{width:21px;height:21px}
   }
-  .profile-ig-head{ display:flex; gap: 22px; align-items:center; margin-bottom: 16px; flex-wrap:wrap; }
+  /* .profile-ig-head ya no define su propio display: competía con .profile-main-head
+     (misma especificidad, y por venir después en el archivo, GANABA) — el elemento tenía
+     ambas clases, así que terminaba siendo flex en vez del grid con columnas ajustadas
+     por tamaño de pantalla que .profile-main-head define más abajo. Eso era la causa real
+     de que el perfil se viera mal acomodado, sobre todo en celular. Se confirmó que esta
+     clase no se usa en ningún otro lado del archivo, así que quitar su display es seguro. */
   .avatar-big-wrap{ position:relative; flex-shrink:0; }
   .avatar-big{
     width: 68px; height:68px; border-radius: 50%; background: var(--moss);
@@ -4948,16 +4953,37 @@ async function loadCurrentUserFromSession(session){
   currentUser = profile || { id: session.user.id, name: session.user.user_metadata?.username || 'Usuario', fullName: session.user.user_metadata?.name || '', avatarUrl: null };
   usersCache[currentUser.id] = currentUser;
 }
+// Antes esto hacía ~9 llamadas de red UNA TRAS OTRA en serie: cada login/logout tardaba
+// lo que sumaran todas juntas, y si CUALQUIERA fallaba a medias (por ejemplo el error de
+// "Invalid Refresh Token" que a veces salta justo al cambiar de sesión), el resto de la
+// función nunca corría — incluida, dentro de logout(), la línea que te regresa a "inicio".
+// Por eso a veces el cierre de sesión se quedaba trabado y el inicio de sesión tardaba
+// demasiado. Ahora lo independiente corre en paralelo (mucho más rápido) y cada bloque
+// atrapa sus propios errores con Promise.allSettled, así que un fallo puntual de red ya
+// no frena todo lo demás ni deja a quien llama sin completar.
 async function refreshAppAfterAuthChange(){
   applyProfileToUI();
-  await loadUserStatsAndBadges();
-  await reconcileHistoricalStats();
-  await Promise.all([reloadFeed(), renderStories()]);
-  await refreshAdminStatus(); // ¿esta sesión es la del admin Y ya pasó 2FA? (ver admin_seguridad.sql) — antes de renderProfile(), que pinta la palomita de verificado según esto
+
+  // renderProfile() necesita las estadísticas y el estatus de admin ya resueltos (pinta
+  // la palomita de verificado según eso — ver admin_seguridad.sql), así que este bloque
+  // va antes; todo lo demás es independiente y puede correr al mismo tiempo.
+  const statsAndAdmin = (async () => {
+    await loadUserStatsAndBadges();
+    await reconcileHistoricalStats();
+    await refreshAdminStatus();
+  })();
+
+  const results = await Promise.allSettled([
+    statsAndAdmin,
+    reloadFeed(),
+    renderStories(),
+    updateMessagesBadge(),
+    refreshNotifUnreadCount(),
+  ]);
+  results.forEach(r => { if(r.status === 'rejected') console.warn('[refreshAppAfterAuthChange]', r.reason); });
+
   renderProfile();
   renderAdminEntryPoint();
-  await updateMessagesBadge();
-  await refreshNotifUnreadCount();
   setupNotificationsRealtime(); // re-suscribe (o cancela) el canal de notificaciones para el usuario actual
   setupDmRealtime(); // idem, para mensajes directos en vivo
   setupProfilesRealtime(); // idem, para cambios de foto/nombre/bio de cualquier perfil
@@ -4970,7 +4996,13 @@ async function logout(){
     console.warn('Logout error:', err);
   }
   currentUser = null;
-  await refreshAppAfterAuthChange(); // sin sesión, el gate vuelve a mostrar el inicio de sesión
+  try{
+    await refreshAppAfterAuthChange(); // sin sesión, el gate vuelve a mostrar el inicio de sesión
+  }catch(err){
+    // refreshAppAfterAuthChange() ya no debería tronar (ver arriba), pero por si acaso
+    // algo se le escapa, esto asegura que SIEMPRE se llegue a showView('inicio').
+    console.warn('[logout] refreshAppAfterAuthChange falló, se continúa de todos modos:', err);
+  }
   showView('inicio');
 }
 
@@ -9288,7 +9320,15 @@ function renderSettingsPage(){
   if(usernameInput) usernameInput.value = currentUser?.username || '';
   if(avatarPreview) avatarPreview.innerHTML=currentUser ? avatarHTML(currentUser) : '?';
   const activityBtn=document.getElementById('settingsActivityBtn');
-  if(activityBtn) activityBtn.onclick=()=>{ if(requireLogin('ver tu actividad')) openActivityModal(); };
+  // BUG: este botón llamaba a openActivityModal(), una función que nunca se llegó a escribir
+  // (typeof openActivityModal === 'undefined') — cada clic tronaba en la consola y no pasaba
+  // nada. "Ver actividad" abre el mismo panel de notificaciones que la campana de la barra
+  // superior, que sigue montada en el DOM aunque estés dentro de Configuración.
+  // stopPropagation: si no, el mismo clic sigue burbujeando hasta el listener global que
+  // cierra el panel al hacer clic "fuera" de él (fuera de #notifPanel/#btnActivity) — y como
+  // este botón no es ninguno de los dos, cerraba el panel una fracción de segundo después de
+  // abrirlo.
+  if(activityBtn) activityBtn.onclick=(e)=>{ e.stopPropagation(); if(!requireLogin('ver tu actividad')) return; showView('inicio'); toggleNotifPanel(); };
   const form=document.getElementById('settingsProfileForm');
   const bioInput=document.getElementById('settingsProfileBio');
   const presetList=document.getElementById('profileBioPresetList');
@@ -9504,6 +9544,12 @@ async function startMfaEnrollment(){
         if(verified.error) throw verified.error;
         showToast('2FA activado. Tus acciones sensibles quedan mejor protegidas.');
         await initMfaSecurity();
+        // Antes esto no se volvía a revisar hasta el siguiente login: si esta cuenta
+        // es administrador, activar 2FA apenas ahora (en medio de la sesión) debe
+        // encender el panel al instante, no hasta que vuelvas a entrar.
+        await refreshAdminStatus();
+        renderAdminEntryPoint();
+        renderProfile();
       }catch(err){
         showToast('No se pudo activar 2FA: '+(err.message||String(err)));
       }
@@ -9520,6 +9566,11 @@ async function unenrollMfaFactor(factorId){
     if(error) throw error;
     showToast('2FA eliminado para ese dispositivo.');
     await initMfaSecurity();
+    // Si esta cuenta es administrador, quitar el 2FA le quita los privilegios AHORA
+    // MISMO, en vez de dejarlos activos (en memoria) hasta que alguien cierre sesión.
+    await refreshAdminStatus();
+    renderAdminEntryPoint();
+    renderProfile();
   }catch(err){
     alert('No se pudo quitar 2FA: '+(err.message||String(err)));
   }
@@ -9959,29 +10010,37 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
   if(!authReady) return;
 
-  if(session && event === 'SIGNED_IN'){
-    if(!(await ensureMfaSatisfied())) return; // canceló el código: ya se cerró la sesión, no cargues nada
-    await loadCurrentUserFromSession(session);
-    await refreshAppAfterAuthChange();
+  // Todo el cuerpo va envuelto: si algo truena a medias (ej. loadCurrentUserFromSession
+  // por el error de "Invalid Refresh Token"), antes el evento se perdía en silencio y la
+  // app se quedaba con datos de sesión a medio actualizar. Ahora al menos queda un aviso
+  // en consola y el siguiente evento de auth se sigue procesando con normalidad.
+  try{
+    if(session && event === 'SIGNED_IN'){
+      if(!(await ensureMfaSatisfied())) return; // canceló el código: ya se cerró la sesión, no cargues nada
+      await loadCurrentUserFromSession(session);
+      await refreshAppAfterAuthChange();
 
-    if(currentUser){
-      await recordDailyLogin();
+      if(currentUser){
+        await recordDailyLogin();
+      }
+
+      return;
     }
 
-    return;
-  }
+    if(session && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
+      await loadCurrentUserFromSession(session);
+      await refreshAppAfterAuthChange();
+      return;
+    }
 
-  if(session && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
-    await loadCurrentUserFromSession(session);
-    await refreshAppAfterAuthChange();
-    return;
-  }
-
-  if(event === 'SIGNED_OUT'){
-    currentUser = null;
-    currentAuthEmail = '';
-    dailyLoginRecordedForUser = null;
-    await refreshAppAfterAuthChange();
+    if(event === 'SIGNED_OUT'){
+      currentUser = null;
+      currentAuthEmail = '';
+      dailyLoginRecordedForUser = null;
+      await refreshAppAfterAuthChange();
+    }
+  }catch(err){
+    console.warn(`[onAuthStateChange] falló al procesar "${event}":`, err);
   }
 });
 // Keep-alive eliminado: la disponibilidad del proyecto se gestiona desde
@@ -9996,8 +10055,9 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 (async () => {
+  let session = null;
   try {
-    const { data: { session } } = await sb.auth.getSession();
+    ({ data: { session } } = await sb.auth.getSession());
     if(session && !passwordRecoveryInProgress){
       if(await ensureMfaSatisfied()) await loadCurrentUserFromSession(session);
       // si canceló el código, la sesión (a medias, sin 2FA) ya se cerró dentro de
@@ -10006,23 +10066,42 @@ window.addEventListener('unhandledrejection', (event) => {
     // Si es una sesión de recuperación (passwordRecoveryInProgress), el propio
     // modal de "nueva contraseña" se encarga de cargar al usuario cuando termine
     // — cargarlo aquí también duplicaría el trabajo y pelearía por el mismo modal.
+  } catch(err) {
+    console.warn('[arranque] no se pudo cargar la sesión inicial, se sigue como invitado:', err);
+  }
 
-    applyProfileToUI();
-    await loadUserStatsAndBadges();
-    await reconcileHistoricalStats();
-    await Promise.all([reloadFeed(), renderStories()]);
+  applyProfileToUI();
 
-    if(currentUser){
-      await recordDailyLogin();
-    }
+  // Antes esto era secuencial y, si CUALQUIER paso fallaba (una llamada de red lenta o
+  // caída), todo lo de abajo —incluyendo `authReady = true`— nunca se ejecutaba. Como el
+  // listener de sb.auth.onAuthStateChange empieza con "si authReady es falso, no hagas
+  // nada", eso dejaba a la app ignorando para siempre cualquier intento de iniciar o
+  // cerrar sesión después, hasta recargar la página entera. Ahora lo independiente corre
+  // en paralelo y con Promise.allSettled, así que un fallo puntual ya no bloquea el resto
+  // ni deja el arranque a medias.
+  const results = await Promise.allSettled([
+    (async () => { await loadUserStatsAndBadges(); await reconcileHistoricalStats(); })(),
+    reloadFeed(),
+    renderStories(),
+  ]);
+  results.forEach(r => { if(r.status === 'rejected') console.warn('[arranque]', r.reason); });
 
-    await resyncPointsTotalIfNeeded();
+  if(currentUser){
+    try{ await recordDailyLogin(); }catch(err){ console.warn('[arranque] recordDailyLogin:', err); }
+  }
+  try{ await resyncPointsTotalIfNeeded(); }catch(err){ console.warn('[arranque] resyncPointsTotalIfNeeded:', err); }
 
+  try{
     renderProfile();
     refreshNotifUnreadCount();
     setupRealtime();
-    authReady = true;
+  }catch(err){ console.warn('[arranque] render/realtime:', err); }
 
+  // Pase lo que pase arriba, esto SIEMPRE se ejecuta — es lo que evita que la app quede
+  // sorda a futuros inicios/cierres de sesión.
+  authReady = true;
+
+  try{
     const savedView = sessionStorage.getItem(LAST_VIEW_KEY);
     const requestedView = getViewFromUrl();
     const stack = getViewStack();
@@ -10036,19 +10115,18 @@ window.addEventListener('unhandledrejection', (event) => {
     } else {
       showView('inicio', { silentReplace: true, force: true });
     }
-
-    const loadingScreen = document.getElementById('appLoadingScreen');
-    if(loadingScreen){
-      loadingScreen.classList.add('hide');
-      setTimeout(() => loadingScreen.remove(), 350);
-    }
     enforceAuthGate(); // sin sesión: login obligatorio; con sesión: abre la publicación compartida, si hay
-  } catch(err) {
-    console.error('Error al iniciar Enraíza:', err);
-    const loadingScreen = document.getElementById('appLoadingScreen');
-    if(loadingScreen) loadingScreen.remove();
+  }catch(err){
+    console.error('Error al mostrar la vista inicial:', err);
+  }
+
+  const loadingScreen = document.getElementById('appLoadingScreen');
+  if(loadingScreen){
+    loadingScreen.classList.add('hide');
+    setTimeout(() => loadingScreen.remove(), 350);
   }
 })();
+
 
 </script>
 </body>
