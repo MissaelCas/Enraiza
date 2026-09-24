@@ -4699,9 +4699,16 @@ function openAuthModal(mode, actionLabel){
     submitBtn.disabled = true;
     try{
       if(isLogin){
-        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        const { error } = await sb.auth.signInWithPassword({ email, password });
         if(error) throw error;
-        await loadCurrentUserFromSession(data.session);
+        // Antes aquí mismo se llamaba loadCurrentUserFromSession(...) y closeAuthModal()
+        // de una vez. El problema: el listener de onAuthStateChange (SIGNED_IN) hace
+        // JUSTO lo mismo pero primero exige el 2FA si la cuenta lo tiene activo — los
+        // dos caminos competían por el mismo modal. A veces este cerraba el modal antes
+        // de que el otro alcanzara a pedir el código; otras veces el formulario de 2FA
+        // se borraba a la mitad porque este código lo pisaba con un closeAuthModal().
+        // Ahora el listener es el ÚNICO que termina el login y cierra el modal (lo hace
+        // vía enforceAuthGate, al final de refreshAppAfterAuthChange).
       } else {
         const name = document.getElementById('authName').value.trim();
         if(!name) throw new Error('Pon un nombre.');
@@ -4734,16 +4741,15 @@ function openAuthModal(mode, actionLabel){
         if(data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0){
           throw new Error('User already registered');
         }
-        if(data.session){
-          await loadCurrentUserFromSession(data.session);
-        } else {
+        if(!data.session){
           // Solo llegamos aquí si la cuenta es nueva (o existe pero sigue sin confirmar):
           // en ese caso sí se envió/reenvió el correo de verificación.
           showSignupConfirmationModal(email);
           return;
         }
+        // Si sí hay sesión (auto-confirm activado en Supabase), el listener de SIGNED_IN
+        // se encarga de cargar al usuario y cerrar el modal, igual que en login.
       }
-      closeAuthModal();
     }catch(err){
       const msg = translateAuthError(err.message);
       errorEl.textContent = msg;
@@ -10058,6 +10064,22 @@ window.addEventListener('unhandledrejection', (event) => {
   let session = null;
   try {
     ({ data: { session } } = await sb.auth.getSession());
+  } catch(err) {
+    console.warn('[arranque] no se pudo consultar la sesión inicial:', err);
+  }
+
+  // La pantalla de carga se quita ANTES de esperar el 2FA (si aplica), no después.
+  // Antes se quitaba hasta el final de todo el arranque, y como esta pantalla tiene
+  // el z-index más alto de la app, el aviso pidiendo el código de 2FA se pintaba
+  // DEBAJO de ella — invisible. La persona nunca podía escribir el código porque
+  // ni siquiera lo veía, así que la app se quedaba "cargando" para siempre.
+  const loadingScreen = document.getElementById('appLoadingScreen');
+  if(loadingScreen){
+    loadingScreen.classList.add('hide');
+    setTimeout(() => loadingScreen.remove(), 350);
+  }
+
+  try {
     if(session && !passwordRecoveryInProgress){
       if(await ensureMfaSatisfied()) await loadCurrentUserFromSession(session);
       // si canceló el código, la sesión (a medias, sin 2FA) ya se cerró dentro de
@@ -10118,12 +10140,6 @@ window.addEventListener('unhandledrejection', (event) => {
     enforceAuthGate(); // sin sesión: login obligatorio; con sesión: abre la publicación compartida, si hay
   }catch(err){
     console.error('Error al mostrar la vista inicial:', err);
-  }
-
-  const loadingScreen = document.getElementById('appLoadingScreen');
-  if(loadingScreen){
-    loadingScreen.classList.add('hide');
-    setTimeout(() => loadingScreen.remove(), 350);
   }
 })();
 
