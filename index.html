@@ -1072,6 +1072,9 @@
   .password-strength{height:5px;border-radius:999px;background:var(--paper-alt);overflow:hidden;margin:6px 0}
   .password-strength span{display:block;height:100%;width:0;background:var(--moss);transition:.2s}
   .mfa-qr{max-width:220px;margin:10px auto;border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px}
+  .mfa-trust-device-row{display:flex;align-items:flex-start;gap:8px;margin:10px 0;font-size:0.8rem;color:var(--ink-soft);cursor:pointer}
+  .mfa-trust-device-row input{margin-top:2px;flex-shrink:0}
+  .admin-panel-btn.needs-verify{color:#b8860b}
   .danger-confirm{font-weight:800;letter-spacing:.04em}
   @media(max-width:650px){
     .security-form-grid{grid-template-columns:1fr}
@@ -4996,6 +4999,17 @@ async function refreshAppAfterAuthChange(){
   enforceAuthGate();
 }
 async function logout(){
+  // Antes esto cambiaba de vista AL FINAL, después de esperar signOut() y
+  // refreshAppAfterAuthChange(). El problema: sb.auth.signOut() dispara EN
+  // PARALELO el listener de onAuthStateChange('SIGNED_OUT') de abajo, que
+  // TAMBIÉN llama a refreshAppAfterAuthChange() — y esa función, dentro de
+  // renderProfile(), repinta Configuración de nuevo si esa vista todavía
+  // tiene la clase "active" (que la tenía, porque el cambio de vista ni
+  // siquiera había corrido todavía). Cambiar de vista PRIMERO, de forma
+  // síncrona, antes de que arranque cualquiera de las dos cadenas async,
+  // evita esa carrera de raíz: para cuando cualquiera de las dos llegue a
+  // renderProfile(), Configuración ya no está activa.
+  showView('inicio');
   try{
     await sb.auth.signOut();
   }catch(err){
@@ -5005,11 +5019,8 @@ async function logout(){
   try{
     await refreshAppAfterAuthChange(); // sin sesión, el gate vuelve a mostrar el inicio de sesión
   }catch(err){
-    // refreshAppAfterAuthChange() ya no debería tronar (ver arriba), pero por si acaso
-    // algo se le escapa, esto asegura que SIEMPRE se llegue a showView('inicio').
     console.warn('[logout] refreshAppAfterAuthChange falló, se continúa de todos modos:', err);
   }
-  showView('inicio');
 }
 
 const GROWTH_TIPS = [
@@ -9497,14 +9508,24 @@ async function initMfaSecurity(){
     const verified=(factors?.totp||[]).filter(f=>f.status==='verified');
 
     if(verified.length){
+      const trusted = await isThisDeviceTrusted();
       el.innerHTML=`
         <div class="security-status">✓ 2FA activo con ${verified.length} aplicación(es) autenticadora(s).</div>
+        ${trusted ? `<div class="security-hint" style="margin-top:8px;">🔓 Este dispositivo está marcado como de confianza: no te pedirá el código al iniciar sesión aquí.</div>` : ''}
         <div class="security-inline" style="margin-top:10px;">
           ${verified.map(f=>`<button type="button" class="btn btn-outline btn-small" data-unenroll-mfa="${escapeHtml(f.id)}">Quitar ${escapeHtml(f.friendly_name||'dispositivo')}</button>`).join('')}
+          ${trusted ? `<button type="button" class="btn btn-outline btn-small" id="forgetDeviceBtn">Olvidar este dispositivo</button>` : ''}
         </div>
       `;
       el.querySelectorAll('[data-unenroll-mfa]').forEach(btn=>{
         btn.addEventListener('click',()=>unenrollMfaFactor(btn.dataset.unenrollMfa));
+      });
+      document.getElementById('forgetDeviceBtn')?.addEventListener('click', async () => {
+        const token = localStorage.getItem('enraiza_trust_token');
+        localStorage.removeItem('enraiza_trust_token');
+        if(token){ try{ await sb.rpc('forget_this_device', { p_token: token }); }catch(err){ /* ya se borró localmente, no pasa nada si falla en el servidor */ } }
+        showToast('Este dispositivo ya no es de confianza.');
+        initMfaSecurity();
       });
     }else{
       el.innerHTML=`<button type="button" class="btn btn-primary btn-small" id="startMfaBtn">Configurar 2FA</button>
@@ -9582,6 +9603,36 @@ async function unenrollMfaFactor(factorId){
   }
 }
 
+// ---------- DISPOSITIVO DE CONFIANZA (evita repetir el código de 2FA) ----------
+// El token es un secreto aleatorio que solo vive en ESTE navegador
+// (localStorage); el servidor solo guarda su hash + fecha de vencimiento (ver
+// trust_this_device.sql). Confiar en el dispositivo SOLO evita la pantalla de
+// código en el login normal — la sesión sigue quedando en aal1 de verdad, así
+// que el panel de administrador (que exige aal2 real) no se activa por esto.
+function generateDeviceToken(){
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2,'0')).join('');
+}
+async function trustThisDevice(days = 30){
+  try{
+    const token = generateDeviceToken();
+    const { error } = await sb.rpc('trust_this_device', { p_token: token, p_days: days });
+    if(error) throw error;
+    localStorage.setItem('enraiza_trust_token', token);
+    return true;
+  }catch(err){ console.warn('No se pudo confiar en el dispositivo:', err); return false; }
+}
+async function isThisDeviceTrusted(){
+  try{
+    const token = localStorage.getItem('enraiza_trust_token');
+    if(!token) return false;
+    const { data, error } = await sb.rpc('is_device_trusted', { p_token: token });
+    if(error) return false;
+    return !!data;
+  }catch(err){ return false; }
+}
+
 // ---------- EXIGIR 2FA AL INICIAR SESIÓN (antes solo se podía configurar, pero
 // nunca se pedía de vuelta: cualquiera con la contraseña entraba igual) ----------
 // Único punto de entrada para todo inicio de sesión (login con contraseña Y
@@ -9596,13 +9647,15 @@ async function ensureMfaSatisfied(){
     const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
     if(error || !data) return true; // no bloqueamos el login por un error de red al consultar
     if(data.nextLevel !== 'aal2' || data.currentLevel === data.nextLevel) return true; // no tiene 2FA, o ya se cumplió
+    if(await isThisDeviceTrusted()) return true; // ya se confió en este navegador hace ≤30 días
     const { data: factors } = await sb.auth.mfa.listFactors();
     const factor = (factors?.totp || []).find(f => f.status === 'verified');
     if(!factor) return true; // caso raro (factor a medio verificar): no lo bloqueamos por eso
     return await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve));
   }catch(err){ return true; }
 }
-function showMfaChallengeModal(factorId, resolve){
+function showMfaChallengeModal(factorId, resolve, opts = {}){
+  const { signOutOnCancel = true, offerTrustDevice = true } = opts;
   authContent.innerHTML = `
     <h3>Verificación en dos pasos</h3>
     <p class="section-desc">Tu cuenta tiene 2FA activo. Escribe el código de 6 dígitos de tu aplicación autenticadora para terminar de iniciar sesión.</p>
@@ -9611,6 +9664,11 @@ function showMfaChallengeModal(factorId, resolve){
         <label for="mfaChallengeCode">Código</label>
         <input id="mfaChallengeCode" class="security-code" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code">
       </div>
+      ${offerTrustDevice ? `
+      <label class="mfa-trust-device-row">
+        <input type="checkbox" id="mfaTrustDeviceCheck">
+        Confiar en este dispositivo por 30 días (no pedir el código aquí)
+      </label>` : ''}
       <p class="auth-error" id="mfaChallengeError" style="display:none;"></p>
       <button type="submit" class="btn btn-primary btn-small" id="mfaChallengeSubmitBtn">Verificar</button>
       <button type="button" class="btn-text" id="mfaChallengeCancelBtn">Cancelar</button>
@@ -9621,7 +9679,9 @@ function showMfaChallengeModal(factorId, resolve){
   let settled = false;
   const finish = (ok) => { if(settled) return; settled = true; resolve(ok); };
   document.getElementById('mfaChallengeCancelBtn').addEventListener('click', async () => {
-    try{ await sb.auth.signOut(); }catch(err){ /* aunque falle, no dejamos la sesión a medias visible */ }
+    if(signOutOnCancel){
+      try{ await sb.auth.signOut(); }catch(err){ /* aunque falle, no dejamos la sesión a medias visible */ }
+    }
     authBackdrop.classList.remove('open');
     finish(false);
   });
@@ -9638,6 +9698,9 @@ function showMfaChallengeModal(factorId, resolve){
       if(challenge.error) throw challenge.error;
       const verified = await sb.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
       if(verified.error) throw verified.error;
+      if(offerTrustDevice && document.getElementById('mfaTrustDeviceCheck')?.checked){
+        await trustThisDevice(30);
+      }
       authBackdrop.classList.remove('open');
       finish(true);
     }catch(err){
@@ -9838,17 +9901,20 @@ let isPlatformAdmin = false;
 async function refreshAdminStatus(){
   currentUserIsAdmin = false;
   isPlatformAdmin = false;
-  if(!currentUser) return;
+  if(!currentUser){ console.log('[admin] no hay currentUser todavía'); return; } // DEBUG TEMPORAL
   try{
     const { data, error } = await sb.rpc('get_my_admin_flag');
+    console.log('[admin] get_my_admin_flag →', { data, error: error?.message || error?.code || null }); // DEBUG TEMPORAL
     if(error || !data) return;
     currentUserIsAdmin = true;
-  }catch(err){ return; }
+  }catch(err){ console.log('[admin] get_my_admin_flag lanzó excepción:', err); return; } // DEBUG TEMPORAL
   try{
     const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+    console.log('[admin] getAuthenticatorAssuranceLevel →', { currentLevel: data?.currentLevel, nextLevel: data?.nextLevel, error: error?.message || null }); // DEBUG TEMPORAL
     if(error || !data) return;
     isPlatformAdmin = data.currentLevel === 'aal2';
-  }catch(err){ /* si falla la consulta, nunca se activa por accidente */ }
+  }catch(err){ console.log('[admin] getAuthenticatorAssuranceLevel lanzó excepción:', err); /* si falla la consulta, nunca se activa por accidente */ }
+  console.log('[admin] resultado final → currentUserIsAdmin:', currentUserIsAdmin, 'isPlatformAdmin:', isPlatformAdmin); // DEBUG TEMPORAL
 }
 function isVerifiedOwner(user){
   if(!user) return false;
@@ -9857,26 +9923,39 @@ function isVerifiedOwner(user){
   return !!((ownerId&&user.id===ownerId) || (currentAuthEmail && currentAuthEmail === 'missael.cas.esc23@gmail.com') || isSelfAdmin);
 }
 
-// El botón 🛡️ solo se muestra si esta sesión ya pasó por refreshAdminStatus()
-// y de verdad tiene los privilegios activos (is_admin=true + 2FA aal2). No es
-// una decoración: si isPlatformAdmin es false el botón queda oculto y, aunque
-// alguien lo mostrara a mano desde el inspector, las funciones de abajo llaman
-// a RPCs que vuelven a comprobar todo esto en el servidor antes de hacer nada.
+// El botón 🛡️ se muestra en cuanto esta CUENTA es admin de verdad
+// (currentUserIsAdmin, confirmado por el servidor vía get_my_admin_flag).
+// Si la sesión todavía no pasó 2FA (por ejemplo, entraste con "confiar en
+// este dispositivo" y por eso te saltaste el código), el botón se ve pero en
+// tono ámbar y, al tocarlo, pide el código ahí mismo antes de abrir el panel
+// — nunca se abre el panel con una sesión que no probó el segundo factor de
+// verdad, aunque el botón ya sea visible.
 function renderAdminEntryPoint(){
   const btn = document.getElementById('adminPanelBtn');
   if(!btn) return;
-  btn.hidden = !isPlatformAdmin;
+  btn.hidden = !currentUserIsAdmin;
+  btn.classList.toggle('needs-verify', currentUserIsAdmin && !isPlatformAdmin);
+  btn.title = isPlatformAdmin ? 'Panel de administrador' : 'Verifica tu 2FA para activar el panel de administrador';
   btn.onclick = openAdminPanel;
 }
 
 let adminReportsTab = 'conversaciones';
 async function openAdminPanel(){
+  if(!currentUserIsAdmin) return; // el botón ni debería estar visible en este caso
   if(!isPlatformAdmin){
-    // No debería poder llegar aquí (el botón está oculto), pero por si acaso:
-    // se vuelve a comprobar antes de mostrar nada, en vez de confiar en que
-    // el botón siga oculto.
+    const { data: factors } = await sb.auth.mfa.listFactors();
+    const factor = (factors?.totp || []).find(f => f.status === 'verified');
+    if(!factor){ showToast('Activa 2FA en Configuración → Seguridad para usar el panel de administrador.'); return; }
+    // signOutOnCancel:false porque ya estás usando la app con sesión válida —
+    // cancelar este código solo cierra el intento de abrir el panel, no tu
+    // sesión. offerTrustDevice:false porque esto es una verificación puntual
+    // para el panel, no el login: "confiar en el dispositivo" aquí no debe
+    // aplicar (el panel siempre exige aal2 fresco de la app, no un atajo).
+    const ok = await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve, { signOutOnCancel:false, offerTrustDevice:false }));
+    if(!ok) return;
     await refreshAdminStatus();
-    if(!isPlatformAdmin){ showToast('Esta sesión no tiene privilegios de administrador activos.'); return; }
+    renderAdminEntryPoint();
+    if(!isPlatformAdmin){ showToast('No se pudo verificar tu 2FA.'); return; }
   }
   modalBox.className = 'modal';
   modalContent.innerHTML = `
