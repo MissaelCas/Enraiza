@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://bizluypmotcgoxdjquyf.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://bizluypmotcgoxdjquyf.supabase.co">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%233F6B4A'/%3E%3Cpath d='M32 48V25M32 31C25 24 18 23 14 24c1 8 7 13 18 13M32 34c7-8 14-9 18-8-1 8-7 13-18 13' fill='none' stroke='%23EFE9D8' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <title>Enraíza — Por una vida más sostenible, una raíz a la vez</title>
 <style>
@@ -242,7 +244,6 @@
   }
   .badge-toggle:hover{ background:var(--paper-alt); }
   .badge-full-list{ margin-top:12px; }
-  @media(max-width:560px){ .badge-featured-grid{ grid-template-columns:1fr; } }
 
   .growth-card{
     margin: 18px 0 22px; border:1px solid var(--line); border-radius:12px;
@@ -304,6 +305,63 @@
   .profile-shell{max-width:860px;margin:0 auto}.profile-main-head{max-width:720px;margin:8px auto 18px;flex-wrap:nowrap}.profile-main-head .avatar-big{width:88px;height:88px;font-size:1.8rem}.profile-name-line{display:flex;align-items:center;gap:7px;margin-bottom:8px}.profile-name-line .profile-ig-name{margin:0;font-size:1.18rem}.verified-badge{display:inline-flex;width:18px;height:18px;border-radius:50%;align-items:center;justify-content:center;background:var(--moss);color:#fff;font-size:.68rem;font-weight:900;box-shadow:0 0 0 2px var(--paper)}
   .profile-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 auto 22px;max-width:720px}.profile-action-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:11px 13px;background:var(--white-ish);color:var(--ink);text-align:left;cursor:pointer;transition:.15s}.profile-action-card:hover{border-color:var(--moss);transform:translateY(-1px)}.profile-action-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--paper-alt)}.profile-action-card strong{display:block;font-size:.84rem}.profile-action-card small{display:block;color:var(--ink-soft);font-size:.7rem;margin-top:2px}.profile-action-card b{color:var(--ink-soft);font-size:1.1rem}.profile-section-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px}.compact-head h3{font-family:var(--serif);font-size:1rem;margin:0}.compact-head span{color:var(--ink-soft);font-size:.72rem}.profile-settings{margin-top:22px;border-top:1px solid var(--line)}.profile-settings summary{cursor:pointer;list-style:none;padding:13px 2px;color:var(--ink-soft);font-size:.82rem}.profile-settings summary::-webkit-details-marker{display:none}.profile-settings summary::after{content:'＋';float:right}.profile-settings[open] summary::after{content:'−'}.profile-settings .settings-block{margin-top:0}
   .growth-page-head{max-width:860px;margin:0 auto 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:18px}.eyebrow{display:block;color:var(--moss-dark);font-size:.66rem;letter-spacing:.12em;font-weight:800;margin-bottom:5px}.growth-page-score{flex-shrink:0;border:1px solid var(--line);background:var(--white-ish);border-radius:12px;padding:10px 14px;text-align:center}.growth-page-score strong{display:block;font-family:var(--serif);font-size:1.25rem}.growth-page-score span{font-size:.62rem;color:var(--ink-soft)}.growth-page-wrap{max-width:860px;margin:0 auto}
+
+  /* ---------- AULA ---------- */
+  .aula-banner{ max-width:860px; margin:0 auto 16px; border:1px solid var(--line); border-radius:12px; background:var(--paper-alt); padding:12px 16px; font-size:0.84rem; color:var(--ink-soft); }
+  .aula-banner.pending{ border-color:#b8860b; background:rgba(184,134,11,0.08); }
+  .aula-section-label{ max-width:860px; margin:18px auto 8px; font-family:var(--serif); font-size:1rem; color:var(--ink); }
+  .aula-class-grid{ max-width:860px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
+  .aula-class-card{ border:1px solid var(--line); border-radius:12px; background:var(--white-ish); overflow:hidden; cursor:pointer; transition:box-shadow .15s ease; }
+  .aula-class-card:hover{ box-shadow:0 6px 18px rgba(35,48,29,0.1); }
+  .aula-class-card-top{ background:linear-gradient(135deg, var(--moss) 0%, #4a7a52 100%); padding:16px 14px; color:#fff; }
+  .aula-class-card-top strong{ display:block; font-family:var(--serif); font-size:1.05rem; }
+  .aula-class-card-top span{ font-size:0.72rem; opacity:0.85; }
+  .aula-class-card-bottom{ padding:10px 14px; font-size:0.76rem; color:var(--ink-soft); display:flex; justify-content:space-between; align-items:center; }
+  .aula-empty{ max-width:860px; margin:0 auto; color:var(--ink-soft); font-size:0.85rem; padding:20px 0; }
+
+  .aula-clase-head{ max-width:860px; margin:0 auto 16px; display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+  .aula-clase-head h2{ font-family:var(--serif); margin:0 0 4px; }
+  .aula-clase-code{ font-family:monospace; letter-spacing:0.08em; background:var(--paper-alt); border:1px solid var(--line); border-radius:6px; padding:3px 8px; font-size:0.8rem; }
+  .aula-tabs{ max-width:860px; margin:0 auto 16px; display:flex; gap:6px; border-bottom:1px solid var(--line); }
+  .aula-tabs button{ background:none; border:none; padding:9px 14px; font-size:0.82rem; font-weight:600; color:var(--ink-soft); cursor:pointer; border-bottom:2px solid transparent; }
+  .aula-tabs button.active{ color:var(--moss-dark); border-bottom-color:var(--moss); }
+  .aula-tab-body{ max-width:860px; margin:0 auto; }
+
+  .aula-material-row{ display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:10px; background:var(--white-ish); padding:12px 14px; margin-bottom:8px; }
+  .aula-material-icon{ width:38px; height:38px; border-radius:8px; background:var(--paper-alt); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+  .aula-material-row strong{ display:block; font-size:0.86rem; }
+  .aula-material-row p{ margin:2px 0 0; font-size:0.74rem; color:var(--ink-soft); }
+  .aula-material-row a{ margin-left:auto; font-size:0.76rem; font-weight:700; color:var(--moss-dark); text-decoration:none; flex-shrink:0; }
+
+  .aula-assignment-card{ border:1px solid var(--line); border-radius:10px; background:var(--white-ish); padding:14px 16px; margin-bottom:10px; cursor:pointer; }
+  .aula-assignment-card:hover{ box-shadow:0 4px 14px rgba(35,48,29,0.08); }
+  .aula-assignment-top{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .aula-assignment-top strong{ font-family:var(--serif); font-size:0.98rem; }
+  .aula-assignment-due{ font-size:0.72rem; color:var(--ink-soft); margin-top:2px; }
+
+  .aula-pill{ display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+  .aula-pill.ontime{ background:rgba(63,107,74,0.15); color:var(--moss-dark); }
+  .aula-pill.late{ background:rgba(163,57,44,0.12); color:#a3392c; }
+  .aula-pill.pending{ background:var(--paper-alt); color:var(--ink-soft); border:1px solid var(--line); }
+  .aula-pill.graded{ background:rgba(63,107,74,0.15); color:var(--moss-dark); }
+
+  .aula-student-row{ display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:10px; background:var(--white-ish); padding:10px 14px; margin-bottom:6px; }
+  .aula-student-row .avatar{ width:32px; height:32px; font-size:0.76rem; flex-shrink:0; }
+  .aula-student-row strong{ font-size:0.84rem; display:block; }
+  .aula-student-row small{ font-size:0.7rem; color:var(--ink-soft); }
+  .aula-student-row .aula-pill{ margin-left:auto; }
+  .aula-student-row input[type="number"]{ width:56px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; text-align:center; }
+
+  .aula-comment{ border-radius:10px; padding:9px 12px; margin-bottom:6px; font-size:0.8rem; }
+  .aula-comment.private{ background:var(--paper-alt); }
+  .aula-comment.public{ background:rgba(63,107,74,0.08); }
+  .aula-comment strong{ font-size:0.72rem; display:block; margin-bottom:2px; color:var(--ink-soft); }
+
+  @media(max-width:700px){
+    .aula-class-grid{ grid-template-columns:1fr; }
+    .aula-clase-head{ flex-direction:column; }
+  }
+
   .achievement-completed-strip{border:1px solid var(--moss);background:var(--paper-alt);border-radius:14px;padding:13px;margin-bottom:18px}.achievement-completed-strip h3{font-family:var(--serif);margin:0 0 3px;font-size:1rem}.achievement-completed-strip p{margin:0 0 11px;color:var(--ink-soft);font-size:.72rem}.achievement-completed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.achievement-card{border:1px solid var(--line);border-radius:11px;background:var(--white-ish);padding:11px;display:flex;gap:10px;align-items:center;min-width:0}.achievement-card.earned{border-color:rgba(63,107,74,.38)}.achievement-card .badge-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--paper-alt);font-size:1.2rem;flex-shrink:0}.achievement-card.earned .badge-icon{background:var(--moss)}.achievement-card h4{margin:0;font-family:var(--serif);font-size:.84rem}.achievement-card p{margin:2px 0 0;color:var(--ink-soft);font-size:.68rem;line-height:1.3}.achievement-mark{margin-left:auto;font-weight:900;color:var(--moss-dark)}.achievement-category{margin:0 0 22px}.achievement-category-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}.achievement-category-head h3{margin:0;font-family:var(--serif);font-size:1rem}.achievement-category-head span{color:var(--ink-soft);font-size:.68rem}.achievement-locked-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.achievement-card.locked .badge-icon{filter:saturate(.35);opacity:.8}.achievement-progress{margin-top:5px;color:var(--moss-dark);font-weight:700;font-size:.64rem}
   .missions-page-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mission-page-card{border:1px solid var(--line);border-radius:13px;padding:15px;background:var(--white-ish);display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start}.mission-page-card.done{border-color:var(--moss);background:var(--paper-alt)}.mission-page-card .mission-icon{width:40px;height:40px}.mission-page-card h3{margin:0;font-family:var(--serif);font-size:.95rem}.mission-page-card p{margin:3px 0 0;color:var(--ink-soft);font-size:.72rem;line-height:1.4}.mission-page-card .mission-reward{padding-top:2px}.mission-page-note{margin:14px 0 0;border-left:3px solid var(--clay);padding:9px 12px;color:var(--ink-soft);font-size:.72rem;background:var(--paper-alt)}
   @media(max-width:700px){.profile-shell{max-width:100%}.profile-main-head{align-items:flex-start;gap:15px}.profile-main-head .avatar-big{width:76px;height:76px}.profile-quick-actions{grid-template-columns:1fr}.growth-page-head{align-items:flex-start}.missions-page-list{grid-template-columns:1fr}}
@@ -393,8 +451,6 @@
   }
 
   .story-ring{
-    --story-segments:1;
-    --story-gap:3deg;
     width:62px;
     height:62px;
     flex:0 0 62px;
@@ -404,31 +460,15 @@
     justify-content:center;
     border-radius:50%;
     padding:3px;
-    background:var(--story-ring-bg,var(--clay));
-  }
-
-  .story-ring::before{
-    content:"";
-    position:absolute;
-    inset:0;
-    z-index:0;
-    border-radius:50%;
-    background:
-      repeating-conic-gradient(
-        from -90deg,
-        var(--story-ring-bg,var(--clay)) 0deg
-        calc((360deg / var(--story-segments)) - var(--story-gap)),
-        var(--paper) calc((360deg / var(--story-segments)) - var(--story-gap))
-        calc(360deg / var(--story-segments))
-      );
+    /* Instagram nunca divide este aro en arcos por historia — eso solo pasa
+       en la barra de progreso de arriba cuando ya la estás viendo
+       (.story-progress-row, más abajo). Aquí siempre es un solo círculo
+       continuo; el degradado usa los colores propios de Enraíza. */
+    background: linear-gradient(135deg, var(--moss) 0%, var(--clay) 100%);
   }
 
   .story-ring.seen{
-    --story-ring-bg:var(--line);
-  }
-
-  .story-ring-partial{
-    --story-ring-bg:var(--clay);
+    background: var(--line);
   }
 
   .story-avatar{
@@ -459,10 +499,6 @@
     background:var(--paper-alt);
     border:1.5px dashed var(--line);
     padding:0;
-  }
-
-  .story-add .story-ring::before{
-    display:none;
   }
 
   .story-add .story-ring span{
@@ -550,23 +586,6 @@
       height:48px;
     }
 
-  .story-ring{
-    --story-segments: 1; --story-gap: 3deg;
-    width:62px; height:62px; border-radius:50%; padding:2.5px;
-    background:var(--story-ring-bg, var(--clay)); display:flex; align-items:center; justify-content:center; position:relative;
-  }
-  .story-ring::before{ content:""; position:absolute; inset:0; border-radius:50%; background:repeating-conic-gradient(from -90deg, transparent 0deg calc((360deg / var(--story-segments)) - var(--story-gap)), var(--paper) calc((360deg / var(--story-segments)) - var(--story-gap)) calc(360deg / var(--story-segments))); }
-  .story-ring.seen{ --story-ring-bg:var(--line); }
-  .story-ring-partial{ --story-ring-bg:var(--clay); }
-  .story-avatar{
-    width: 100%; height:100%; border-radius:50%; background: var(--paper);
-    border: 2px solid var(--paper); display:flex; align-items:center; justify-content:center;
-    font-family: var(--serif); color: var(--moss-dark); font-size: 1.1rem; overflow:hidden;
-  }
-  .story-avatar img{ width:100%; height:100%; object-fit:cover; }
-  .story-add .story-ring{ background: var(--paper-alt); border: 1.5px dashed var(--line); padding:0; }
-  .story-add .story-ring span{ font-size: 1.4rem; color: var(--ink-soft); }
-  .story-label{ font-size: 0.72rem; color: var(--ink-soft); max-width: 68px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .create-bar{
     display:flex; align-items:center; gap: 10px; background: var(--white-ish);
@@ -833,7 +852,7 @@
   .activity-item:last-child{ border-bottom:none; }
   .activity-item .when{ font-size:0.74rem; color: var(--ink-soft); }
 
-  .profile-header-actions{display:flex;align-items:center;gap:8px;margin-top:-2px}.profile-settings-btn{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;background:var(--white-ish);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.profile-settings-btn:hover{border-color:var(--moss);background:var(--paper-alt)}.profile-settings-btn svg{width:20px;height:20px}.profile-settings-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--white-ish);margin-top:22px}.profile-settings-entry strong{display:block;font-size:.86rem}.profile-settings-entry small{display:block;color:var(--ink-soft);font-size:.72rem;margin-top:2px}.settings-page{max-width:920px;margin:0 auto}.settings-mobile-back{display:none}.settings-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:start}.settings-nav{border:1px solid var(--line);border-radius:12px;background:var(--white-ish);overflow:hidden;position:sticky;top:84px}.settings-nav button{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:13px 15px;cursor:pointer;color:var(--ink);font:inherit}.settings-nav button:last-child{border-bottom:0}.settings-nav button:hover,.settings-nav button.active{background:var(--paper-alt);font-weight:700}.settings-content{min-width:0}.settings-content .settings-group{display:none}.settings-content .settings-group.active{display:block}.settings-mobile-title{display:none}
+  .profile-header-actions{display:flex;align-items:center;gap:8px;margin-top:-2px}.profile-settings-btn{width:36px;height:36px;border:1px solid var(--line);border-radius:50%;background:var(--white-ish);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.profile-settings-btn:hover{border-color:var(--moss);background:var(--paper-alt)}.profile-settings-btn svg{width:20px;height:20px}.profile-settings-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--white-ish);margin-top:22px}.profile-settings-entry strong{display:block;font-size:.86rem}.profile-settings-entry small{display:block;color:var(--ink-soft);font-size:.72rem;margin-top:2px}.settings-mobile-back{display:none}.settings-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:start}.settings-nav{border:1px solid var(--line);border-radius:12px;background:var(--white-ish);overflow:hidden;position:sticky;top:84px}.settings-nav button{width:100%;border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;padding:13px 15px;cursor:pointer;color:var(--ink);font:inherit}.settings-nav button:last-child{border-bottom:0}.settings-nav button:hover,.settings-nav button.active{background:var(--paper-alt);font-weight:700}.settings-content{min-width:0}.settings-content .settings-group{display:none}.settings-content .settings-group.active{display:block}.settings-mobile-title{display:none}
 
   /* ---------- PERFIL: jerarquía más intuitiva, inspirado en Instagram ---------- */
   .profile-main-head{
@@ -937,7 +956,12 @@
      ambas clases, así que terminaba siendo flex en vez del grid con columnas ajustadas
      por tamaño de pantalla que .profile-main-head define más abajo. Eso era la causa real
      de que el perfil se viera mal acomodado, sobre todo en celular. Se confirmó que esta
-     clase no se usa en ningún otro lado del archivo, así que quitar su display es seguro. */
+     clase no se usa en ningún otro lado del archivo, así que quitar su display es seguro.
+     Nota posterior: además de esto, seguía existiendo OTRA regla con el selector compuesto
+     .profile-ig-head.profile-main-head dentro de un @media(max-width:700px) más abajo en el
+     archivo — esa sí tenía más especificidad que .profile-main-head sola, así que ganaba
+     siempre (sin importar el orden) y el avatar/espaciado "limpios" de aquí nunca se veían
+     entre 481px y 700px de ancho. Ya se quitó también. */
   .avatar-big-wrap{ position:relative; flex-shrink:0; }
   .avatar-big{
     width: 68px; height:68px; border-radius: 50%; background: var(--moss);
@@ -949,7 +973,6 @@
     position:absolute; bottom:-2px; right:-2px; width:24px; height:24px; border-radius:50%;
     background: var(--moss); color:#fff; border: 2px solid var(--paper); cursor:pointer; font-size:0.72rem;
   }
-  .profile-ig-right{ flex:1; min-width:200px; }
   .profile-ig-name{ font-size: 1.1rem; font-weight:700; margin: 0 0 10px; }
   .profile-stats-row{ display:flex; gap: 26px; margin-bottom: 12px; flex-wrap:wrap; }
   .profile-stats-row div{ font-size: 0.85rem; color: var(--ink-soft); }
@@ -1105,7 +1128,7 @@
   @media(max-width:600px){.setting-row{align-items:flex-start}.settings-page{width:100%}}
   @media(max-width:700px){
     header.nav .nav-inner{padding:10px 12px;gap:8px;flex-wrap:wrap;align-items:center}.logo{order:1}.search-wrap{order:3;flex:1 1 100%;max-width:none;margin:0}.ig-icons{order:2;gap:10px;margin-left:auto}.ig-icon-btn svg{width:22px;height:22px}.ig-icon-btn .avatar{width:27px;height:27px}
-    .profile-ig-head.profile-main-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;align-items:start;margin:0 0 14px}.profile-main-head .avatar-big{width:78px;height:78px}.profile-ig-right{min-width:0}.profile-stats-row{gap:16px;justify-content:space-between}.profile-settings-entry{margin-top:16px;padding:13px}.settings-layout{display:block}.settings-nav{position:static;top:auto}.settings-mobile-back{display:none;align-items:center;gap:8px;border:0;background:none;padding:0 0 14px;color:var(--ink-soft);font:inherit;cursor:pointer}.settings-mobile-title{display:block;font-family:var(--serif);font-size:1.35rem;margin:0 0 14px}.settings-content .settings-group.active{display:block}.settings-group{border-radius:10px}.setting-row{min-height:62px;padding:14px}.settings-block input{max-width:none}.settings-page{width:100%;max-width:none}.settings-page .section-head{display:none}
+    .profile-stats-row{gap:16px;justify-content:space-between}.profile-settings-entry{margin-top:16px;padding:13px}.settings-layout{display:block}.settings-nav{position:static;top:auto}.settings-mobile-back{display:none;align-items:center;gap:8px;border:0;background:none;padding:0 0 14px;color:var(--ink-soft);font:inherit;cursor:pointer}.settings-mobile-title{display:block;font-family:var(--serif);font-size:1.35rem;margin:0 0 14px}.settings-content .settings-group.active{display:block}.settings-group{border-radius:10px}.setting-row{min-height:62px;padding:14px}.settings-block input{max-width:none}.settings-page{width:100%;max-width:none}.settings-page .section-head{display:none}
   }
   @media(min-width:701px){.settings-mobile-back{display:none}}
 
@@ -1592,6 +1615,9 @@
         </div>
       </div>
 
+      <button class="ig-icon-btn" id="btnGoAula" title="Aula" aria-label="Aula">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 9 12 4l10 5-10 5-10-5Z"/><path d="M6 11.5V17c0 1.1 2.7 3 6 3s6-1.9 6-3v-5.5"/><path d="M22 9v6"/></svg>
+      </button>
       <div id="authButtonsWrap" style="display:none; align-items:center; gap:8px;">
         <button type="button" class="btn btn-outline btn-small" id="topbarLoginBtn">Iniciar sesión</button>
         <button type="button" class="btn btn-primary btn-small" id="topbarRegisterBtn">Registrarse</button>
@@ -1864,6 +1890,28 @@
       <div class="growth-page-score" id="missionsPageScore"></div>
     </div>
     <div id="missionsPageContent"></div>
+  </section>
+
+  <!-- ===================== AULA (materia de sustentabilidad, estilo Classroom) ===================== -->
+  <section id="aula" class="view">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">SUSTENTABILIDAD</span>
+        <h2 class="section-title">Aula</h2>
+        <p class="section-desc">Material, tareas y avisos de tus profesores — todo en un solo lugar.</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-outline btn-small" id="aulaJoinBtn">🔑 Unirme con código</button>
+        <button type="button" class="btn btn-primary btn-small" id="aulaCreateBtn" hidden>＋ Nueva clase</button>
+      </div>
+    </div>
+    <div id="aulaTeacherStatus"></div>
+    <div id="aulaContent"><p class="feed-empty">Cargando…</p></div>
+  </section>
+
+  <section id="aulaClase" class="view">
+    <div class="back-row"><button class="back-link" data-view="aula">← Volver a Aula</button></div>
+    <div id="aulaClaseContent"><p class="feed-empty">Cargando…</p></div>
   </section>
 
   <!-- ===================== CONFIGURACIÓN ===================== -->
@@ -2177,7 +2225,32 @@
 // =====================================================================
 const SUPABASE_URL = 'https://bizluypmotcgoxdjquyf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJpemx1eXBtb3RjZ294ZGpxdXlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxNzY5MTksImV4cCI6MjEwNDc1MjkxOX0.2FcnsVwcO-KOg8gLNNvxLfsRJCvAlWCHxKE0F2ogDbY';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// La raíz de los timeouts en cadena (2FA, admin, y ahora getSession al arrancar):
+// la librería de Supabase usa `fetch` normal por dentro, y `fetch` NO tiene límite
+// de tiempo propio — si una petición se queda a medias (red inestable, Wi-Fi que
+// falla un instante, etc.), la promesa nunca se resuelve NI se rechaza. Esto es
+// grave en particular para la renovación automática de sesión que la librería hace
+// sola en segundo plano: mientras esa petición esté colgada, retiene un candado
+// interno que TODAS las demás llamadas de auth (getSession, 2FA, admin) necesitan
+// para poder correr — por eso se atoran una detrás de otra, cada una agotando su
+// propio withTimeout, en vez de fallar una sola vez.
+// Este fetch personalizado le pone límite real a toda petición que hace el cliente
+// de Supabase (auth, consultas, Storage): si no responde a tiempo, se aborta y la
+// promesa se rechaza — así el candado interno SIEMPRE se libera, en vez de quedar
+// tomado para siempre. Las subidas de fotos/video usan un límite mucho más alto
+// porque legítimamente pueden tardar; todo lo demás (login, consultas, 2FA) nunca
+// debería tardar tanto, así que se aborta antes.
+function fetchWithTimeout(url, options = {}){
+  const isUpload = typeof url === 'string' && url.includes('/storage/v1/object');
+  const timeoutMs = isUpload ? 120000 : 12000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  global: { fetch: fetchWithTimeout },
+});
 const BUCKET = 'enraiza';
 const STORY_DAY_MS = 24 * 60 * 60 * 1000;
 const STORY_DURATION_MS = 5000;
@@ -2410,8 +2483,8 @@ Object.keys(PLANTS).forEach((key, i) => {
 });
 
 // ---------- CAMBIO DE PANTALLA ----------
-const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora','perfil','logros','misiones','configuracion','mensajes'];
-const PRIVATE_VIEWS = new Set(['bitacora','perfil','logros','misiones','configuracion','proyectoBitacora','mensajes']);
+const PERSISTABLE_VIEWS = ['inicio','proyectos','plantas','articulos','bitacora','perfil','logros','misiones','configuracion','mensajes','aula'];
+const PRIVATE_VIEWS = new Set(['bitacora','perfil','logros','misiones','configuracion','proyectoBitacora','mensajes','aula','aulaClase']);
 const LAST_VIEW_KEY = 'enraiza:view';
 const VIEW_STACK_KEY = 'enraiza:viewStack';
 let activeInlineFeedClose = null; // si hay una publicación ampliada abierta, el botón "atrás" la cierra en vez de cambiar de pantalla
@@ -2515,6 +2588,8 @@ function showView(name, options = {}){
   if(targetView === 'configuracion'){ renderSettingsPage(); if(window.settingsResetToMenu) window.settingsResetToMenu(); }
   if(targetView === 'perfilVisita') renderUserProfileVisit();
   if(targetView === 'bitacora') renderBitacoraProjectList();
+  if(targetView === 'aula') renderAula();
+  if(targetView === 'aulaClase') renderAulaClase();
   // Antes solo el clic en el ícono del avión llamaba a renderMessagesScreen()
   // explícitamente, así que recargar la página, usar el botón atrás, o
   // restaurar la sesión dejaban la pantalla de Mensajes vacía hasta que la
@@ -3153,6 +3228,16 @@ const DB = {
       return ids
         .map(id => byId.get(id))
         .filter(Boolean);
+    },
+    // Un solo comentario por id (se usa al reconstruir un comentario nuevo desde
+    // una notificación, cuando todavía no está en caché). Antes era una consulta
+    // sb.from('post_comments') suelta fuera de DB — la centralizamos aquí.
+    async getCommentById(commentId){
+      const { data, error } = await sb.from('post_comments')
+        .select('id, author_id, text, created_at, parent_id')
+        .eq('id', commentId).maybeSingle();
+      if(error) throw error;
+      return data || null;
     },
     // Ver post_reports.sql. Cualquier persona puede reportar (no hace falta ser
     // admin); lo que sí es exclusivo de admin es LEER/cerrar esos reportes,
@@ -3898,8 +3983,746 @@ const DB = {
       const { error } = await sb.rpc('admin_dismiss_post_report', { p_report_id: reportId });
       if(error) throw error;
     },
+    async listTeacherRequests(){
+      const { data, error } = await sb.rpc('admin_list_teacher_requests');
+      if(error) throw error;
+      return (data||[]).map(r => ({
+        id: r.id, userId: r.user_id, userName: r.user_name || 'usuario eliminado',
+        note: r.note, status: r.status, createdAt: new Date(r.created_at).getTime(),
+      }));
+    },
+    async reviewTeacherRequest(requestId, approve){
+      const { error } = await sb.rpc('admin_review_teacher_request', { p_request_id: requestId, p_approve: approve });
+      if(error) throw error;
+    },
+  },
+
+  // =====================================================================
+  // AULA — profesores, clases, materiales, tareas, entregas (ver aula.sql)
+  // =====================================================================
+  classroom: {
+    async myStatus(){
+      const [{ data: isTeacher }, { data: reqStatus }] = await Promise.all([
+        sb.rpc('get_my_teacher_flag'),
+        sb.rpc('my_teacher_request_status'),
+      ]);
+      return { isTeacher: !!isTeacher, requestStatus: reqStatus || null };
+    },
+    async requestTeacher(note){
+      const { error } = await sb.from('teacher_requests').insert({ user_id: currentUser.id, note });
+      if(error) throw error;
+    },
+    genJoinCode(){
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin I/O/0/1, se confunden al leerlos
+      let code = '';
+      for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+      return code;
+    },
+    async createClass({ name, subject, description }){
+      const join_code = this.genJoinCode();
+      const { data, error } = await sb.from('classrooms')
+        .insert({ teacher_id: currentUser.id, name, subject: subject||null, description: description||null, join_code })
+        .select().single();
+      if(error) throw error;
+      return mapClassroomRow(data);
+    },
+    async myTaughtClasses(){
+      const { data, error } = await sb.from('classrooms').select('*').eq('teacher_id', currentUser.id).eq('archived', false).order('created_at', { ascending:false });
+      if(error) throw error;
+      return (data||[]).map(mapClassroomRow);
+    },
+    async myEnrolledClasses(){
+      const { data, error } = await sb.from('classroom_enrollments')
+        .select('classroom_id, classrooms(*)')
+        .eq('student_id', currentUser.id).eq('status', 'active');
+      if(error) throw error;
+      return (data||[]).map(r => r.classrooms).filter(Boolean).map(mapClassroomRow);
+    },
+    async joinClass(joinCode, controlNumber){
+      const { data, error } = await sb.rpc('join_classroom', { p_join_code: joinCode, p_control_number: controlNumber });
+      if(error) throw error;
+      return data;
+    },
+    async getClass(id){
+      const { data, error } = await sb.from('classrooms').select('*').eq('id', id).maybeSingle();
+      if(error) throw error;
+      return data ? mapClassroomRow(data) : null;
+    },
+    async listMaterials(classroomId){
+      const { data, error } = await sb.from('classroom_materials').select('*').eq('classroom_id', classroomId).order('created_at', { ascending:false });
+      if(error) throw error;
+      return (data||[]).map(mapMaterialRow);
+    },
+    async addMaterial(classroomId, { title, body, kind, url }){
+      const { error } = await sb.from('classroom_materials').insert({ classroom_id: classroomId, teacher_id: currentUser.id, title, body: body||null, kind, url: url||null });
+      if(error) throw error;
+    },
+    async removeMaterial(id){
+      const { error } = await sb.from('classroom_materials').delete().eq('id', id);
+      if(error) throw error;
+    },
+    async listAssignments(classroomId){
+      const { data, error } = await sb.from('classroom_assignments').select('*').eq('classroom_id', classroomId).order('due_at', { ascending:true, nullsFirst:false });
+      if(error) throw error;
+      return (data||[]).map(mapAssignmentRow);
+    },
+    async addAssignment(classroomId, { title, objective, description, dueAt, maxScore }){
+      const { error } = await sb.from('classroom_assignments').insert({
+        classroom_id: classroomId, teacher_id: currentUser.id, title, objective: objective||null,
+        description: description||null, due_at: dueAt||null, max_score: maxScore||10,
+      });
+      if(error) throw error;
+    },
+    async getAssignment(id){
+      const { data, error } = await sb.from('classroom_assignments').select('*').eq('id', id).maybeSingle();
+      if(error) throw error;
+      return data ? mapAssignmentRow(data) : null;
+    },
+    async myEnrollment(classroomId){
+      const { data, error } = await sb.from('classroom_enrollments').select('*').eq('classroom_id', classroomId).eq('student_id', currentUser.id).maybeSingle();
+      if(error) throw error;
+      return data;
+    },
+    async listRoster(classroomId){
+      const { data, error } = await sb.from('classroom_enrollments').select('*').eq('classroom_id', classroomId).eq('status', 'active').order('joined_at', { ascending:true });
+      if(error) throw error;
+      return data || [];
+    },
+    async mySubmission(assignmentId){
+      const { data, error } = await sb.from('classroom_submissions').select('*').eq('assignment_id', assignmentId).eq('student_id', currentUser.id).maybeSingle();
+      if(error) throw error;
+      return data ? mapSubmissionRow(data) : null;
+    },
+    async listSubmissions(assignmentId){
+      const { data, error } = await sb.from('classroom_submissions').select('*').eq('assignment_id', assignmentId);
+      if(error) throw error;
+      return (data||[]).map(mapSubmissionRow);
+    },
+    async submit(assignmentId, { content, fileUrl }){
+      const { error } = await sb.from('classroom_submissions')
+        .upsert({ assignment_id: assignmentId, student_id: currentUser.id, content: content||null, file_url: fileUrl||null, submitted_at: new Date().toISOString() }, { onConflict: 'assignment_id,student_id' });
+      if(error) throw error;
+    },
+    async grade(submissionId, grade){
+      const { error } = await sb.from('classroom_submissions').update({ grade, graded_at: new Date().toISOString() }).eq('id', submissionId);
+      if(error) throw error;
+    },
+    async listComments(submissionId){
+      const { data, error } = await sb.from('classroom_comments').select('*').eq('submission_id', submissionId).order('created_at', { ascending:true });
+      if(error) throw error;
+      return (data||[]).map(r => ({ id:r.id, authorId:r.author_id, text:r.text, isPublic:r.is_public, date:new Date(r.created_at).getTime() }));
+    },
+    async addComment(submissionId, text, isPublic){
+      const { error } = await sb.from('classroom_comments').insert({ submission_id: submissionId, author_id: currentUser.id, text, is_public: !!isPublic });
+      if(error) throw error;
+    },
   },
 };
+function mapClassroomRow(row){
+  return { id: row.id, teacherId: row.teacher_id, name: row.name, subject: row.subject||'', description: row.description||'', joinCode: row.join_code, date: new Date(row.created_at).getTime() };
+}
+function mapMaterialRow(row){
+  return { id: row.id, classroomId: row.classroom_id, teacherId: row.teacher_id, title: row.title, body: row.body||'', kind: row.kind, url: row.url||null, date: new Date(row.created_at).getTime() };
+}
+function mapAssignmentRow(row){
+  return { id: row.id, classroomId: row.classroom_id, teacherId: row.teacher_id, title: row.title, objective: row.objective||'', description: row.description||'', dueAt: row.due_at ? new Date(row.due_at).getTime() : null, maxScore: Number(row.max_score||10), date: new Date(row.created_at).getTime() };
+}
+function mapSubmissionRow(row){
+  return { id: row.id, assignmentId: row.assignment_id, studentId: row.student_id, content: row.content||'', fileUrl: row.file_url||null, submittedAt: new Date(row.submitted_at).getTime(), grade: row.grade===null?null:Number(row.grade), gradedAt: row.graded_at ? new Date(row.graded_at).getTime() : null };
+}
+
+// =====================================================================
+// AULA — interfaz (ver DB.classroom arriba y aula.sql para la base de datos)
+// =====================================================================
+document.getElementById('btnGoAula')?.addEventListener('click', () => showView('aula'));
+let currentClassroomView = null;
+function openAulaClase(id){
+  currentClassroomView = id;
+  showView('aulaClase');
+}
+
+async function renderAula(){
+  const statusEl = document.getElementById('aulaTeacherStatus');
+  const contentEl = document.getElementById('aulaContent');
+  const createBtn = document.getElementById('aulaCreateBtn');
+  const joinBtn = document.getElementById('aulaJoinBtn');
+  if(!statusEl || !contentEl) return;
+  statusEl.innerHTML = '';
+  contentEl.innerHTML = '<p class="feed-empty">Cargando…</p>';
+  let status, taught = [], enrolled = [];
+  try{
+    status = await DB.classroom.myStatus();
+    [taught, enrolled] = await Promise.all([
+      status.isTeacher ? DB.classroom.myTaughtClasses() : Promise.resolve([]),
+      DB.classroom.myEnrolledClasses(),
+    ]);
+  }catch(err){
+    contentEl.innerHTML = '<p class="aula-empty">No se pudo cargar Aula. Intenta de nuevo en un momento.</p>';
+    return;
+  }
+  createBtn.hidden = !status.isTeacher;
+  createBtn.onclick = openCreateClassModal;
+  joinBtn.onclick = openJoinClassModal;
+
+  if(status.requestStatus === 'pending' && !status.isTeacher){
+    statusEl.innerHTML = `<div class="aula-banner pending">⏳ Tu solicitud para ser profesor está en revisión.</div>`;
+  } else if(!status.isTeacher){
+    statusEl.innerHTML = `<div class="aula-banner">¿Eres profesor de sustentabilidad? <button type="button" class="btn-text" id="aulaBecomeTeacherBtn">Solicita dar de alta tu cuenta</button></div>`;
+    document.getElementById('aulaBecomeTeacherBtn')?.addEventListener('click', openRequestTeacherModal);
+  }
+
+  const classCardHTML = (c, roleLabel) => `
+    <div class="aula-class-card" data-classroom-id="${c.id}">
+      <div class="aula-class-card-top">
+        <strong>${escapeHtml(c.name)}</strong>
+        <span>${escapeHtml(c.subject || roleLabel)}</span>
+      </div>
+      <div class="aula-class-card-bottom">
+        <span>${roleLabel}</span>
+        ${roleLabel === 'Profesor' ? `<span class="aula-clase-code">${escapeHtml(c.joinCode)}</span>` : ''}
+      </div>
+    </div>`;
+
+  let html = '';
+  if(status.isTeacher){
+    html += `<h3 class="aula-section-label">Tus clases</h3>`;
+    html += taught.length
+      ? `<div class="aula-class-grid">${taught.map(c => classCardHTML(c, 'Profesor')).join('')}</div>`
+      : `<p class="aula-empty">Todavía no has creado ninguna clase.</p>`;
+  }
+  html += `<h3 class="aula-section-label">Clases en las que estás inscrito</h3>`;
+  html += enrolled.length
+    ? `<div class="aula-class-grid">${enrolled.map(c => classCardHTML(c, 'Alumno')).join('')}</div>`
+    : `<p class="aula-empty">Todavía no te has inscrito a ninguna clase. Pide el código a tu profesor.</p>`;
+
+  contentEl.innerHTML = html;
+  contentEl.querySelectorAll('[data-classroom-id]').forEach(card => {
+    card.addEventListener('click', () => openAulaClase(card.dataset.classroomId));
+  });
+}
+
+function openRequestTeacherModal(){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Solicitar cuenta de profesor</h3>
+    <p class="section-desc">Cuéntanos brevemente quién eres y qué materia o grupo das, para comprobar que de verdad eres profesor. Un administrador revisa cada solicitud a mano antes de darte de alta.</p>
+    <form id="requestTeacherForm">
+      <textarea id="requestTeacherNote" rows="4" style="width:100%;" placeholder="Ej: Soy profesor de Ciencias Ambientales en la Secundaria X, grupo 3°A…" required></textarea>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Enviar solicitud</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  document.getElementById('requestTeacherForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const note = document.getElementById('requestTeacherNote').value.trim();
+    if(!note) return;
+    try{
+      await DB.classroom.requestTeacher(note);
+      closeModal();
+      showToast('Solicitud enviada. Te avisamos cuando la revisen.');
+      renderAula();
+    }catch(err){ showToast('No se pudo enviar la solicitud.'); }
+  });
+}
+
+function openJoinClassModal(){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Unirme a una clase</h3>
+    <form id="joinClassForm">
+      <label for="joinClassCode">Código de la clase</label>
+      <input id="joinClassCode" maxlength="6" style="width:100%; text-transform:uppercase;" placeholder="ABC123" required>
+      <label for="joinClassControl" style="margin-top:10px; display:block;">Tu número de control</label>
+      <input id="joinClassControl" style="width:100%;" placeholder="Ej: 21120001" required>
+      <p class="auth-error" id="joinClassError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Unirme</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  document.getElementById('joinClassForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = document.getElementById('joinClassCode').value.trim();
+    const control = document.getElementById('joinClassControl').value.trim();
+    const errorEl = document.getElementById('joinClassError');
+    errorEl.style.display = 'none';
+    try{
+      const classroomId = await DB.classroom.joinClass(code, control);
+      closeModal();
+      showToast('Te uniste a la clase.');
+      openAulaClase(classroomId);
+    }catch(err){
+      errorEl.textContent = err.message || 'No se pudo unir a la clase.';
+      errorEl.style.display = 'block';
+    }
+  });
+}
+
+function openCreateClassModal(){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Nueva clase</h3>
+    <form id="createClassForm">
+      <label for="createClassName">Nombre</label>
+      <input id="createClassName" style="width:100%;" placeholder="Ej: Ciencias Ambientales 3°A" required>
+      <label for="createClassSubject" style="margin-top:10px; display:block;">Materia (opcional)</label>
+      <input id="createClassSubject" style="width:100%;" placeholder="Ej: Sustentabilidad">
+      <label for="createClassDesc" style="margin-top:10px; display:block;">Descripción (opcional)</label>
+      <textarea id="createClassDesc" rows="3" style="width:100%;"></textarea>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Crear clase</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  document.getElementById('createClassForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('createClassName').value.trim();
+    if(!name) return;
+    const subject = document.getElementById('createClassSubject').value.trim();
+    const description = document.getElementById('createClassDesc').value.trim();
+    try{
+      const cls = await DB.classroom.createClass({ name, subject, description });
+      closeModal();
+      showToast(`Clase creada. Código para inscribirse: ${cls.joinCode}`);
+      renderAula();
+    }catch(err){ showToast('No se pudo crear la clase.'); }
+  });
+}
+
+// ---------- DETALLE DE CLASE ----------
+let aulaClaseTab = 'materiales';
+let aulaClaseIsTeacher = false;
+let aulaClaseCache = null;
+
+async function renderAulaClase(){
+  aulaClaseTab = 'materiales';
+  const wrap = document.getElementById('aulaClaseContent');
+  if(!wrap) return;
+  wrap.innerHTML = '<p class="feed-empty">Cargando…</p>';
+  if(!currentClassroomView){ wrap.innerHTML = '<p class="aula-empty">No se encontró la clase.</p>'; return; }
+  let cls;
+  try{ cls = await DB.classroom.getClass(currentClassroomView); }catch(err){ cls = null; }
+  if(!cls){ wrap.innerHTML = '<p class="aula-empty">No se encontró la clase (o ya no tienes acceso a ella).</p>'; return; }
+  aulaClaseCache = cls;
+  aulaClaseIsTeacher = cls.teacherId === currentUser.id;
+  paintAulaClaseShell();
+  await renderAulaClaseTab();
+}
+
+function paintAulaClaseShell(){
+  const wrap = document.getElementById('aulaClaseContent');
+  const cls = aulaClaseCache;
+  wrap.innerHTML = `
+    <div class="aula-clase-head">
+      <div>
+        <h2>${escapeHtml(cls.name)}</h2>
+        ${cls.subject ? `<p class="section-desc">${escapeHtml(cls.subject)}</p>` : ''}
+      </div>
+      ${aulaClaseIsTeacher ? `<span class="aula-clase-code" title="Código para inscribirse a esta clase">${escapeHtml(cls.joinCode)}</span>` : ''}
+    </div>
+    <div class="aula-tabs">
+      <button type="button" data-aula-tab="materiales" class="active">Materiales</button>
+      <button type="button" data-aula-tab="tareas">Tareas</button>
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos">Alumnos</button>` : ''}
+    </div>
+    <div class="aula-tab-body" id="aulaTabBody"><p class="feed-empty">Cargando…</p></div>
+  `;
+  wrap.querySelectorAll('[data-aula-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      wrap.querySelectorAll('[data-aula-tab]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      aulaClaseTab = btn.dataset.aulaTab;
+      renderAulaClaseTab();
+    });
+  });
+}
+
+async function renderAulaClaseTab(){
+  const body = document.getElementById('aulaTabBody');
+  if(!body) return;
+  body.innerHTML = '<p class="feed-empty">Cargando…</p>';
+  if(aulaClaseTab === 'materiales') return renderAulaMaterialesTab(body);
+  if(aulaClaseTab === 'tareas') return renderAulaTareasTab(body);
+  if(aulaClaseTab === 'alumnos') return renderAulaAlumnosTab(body);
+}
+
+const AULA_MATERIAL_ICONS = { texto:'📝', link:'🔗', imagen:'🖼️', pdf:'📄', word:'📃', powerpoint:'📊', otro:'📎' };
+const AULA_FILE_KINDS = ['imagen','pdf','word','powerpoint','otro'];
+
+async function renderAulaMaterialesTab(body){
+  let materials;
+  try{ materials = await DB.classroom.listMaterials(aulaClaseCache.id); }catch(err){ materials = []; }
+  const addBtn = aulaClaseIsTeacher ? `<button type="button" class="btn btn-outline btn-small" id="aulaAddMaterialBtn" style="margin-bottom:12px;">＋ Agregar material</button>` : '';
+  const rows = materials.length ? materials.map(m => `
+    <div class="aula-material-row">
+      <div class="aula-material-icon">${AULA_MATERIAL_ICONS[m.kind] || '📎'}</div>
+      <div style="min-width:0;">
+        <strong>${escapeHtml(m.title)}</strong>
+        ${m.body ? `<p>${escapeHtml(m.body)}</p>` : ''}
+      </div>
+      ${m.url ? `<a href="${escapeHtml(m.url)}" target="_blank" rel="noopener">${m.kind === 'link' ? 'Abrir' : 'Descargar'}</a>` : ''}
+      ${aulaClaseIsTeacher ? `<button type="button" class="btn-text aula-material-delete" data-id="${m.id}" style="color:#a3392c;">Borrar</button>` : ''}
+    </div>
+  `).join('') : '<p class="aula-empty">Todavía no hay materiales.</p>';
+  body.innerHTML = addBtn + rows;
+  document.getElementById('aulaAddMaterialBtn')?.addEventListener('click', openAddMaterialModal);
+  body.querySelectorAll('.aula-material-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      showConfirmDialog({
+        title: 'Borrar material',
+        message: '¿Seguro que quieres borrar este material? Tus alumnos ya no podrán verlo.',
+        confirmLabel: 'Borrar',
+        danger: true,
+        onConfirm: async () => {
+          try{ await DB.classroom.removeMaterial(btn.dataset.id); renderAulaClaseTab(); }
+          catch(err){ showToast('No se pudo borrar.'); }
+        }
+      });
+    });
+  });
+}
+
+function openAddMaterialModal(){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Agregar material</h3>
+    <form id="addMaterialForm">
+      <label for="materialTitle">Título</label>
+      <input id="materialTitle" style="width:100%;" required>
+      <label for="materialKind" style="margin-top:10px; display:block;">Tipo</label>
+      <select id="materialKind" style="width:100%;">
+        <option value="texto">Texto</option>
+        <option value="link">Link</option>
+        <option value="imagen">Imagen</option>
+        <option value="pdf">PDF</option>
+        <option value="word">Word</option>
+        <option value="powerpoint">PowerPoint</option>
+        <option value="otro">Otro archivo</option>
+      </select>
+      <div style="margin-top:10px;">
+        <label for="materialBody">Descripción (opcional)</label>
+        <textarea id="materialBody" rows="3" style="width:100%;"></textarea>
+      </div>
+      <div id="materialUrlWrap" style="margin-top:10px; display:none;">
+        <label for="materialUrl">Link</label>
+        <input id="materialUrl" style="width:100%;" placeholder="https://...">
+      </div>
+      <div id="materialFileWrap" style="margin-top:10px; display:none;">
+        <label for="materialFile">Archivo</label>
+        <input type="file" id="materialFile">
+      </div>
+      <p class="auth-error" id="materialError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;" id="materialSubmitBtn">Agregar</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  const kindSel = document.getElementById('materialKind');
+  const updateFields = () => {
+    document.getElementById('materialUrlWrap').style.display = kindSel.value === 'link' ? 'block' : 'none';
+    document.getElementById('materialFileWrap').style.display = AULA_FILE_KINDS.includes(kindSel.value) ? 'block' : 'none';
+  };
+  kindSel.addEventListener('change', updateFields);
+  updateFields();
+  document.getElementById('addMaterialForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('materialTitle').value.trim();
+    const kind = kindSel.value;
+    const bodyText = document.getElementById('materialBody').value.trim();
+    const errorEl = document.getElementById('materialError');
+    errorEl.style.display = 'none';
+    const btn = document.getElementById('materialSubmitBtn');
+    btn.disabled = true;
+    try{
+      let url = null;
+      if(kind === 'link'){
+        url = document.getElementById('materialUrl').value.trim();
+        if(!url) throw new Error('Pon el link.');
+      } else if(AULA_FILE_KINDS.includes(kind)){
+        const file = document.getElementById('materialFile').files[0];
+        if(!file) throw new Error('Elige un archivo.');
+        url = await uploadImageFile(file, 'classroom-materials');
+      }
+      await DB.classroom.addMaterial(aulaClaseCache.id, { title, body: bodyText, kind, url });
+      closeModal();
+      showToast('Material agregado.');
+      renderAulaClaseTab();
+    }catch(err){
+      errorEl.textContent = err.message || 'No se pudo agregar el material.';
+      errorEl.style.display = 'block';
+    }finally{ btn.disabled = false; }
+  });
+}
+
+function fmtAulaDate(ms){
+  return new Date(ms).toLocaleString('es-MX', { dateStyle:'medium', timeStyle:'short' });
+}
+
+async function renderAulaTareasTab(body){
+  let assignments;
+  try{ assignments = await DB.classroom.listAssignments(aulaClaseCache.id); }catch(err){ assignments = []; }
+  const mySubs = {};
+  if(!aulaClaseIsTeacher){
+    const subs = await Promise.all(assignments.map(a => DB.classroom.mySubmission(a.id).catch(() => null)));
+    assignments.forEach((a, i) => { mySubs[a.id] = subs[i]; });
+  }
+  const addBtn = aulaClaseIsTeacher ? `<button type="button" class="btn btn-outline btn-small" id="aulaAddAssignmentBtn" style="margin-bottom:12px;">＋ Nueva tarea</button>` : '';
+  const cards = assignments.length ? assignments.map(a => {
+    let pill = '';
+    if(!aulaClaseIsTeacher){
+      const sub = mySubs[a.id];
+      if(sub && sub.grade !== null) pill = `<span class="aula-pill graded">Calificado: ${sub.grade}/${a.maxScore}</span>`;
+      else if(sub) pill = (a.dueAt && sub.submittedAt > a.dueAt) ? `<span class="aula-pill late">Entregado tarde</span>` : `<span class="aula-pill ontime">Entregado a tiempo</span>`;
+      else pill = `<span class="aula-pill pending">Pendiente</span>`;
+    }
+    return `
+      <div class="aula-assignment-card" data-assignment-id="${a.id}">
+        <div class="aula-assignment-top">
+          <strong>${escapeHtml(a.title)}</strong>
+          ${pill}
+        </div>
+        <div class="aula-assignment-due">${a.dueAt ? 'Fecha límite: ' + fmtAulaDate(a.dueAt) : 'Sin fecha límite'} · Vale ${a.maxScore} pts</div>
+      </div>`;
+  }).join('') : '<p class="aula-empty">Todavía no hay tareas.</p>';
+  body.innerHTML = addBtn + cards;
+  document.getElementById('aulaAddAssignmentBtn')?.addEventListener('click', openAddAssignmentModal);
+  body.querySelectorAll('[data-assignment-id]').forEach(card => {
+    const a = assignments.find(x => x.id === card.dataset.assignmentId);
+    card.addEventListener('click', () => openAssignmentDetail(a));
+  });
+}
+
+function openAddAssignmentModal(){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Nueva tarea</h3>
+    <form id="addAssignmentForm">
+      <label for="assignTitle">Título</label>
+      <input id="assignTitle" style="width:100%;" required>
+      <label for="assignObjective" style="margin-top:10px; display:block;">Objetivo (opcional)</label>
+      <input id="assignObjective" style="width:100%;">
+      <label for="assignDesc" style="margin-top:10px; display:block;">Instrucciones (opcional)</label>
+      <textarea id="assignDesc" rows="4" style="width:100%;"></textarea>
+      <label for="assignDue" style="margin-top:10px; display:block;">Fecha límite (opcional)</label>
+      <input type="datetime-local" id="assignDue" style="width:100%;">
+      <label for="assignMax" style="margin-top:10px; display:block;">Puntaje máximo</label>
+      <input type="number" id="assignMax" value="10" min="1" style="width:100%;">
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Crear tarea</button>
+    </form>
+  `;
+  modalBackdrop.classList.add('open');
+  document.getElementById('addAssignmentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('assignTitle').value.trim();
+    if(!title) return;
+    const objective = document.getElementById('assignObjective').value.trim();
+    const description = document.getElementById('assignDesc').value.trim();
+    const dueRaw = document.getElementById('assignDue').value;
+    const dueAt = dueRaw ? new Date(dueRaw).toISOString() : null;
+    const maxScore = Number(document.getElementById('assignMax').value) || 10;
+    try{
+      await DB.classroom.addAssignment(aulaClaseCache.id, { title, objective, description, dueAt, maxScore });
+      closeModal();
+      showToast('Tarea creada.');
+      renderAulaClaseTab();
+    }catch(err){ showToast('No se pudo crear la tarea.'); }
+  });
+}
+
+async function openAssignmentDetail(assignment){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = '<p class="feed-empty">Cargando…</p>';
+  modalBackdrop.classList.add('open');
+  if(aulaClaseIsTeacher) return renderAssignmentDetailTeacher(assignment);
+  return renderAssignmentDetailStudent(assignment);
+}
+
+async function renderAssignmentDetailStudent(assignment){
+  let sub, comments = [];
+  try{ sub = await DB.classroom.mySubmission(assignment.id); }catch(err){ sub = null; }
+  if(sub){ try{ comments = await DB.classroom.listComments(sub.id); }catch(err){ comments = []; } }
+  const isLate = sub && assignment.dueAt && sub.submittedAt > assignment.dueAt;
+  modalContent.innerHTML = `
+    <h3>${escapeHtml(assignment.title)}</h3>
+    ${assignment.objective ? `<p><strong>Objetivo:</strong> ${escapeHtml(assignment.objective)}</p>` : ''}
+    ${assignment.description ? `<p>${escapeHtml(assignment.description)}</p>` : ''}
+    <div class="aula-assignment-due">${assignment.dueAt ? 'Fecha límite: ' + fmtAulaDate(assignment.dueAt) : 'Sin fecha límite'} · Vale ${assignment.maxScore} pts</div>
+    <div id="aulaSubmissionArea" style="margin-top:14px;"></div>
+  `;
+  renderAulaSubmissionArea(assignment, sub, comments, isLate);
+}
+
+function renderAulaSubmissionArea(assignment, sub, comments, isLate){
+  const area = document.getElementById('aulaSubmissionArea');
+  if(!sub){
+    area.innerHTML = `
+      <form id="aulaSubmitForm">
+        <label for="aulaSubmitContent">Tu respuesta (texto, opcional si adjuntas archivo)</label>
+        <textarea id="aulaSubmitContent" rows="4" style="width:100%;"></textarea>
+        <label for="aulaSubmitFile" style="margin-top:10px; display:block;">Adjuntar archivo (opcional)</label>
+        <input type="file" id="aulaSubmitFile">
+        <p class="auth-error" id="aulaSubmitError" style="display:none;"></p>
+        <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Entregar tarea</button>
+      </form>
+    `;
+    document.getElementById('aulaSubmitForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const content = document.getElementById('aulaSubmitContent').value.trim();
+      const file = document.getElementById('aulaSubmitFile').files[0];
+      const errorEl = document.getElementById('aulaSubmitError');
+      errorEl.style.display = 'none';
+      if(!content && !file){ errorEl.textContent = 'Escribe algo o adjunta un archivo.'; errorEl.style.display = 'block'; return; }
+      try{
+        let fileUrl = null;
+        if(file) fileUrl = await uploadImageFile(file, 'classroom-submissions');
+        await DB.classroom.submit(assignment.id, { content, fileUrl });
+        showToast('Tarea entregada.');
+        renderAssignmentDetailStudent(assignment);
+      }catch(err){
+        errorEl.textContent = 'No se pudo entregar. Intenta de nuevo.';
+        errorEl.style.display = 'block';
+      }
+    });
+    return;
+  }
+  area.innerHTML = `
+    <div class="aula-banner ${sub.grade === null && isLate ? 'pending' : ''}">
+      ${sub.grade !== null ? `<strong>Calificación: ${sub.grade}/${assignment.maxScore}</strong>` : (isLate ? '⏰ Entregado fuera de tiempo, esperando revisión.' : '✅ Entregado a tiempo, esperando revisión.')}
+    </div>
+    ${sub.content ? `<p style="margin-top:10px;">${escapeHtml(sub.content)}</p>` : ''}
+    ${sub.fileUrl ? `<a href="${escapeHtml(sub.fileUrl)}" target="_blank" rel="noopener" class="btn btn-outline btn-small" style="margin-top:8px; display:inline-block;">Ver mi archivo entregado</a>` : ''}
+    <h4 style="margin-top:16px;">Comentarios</h4>
+    ${comments.length ? comments.map(c => `
+      <div class="aula-comment ${c.isPublic ? 'public' : 'private'}">
+        <strong>${c.authorId === currentUser.id ? 'Tú' : 'Profesor'} · ${c.isPublic ? 'toda la clase' : 'privado'}</strong>
+        ${escapeHtml(c.text)}
+      </div>`).join('') : '<p class="aula-empty">Sin comentarios todavía.</p>'}
+    <form id="aulaCommentForm" style="margin-top:10px; display:flex; gap:8px;">
+      <input id="aulaCommentText" placeholder="Pregúntale algo a tu profesor…" style="flex:1;">
+      <button type="submit" class="btn btn-primary btn-small">Enviar</button>
+    </form>
+    <button type="button" class="btn-text" id="aulaResubmitBtn" style="margin-top:10px;">Volver a entregar</button>
+  `;
+  document.getElementById('aulaCommentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = document.getElementById('aulaCommentText').value.trim();
+    if(!text) return;
+    try{ await DB.classroom.addComment(sub.id, text, false); renderAssignmentDetailStudent(assignment); }
+    catch(err){ showToast('No se pudo enviar el comentario.'); }
+  });
+  document.getElementById('aulaResubmitBtn').addEventListener('click', () => renderAulaSubmissionArea(assignment, null, [], false));
+}
+
+async function renderAssignmentDetailTeacher(assignment){
+  let roster = [], subs = [];
+  try{
+    [roster, subs] = await Promise.all([
+      DB.classroom.listRoster(aulaClaseCache.id),
+      DB.classroom.listSubmissions(assignment.id),
+    ]);
+    await Promise.all(roster.map(r => getUserCached(r.student_id)));
+  }catch(err){ /* se pinta con lo que sí haya llegado */ }
+  const subByStudent = {};
+  subs.forEach(s => { subByStudent[s.studentId] = s; });
+  const rosterHTML = roster.length ? roster.map(r => {
+    const sub = subByStudent[r.student_id];
+    const name = usersCache[r.student_id]?.name || 'Alumno';
+    let pill;
+    if(!sub) pill = `<span class="aula-pill pending">Sin entregar</span>`;
+    else if(sub.grade !== null) pill = `<span class="aula-pill graded">${sub.grade}/${assignment.maxScore}</span>`;
+    else if(assignment.dueAt && sub.submittedAt > assignment.dueAt) pill = `<span class="aula-pill late">Tarde, sin calificar</span>`;
+    else pill = `<span class="aula-pill ontime">A tiempo, sin calificar</span>`;
+    return `
+      <div class="aula-student-row" data-student-id="${r.student_id}" style="${sub ? 'cursor:pointer;' : ''}">
+        <div class="avatar">${escapeHtml(name[0]?.toUpperCase() || '?')}</div>
+        <div style="min-width:0;">
+          <strong>${escapeHtml(name)}</strong>
+          <small>№ control: ${escapeHtml(r.control_number)}</small>
+        </div>
+        ${pill}
+      </div>`;
+  }).join('') : '<p class="aula-empty">Todavía no hay alumnos inscritos.</p>';
+
+  modalContent.innerHTML = `
+    <h3>${escapeHtml(assignment.title)}</h3>
+    ${assignment.description ? `<p>${escapeHtml(assignment.description)}</p>` : ''}
+    <div class="aula-assignment-due">${assignment.dueAt ? 'Fecha límite: ' + fmtAulaDate(assignment.dueAt) : 'Sin fecha límite'} · Vale ${assignment.maxScore} pts</div>
+    <h4 style="margin-top:14px;">Entregas</h4>
+    ${rosterHTML}
+  `;
+  modalContent.querySelectorAll('[data-student-id]').forEach(row => {
+    const sub = subByStudent[row.dataset.studentId];
+    if(!sub) return; // nada que calificar todavía
+    const roster_row = roster.find(r => r.student_id === row.dataset.studentId);
+    row.addEventListener('click', () => openGradeSubmission(assignment, sub, roster_row));
+  });
+}
+
+async function openGradeSubmission(assignment, sub, rosterRow){
+  let comments = [];
+  try{ comments = await DB.classroom.listComments(sub.id); }catch(err){ /* sigue con lista vacía */ }
+  const isLate = assignment.dueAt && sub.submittedAt > assignment.dueAt;
+  const name = usersCache[sub.studentId]?.name || 'Alumno';
+  modalContent.innerHTML = `
+    <button type="button" class="btn-text" id="aulaBackToRoster">← Volver a la lista</button>
+    <h3>${escapeHtml(name)}</h3>
+    <p><small>№ control: ${escapeHtml(rosterRow?.control_number || '—')}</small></p>
+    <span class="aula-pill ${isLate ? 'late' : 'ontime'}">${isLate ? 'Entregado tarde' : 'Entregado a tiempo'}</span>
+    ${sub.content ? `<p style="margin-top:10px;">${escapeHtml(sub.content)}</p>` : ''}
+    ${sub.fileUrl ? `<a href="${escapeHtml(sub.fileUrl)}" target="_blank" rel="noopener" class="btn btn-outline btn-small" style="margin-top:8px; display:inline-block;">Ver archivo entregado</a>` : ''}
+    <form id="gradeForm" style="margin-top:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <label for="gradeInput">Calificación (de ${assignment.maxScore})</label>
+      <input type="number" id="gradeInput" min="0" max="${assignment.maxScore}" step="0.1" value="${sub.grade ?? ''}" style="width:80px;">
+      <button type="submit" class="btn btn-primary btn-small">Guardar</button>
+    </form>
+    <h4 style="margin-top:16px;">Comentarios</h4>
+    ${comments.length ? comments.map(c => `
+      <div class="aula-comment ${c.isPublic ? 'public' : 'private'}">
+        <strong>${c.authorId === currentUser.id ? 'Tú' : escapeHtml(name)} · ${c.isPublic ? 'toda la clase' : 'privado'}</strong>
+        ${escapeHtml(c.text)}
+      </div>`).join('') : '<p class="aula-empty">Sin comentarios.</p>'}
+    <form id="teacherCommentForm" style="margin-top:10px;">
+      <textarea id="teacherCommentText" rows="2" style="width:100%;" placeholder="Escribe un comentario…"></textarea>
+      <label style="font-size:0.76rem; display:block; margin-top:4px;"><input type="checkbox" id="teacherCommentPublic"> Comentario público (toda la clase lo ve)</label>
+      <button type="submit" class="btn btn-outline btn-small" style="margin-top:6px;">Comentar</button>
+    </form>
+  `;
+  document.getElementById('aulaBackToRoster').addEventListener('click', () => renderAssignmentDetailTeacher(assignment));
+  document.getElementById('gradeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const grade = Number(document.getElementById('gradeInput').value);
+    try{
+      await DB.classroom.grade(sub.id, grade);
+      showToast('Calificación guardada.');
+      sub.grade = grade;
+    }catch(err){ showToast('No se pudo guardar la calificación.'); }
+  });
+  document.getElementById('teacherCommentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = document.getElementById('teacherCommentText').value.trim();
+    if(!text) return;
+    const isPublic = document.getElementById('teacherCommentPublic').checked;
+    try{ await DB.classroom.addComment(sub.id, text, isPublic); openGradeSubmission(assignment, sub, rosterRow); }
+    catch(err){ showToast('No se pudo enviar el comentario.'); }
+  });
+}
+
+async function renderAulaAlumnosTab(body){
+  let roster = [];
+  try{
+    roster = await DB.classroom.listRoster(aulaClaseCache.id);
+    await Promise.all(roster.map(r => getUserCached(r.student_id)));
+  }catch(err){ roster = []; }
+  body.innerHTML = roster.length ? roster.map(r => {
+    const name = usersCache[r.student_id]?.name || 'Alumno';
+    return `
+      <div class="aula-student-row">
+        <div class="avatar">${escapeHtml(name[0]?.toUpperCase() || '?')}</div>
+        <div>
+          <strong>${escapeHtml(name)}</strong>
+          <small>№ control: ${escapeHtml(r.control_number)}</small>
+        </div>
+      </div>`;
+  }).join('') : '<p class="aula-empty">Todavía no hay alumnos inscritos. Comparte el código de la clase.</p>';
+}
+
 
 function mapPostRow(row){
   // Soporta las dos formas: la vieja (con post_likes/post_comments embebidos)
@@ -4082,7 +4905,7 @@ function initials(name){
 }
 function avatarHTML(user){
   if(user && user.avatarUrl && /^https?:\/\//i.test(user.avatarUrl)){
-    return `<img src="${escapeHtml(user.avatarUrl)}" alt="">`;
+    return `<img decoding="async" src="${escapeHtml(user.avatarUrl)}" alt="">`;
   }
   return initials(user ? user.name : '');
 }
@@ -4272,7 +5095,7 @@ async function renderUserProfileVisit(){
   } else {
     if(grid){
       grid.innerHTML = posts.map(p => `
-        <img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
+        <img loading="lazy" decoding="async" class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos && p.photos[0]) || placeholderImage(p.id + p.title, p.category)}" alt="${escapeHtml(p.title)}">
       `).join('');
       grid.querySelectorAll('[data-goto]').forEach(img => attachLongPress(img, img.dataset.goto));
     }
@@ -4284,7 +5107,7 @@ async function renderUserProfileVisit(){
       if(uid !== viewingUserId) return;
       logGrid.innerHTML = projects.length ? projects.map(pr => `
         <div class="profile-log-thumb-wrap" data-openproject="${pr.id}">
-          <img src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
+          <img loading="lazy" decoding="async" src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
           <span class="profile-log-badge">📔 Bitácora</span>
         </div>
       `).join('') : '<p class="profile-empty-grid">Esta persona no tiene bitácoras públicas todavía.</p>';
@@ -4446,7 +5269,7 @@ async function showQuickPreviewProject(projectId){
       <div class="avatar">${avatarHTML(ownerObj)}</div>
       <span>${escapeHtml(ownerObj?.name || FALLBACK_USER_NAME)}</span>
     </div>
-    <img src="${escapeHtml(img)}" alt="${escapeHtml(project.title)}">
+    <img loading="lazy" decoding="async" src="${escapeHtml(img)}" alt="${escapeHtml(project.title)}">
     <p class="quick-preview-caption"><strong>${escapeHtml(project.title)}</strong> · ${project.shared ? '🌎 Bitácora pública' : '🔒 Bitácora privada'}</p>
   `;
   document.getElementById('quickPreviewBackdrop').classList.add('open');
@@ -4470,7 +5293,7 @@ async function showQuickPreview(postId){
       <div class="avatar">${avatarHTML(authorObj)}</div>
       <span>${escapeHtml(authorObj?.name || FALLBACK_USER_NAME)}</span>
     </div>
-    <img src="${img}" alt="${escapeHtml(post.title)}">
+    <img loading="lazy" decoding="async" src="${img}" alt="${escapeHtml(post.title)}">
     <p class="quick-preview-caption"><strong>${escapeHtml(post.title)}</strong></p>
   `;
   document.getElementById('quickPreviewBackdrop').classList.add('open');
@@ -5158,7 +5981,7 @@ function renderPhotoPreview(){
     const isVid = p.isVideo || isVideoUrl(p.url);
     return `
     <div class="photo-preview-item">
-      ${isVid ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>` : `<img src="${p.url}" alt="">`}
+      ${isVid ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>` : `<img loading="lazy" decoding="async" src="${p.url}" alt="">`}
       <button type="button" data-removeidx="${i}">&times;</button>
     </div>
   `;
@@ -5428,7 +6251,7 @@ function carouselHTML(post){
       <div class="ig-carousel-track" data-doublelike="${post.id}">
         ${photos.map((src,i) => isVideoUrl(src)
           ? `<video data-idx="${i}" muted playsinline loop preload="metadata"><source src="${escapeHtml(src)}"></video>`
-          : `<img src="${escapeHtml(src)}" alt="Imagen ${i+1} de ${escapeHtml(post.title)}" data-idx="${i}" onerror="this.src='${placeholderImage(post.id+i, post.category)}'">`
+          : `<img loading="lazy" decoding="async" src="${escapeHtml(src)}" alt="Imagen ${i+1} de ${escapeHtml(post.title)}" data-idx="${i}" onerror="this.src='${placeholderImage(post.id+i, post.category)}'">`
         ).join('')}
       </div>
       ${multi ? `
@@ -5455,7 +6278,7 @@ function logCarouselHTML(entry){
       <div class="ig-carousel-track">
         ${media.map((src,i) => isVideoUrl(src)
           ? `<video data-idx="${i}" muted playsinline loop preload="metadata" controls><source src="${escapeHtml(src)}"></video>`
-          : `<img src="${escapeHtml(src)}" alt="" data-idx="${i}" onerror="this.style.display='none'">`
+          : `<img loading="lazy" decoding="async" src="${escapeHtml(src)}" alt="" data-idx="${i}" onerror="this.style.display='none'">`
         ).join('')}
       </div>
       ${multi ? `
@@ -5466,6 +6289,21 @@ function logCarouselHTML(entry){
       ` : ''}
     </div>
   `;
+}
+// Evita que una función que corre en cada evento "scroll" (que dispara decenas de veces
+// por segundo durante un swipe) se ejecute más de una vez por frame pintado: con
+// requestAnimationFrame se agrupan todas esas llamadas y solo corre la última, justo antes
+// de que el navegador vuelva a pintar. Mismo resultado visual, mucho menos trabajo — se nota
+// sobre todo con muchas publicaciones en pantalla a la vez.
+function rafThrottle(fn){
+  let scheduled = false;
+  let lastArgs = null;
+  return (...args) => {
+    lastArgs = args;
+    if(scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; fn(...lastArgs); });
+  };
 }
 // Ata flechas/puntos/contador de un carrusel de bitácora ya insertado en el DOM.
 // Genérico a propósito: solo sincroniza la UI con el scroll, nada de likes.
@@ -5484,7 +6322,7 @@ function bindLogCarousel(container){
     if(nextBtn) nextBtn.disabled = idx === total - 1;
     track.querySelectorAll('video').forEach(v => { if(!v.paused) v.pause(); });
   };
-  track.addEventListener('scroll', () => syncUI(Math.round(track.scrollLeft / track.clientWidth)));
+  track.addEventListener('scroll', rafThrottle(() => syncUI(Math.round(track.scrollLeft / track.clientWidth))), { passive: true });
   if(prevBtn) prevBtn.addEventListener('click', () => { const idx = Math.max(0, Math.round(track.scrollLeft/track.clientWidth)-1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
   if(nextBtn) nextBtn.addEventListener('click', () => { const idx = Math.min(total-1, Math.round(track.scrollLeft/track.clientWidth)+1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
 }
@@ -5687,7 +6525,7 @@ function bindPostCard(article){
         pauseAllVideosIn(article);
         if(visiblePostIds.has(id)) playActiveVideoIn(article);
       };
-      track.addEventListener('scroll', () => syncUI(Math.round(track.scrollLeft / track.clientWidth)));
+      track.addEventListener('scroll', rafThrottle(() => syncUI(Math.round(track.scrollLeft / track.clientWidth))), { passive: true });
       if(prevBtn) prevBtn.addEventListener('click', () => { const idx = Math.max(0, Math.round(track.scrollLeft/track.clientWidth)-1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
       if(nextBtn) nextBtn.addEventListener('click', () => { const idx = Math.min(total-1, Math.round(track.scrollLeft/track.clientWidth)+1); track.scrollTo({left: idx*track.clientWidth, behavior:'smooth'}); });
     }
@@ -6179,7 +7017,7 @@ async function openCommentsView(postId){
   modalBox.className = 'modal modal-wide';
   modalContent.innerHTML = `
     <div class="comments-view">
-      <div class="comments-view-media"><img src="${img}" alt=""></div>
+      <div class="comments-view-media"><img loading="lazy" decoding="async" src="${img}" alt=""></div>
       <div class="comments-view-side">
         <div class="comments-sheet-handle"><span></span></div>
         <div class="comments-view-header">
@@ -6517,10 +7355,10 @@ async function refreshPostFromNotification(n){
       if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] ese comentario ya estaba en caché:', n.comment_id);
     } else {
       try{
-        const { data: row, error } = await sb.from('post_comments')
-          .select('id, author_id, text, created_at, parent_id')
-          .eq('id', n.comment_id).maybeSingle();
-        if(error) console.warn('[refreshPostFromNotification] error al traer el comentario:', error);
+        const row = await DB.posts.getCommentById(n.comment_id).catch(err => {
+          console.warn('[refreshPostFromNotification] error al traer el comentario:', err);
+          return null;
+        });
         if(row){
           if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] comentario traído con éxito:', row);
           cached.comments.push({
@@ -6827,7 +7665,7 @@ function appendPendingBubble(bodyEl, text, attachment){
   const mediaHTML = attachment
     ? (attachment.isVideo
         ? `<div class="message-video-bubble"><video src="${attachment.url}" muted></video><span class="message-video-play">▶</span></div>`
-        : `<img class="message-image-bubble" src="${attachment.url}" alt="">`)
+        : `<img loading="lazy" decoding="async" class="message-image-bubble" src="${attachment.url}" alt="">`)
     : '';
   const wrap = document.createElement('div');
   wrap.className = 'message-group me';
@@ -6982,8 +7820,6 @@ async function renderStories(){
       story => viewed.has(story.id)
     );
 
-    const segmentStyle = `--story-segments:${Math.max(1, g.stories.length)};`;
-
     // Instagram mantiene la foto/avatar del perfil dentro del aro.
     // La foto de la historia NO sustituye el avatar.
     const avatarMarkup = avatarHTML(authorObj);
@@ -6995,10 +7831,7 @@ async function renderStories(){
         data-groupindex="${i}"
         aria-label="Historias de ${escapeHtml(name)}"
       >
-        <div
-          class="story-ring ${allSeen ? 'seen' : 'story-ring-partial'}"
-          style="${segmentStyle}"
-        >
+        <div class="story-ring ${allSeen ? 'seen' : ''}">
           <div class="story-avatar">
             ${avatarMarkup}
           </div>
@@ -7178,7 +8011,7 @@ function openAddStoryModal(){
 
         ${isVid
           ? `<video src="${previewUrl}" muted></video><span class="photo-preview-video-badge">▶</span>`
-          : `<img src="${previewUrl}" alt="Vista previa">`}
+          : `<img loading="lazy" decoding="async" src="${previewUrl}" alt="Vista previa">`}
 
         <button
           type="button"
@@ -7384,7 +8217,7 @@ function renderStoryViewer(){
       </div>
       <div class="story-view-img-wrap">${isVideoStory
         ? `<video id="storyMediaVideo" src="${escapeHtml(img)}" muted playsinline preload="auto"></video>`
-        : `<img src="${escapeHtml(img)}" alt="">`}</div>
+        : `<img loading="lazy" decoding="async" src="${escapeHtml(img)}" alt="">`}</div>
       ${s.text ? `<p class="story-view-text">${escapeHtml(s.text)}</p>` : ''}
       <button type="button" class="story-nav-arrow story-nav-prev" id="storyNavPrev" ${(currentGroupIndex===0 && currentStoryIndex===0) ? 'disabled' : ''} aria-label="Historia anterior">‹</button>
       <button type="button" class="story-nav-arrow story-nav-next" id="storyNavNext" aria-label="Siguiente historia">›</button>
@@ -7722,7 +8555,7 @@ function notifRowHTML(it){
         <strong>${escapeHtml(actor?.name || 'Alguien')}</strong> ${NOTIF_VERBS[it.type]} <em>${escapeHtml(it.postTitle || '')}</em>${it.text ? `: "${escapeHtml(it.text.slice(0,60))}${it.text.length>60?'…':''}"` : ''}
         <span class="notif-when">${fmtRelative(it.date)}</span>
       </div>
-      <img class="notif-thumb" src="${it.postThumb || ''}" alt="">
+      <img loading="lazy" decoding="async" class="notif-thumb" src="${it.postThumb || ''}" alt="">
     </div>
   `;
 }
@@ -8028,7 +8861,7 @@ function renderMessageAttachPreview(){
   const p = pendingMessageAttachment;
   box.innerHTML = `
     <div class="photo-preview-item">
-      ${p.isVideo ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>` : `<img src="${p.url}" alt="">`}
+      ${p.isVideo ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>` : `<img loading="lazy" decoding="async" src="${p.url}" alt="">`}
       <button type="button" id="messageAttachRemove">&times;</button>
     </div>
   `;
@@ -8328,13 +9161,13 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       const mediaHTML = (!msg.deletedForEveryone && msg.mediaUrl) ? (
         msg.mediaType === 'video'
           ? `<div class="message-video-bubble" data-msgvideo="${msg.id}"><video src="${escapeHtml(msg.mediaUrl)}" playsinline preload="metadata"></video><span class="message-video-play">▶</span></div>`
-          : `<img class="message-image-bubble" src="${escapeHtml(msg.mediaUrl)}" alt="">`
+          : `<img loading="lazy" decoding="async" class="message-image-bubble" src="${escapeHtml(msg.mediaUrl)}" alt="">`
       ) : '';
       return `
         <div class="message-row ${isMine ? 'me' : 'them'} ${enterIds.has(msg.id) ? 'msg-enter' : ''}">
           <div class="message-bubble-shell ${isMine ? 'mine' : 'theirs'}" data-message-id="${msg.id}" data-msg-sender="${msg.senderId}">
             <div class="message-bubble ${msg.deletedForEveryone ? 'deleted' : ''} ${mediaHTML ? 'has-media' : ''}">
-              ${msg.replyStoryPhoto ? `<span class="message-story-reply"><img src="${escapeHtml(msg.replyStoryPhoto)}" alt=""><span>${storyReplyLabel}</span></span>` : ''}
+              ${msg.replyStoryPhoto ? `<span class="message-story-reply"><img loading="lazy" decoding="async" src="${escapeHtml(msg.replyStoryPhoto)}" alt=""><span>${storyReplyLabel}</span></span>` : ''}
               ${quoted ? `<span class="message-reply-quote" data-scroll-to="${quoted.id}"><strong>${escapeHtml(quotedAuthor)}:</strong> ${escapeHtml((quoted.text || '').slice(0,60))}</span>` : ''}
               ${mediaHTML}
               ${(!msg.deletedForEveryone && !msg.text) ? '' : `<span class="message-text">${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(msg.text)}</span>`}
@@ -8753,7 +9586,7 @@ async function renderBitacoraProjectList(){
   }
   grid.innerHTML = projects.map(pr => `
     <div class="profile-log-thumb-wrap" data-openproject="${pr.id}">
-      <img src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
+      <img loading="lazy" decoding="async" src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
       <span class="profile-log-badge">${pr.shared ? '🌎' : '🔒'}</span>
     </div>
   `).join('');
@@ -8779,7 +9612,7 @@ async function renderProfileLogs(){
   }
   grid.innerHTML = projects.map(pr => `
     <div class="profile-log-thumb-wrap" data-openproject="${pr.id}">
-      <img src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
+      <img loading="lazy" decoding="async" src="${escapeHtml(pr.coverPhoto || placeholderImage(pr.id+pr.title, pr.category))}" alt="${escapeHtml(pr.title)}" onerror="this.src='${placeholderImage(pr.id, pr.category)}'">
       <span class="profile-log-badge">${pr.shared ? '🌎' : '🔒'}</span>
     </div>
   `).join('');
@@ -8824,7 +9657,7 @@ async function renderProjectView(){
   wrap.innerHTML = `
     <div class="project-view-head">
       <div class="project-view-cover">
-        <img src="${escapeHtml(project.coverPhoto || placeholderImage(project.id+project.title, project.category))}" alt="${escapeHtml(project.title)}" onerror="this.src='${placeholderImage(project.id, project.category)}'">
+        <img loading="lazy" decoding="async" src="${escapeHtml(project.coverPhoto || placeholderImage(project.id+project.title, project.category))}" alt="${escapeHtml(project.title)}" onerror="this.src='${placeholderImage(project.id, project.category)}'">
       </div>
       <div>
         <div class="project-view-title-row">
@@ -8984,7 +9817,7 @@ function openAddProjectEntryModal(project){
       <div class="photo-preview-item">
         ${p.isVideo
           ? `<video src="${p.url}" muted></video><span class="photo-preview-video-badge">▶</span>`
-          : `<img src="${p.url}" alt="">`}
+          : `<img loading="lazy" decoding="async" src="${p.url}" alt="">`}
         <button type="button" data-removeentryidx="${i}">&times;</button>
       </div>
     `).join('');
@@ -9598,7 +10431,7 @@ async function startMfaEnrollment(){
     const qr=data?.totp?.qr_code;
     const secret=data?.totp?.secret;
     el.innerHTML=`
-      ${qr ? `<img class="mfa-qr" src="${qr}" alt="Código QR para configurar 2FA">` : ''}
+      ${qr ? `<img loading="lazy" decoding="async" class="mfa-qr" src="${qr}" alt="Código QR para configurar 2FA">` : ''}
       <p class="security-modal-note">Escanea el QR con tu aplicación autenticadora. Si no puedes escanearlo, usa la clave manual.</p>
       <div class="security-hint" style="word-break:break-all;"><strong>Clave:</strong> ${escapeHtml(secret||'No disponible')}</div>
       <div class="security-field" style="margin-top:10px;">
@@ -9996,7 +10829,7 @@ async function renderProfile(){
   const grid=document.getElementById('profilePostGrid');
   if(!currentUser) grid.innerHTML='<p class="profile-empty-grid">Inicia sesión para ver tus publicaciones aquí.</p>';
   else if(!stats.ownPostList.length) grid.innerHTML='<p class="profile-empty-grid">Comparte algo en Inicio para verlo aquí.</p>';
-  else { grid.innerHTML=stats.ownPostList.map(p=>`<img class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0])||placeholderImage(p.id+p.title,p.category)}" alt="${escapeHtml(p.title)}">`).join(''); grid.querySelectorAll('[data-goto]').forEach(img=>attachLongPress(img,img.dataset.goto)); }
+  else { grid.innerHTML=stats.ownPostList.map(p=>`<img loading="lazy" decoding="async" class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0])||placeholderImage(p.id+p.title,p.category)}" alt="${escapeHtml(p.title)}">`).join(''); grid.querySelectorAll('[data-goto]').forEach(img=>attachLongPress(img,img.dataset.goto)); }
   const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id));
   const doneMissions=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;
   const bs=document.getElementById('profileBadgeSummary'); if(bs) bs.textContent=`${earned.length}/${BADGES.length} logrados · ver todos`;
@@ -10094,6 +10927,7 @@ async function openAdminPanel(){
     <div class="admin-panel-tabs">
       <button type="button" data-admintab="conversaciones" class="${adminReportsTab==='conversaciones'?'active':''}">Conversaciones</button>
       <button type="button" data-admintab="publicaciones" class="${adminReportsTab==='publicaciones'?'active':''}">Publicaciones</button>
+      <button type="button" data-admintab="profesores" class="${adminReportsTab==='profesores'?'active':''}">Profesores</button>
     </div>
     <div id="adminPanelBody"><p class="admin-panel-empty">Cargando…</p></div>
   `;
@@ -10107,6 +10941,7 @@ async function openAdminPanel(){
 async function renderAdminPanelBody(){
   const body = document.getElementById('adminPanelBody');
   if(!body) return;
+  if(adminReportsTab === 'profesores') return renderAdminTeacherRequests(body);
   try{
     const rows = adminReportsTab === 'conversaciones'
       ? await DB.admin.listConversationReports()
@@ -10137,6 +10972,46 @@ async function renderAdminPanelBody(){
     }));
   }catch(err){
     body.innerHTML = `<p class="admin-panel-empty">No se pudieron cargar los reportes${err?.message ? ': ' + escapeHtml(err.message) : ''}.</p>`;
+  }
+}
+// Aprobar aquí es lo único que de verdad da de alta a un profesor (is_teacher se
+// actualiza del lado del servidor, dentro de admin_review_teacher_request — el
+// cliente nunca escribe esa columna directamente). Así, aunque cualquiera pueda
+// mandar la solicitud desde Aula, solo un administrador con 2FA la puede aprobar.
+async function renderAdminTeacherRequests(body){
+  try{
+    const rows = await DB.admin.listTeacherRequests();
+    if(!rows.length){ body.innerHTML = '<p class="admin-panel-empty">No hay solicitudes de profesor 🌱</p>'; return; }
+    body.innerHTML = rows.map(r => `
+      <div class="admin-report-row ${r.status !== 'pending' ? 'reviewed' : ''}" data-requestid="${r.id}">
+        <div class="admin-report-meta">
+          <span>${fmtRelative(r.createdAt)}</span>
+          <span>${escapeHtml(r.userName)}</span>
+          <span>· ${r.status === 'pending' ? 'pendiente' : (r.status === 'approved' ? 'aprobada' : 'rechazada')}</span>
+        </div>
+        <p>${escapeHtml(r.note)}</p>
+        ${r.status === 'pending' ? `
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-primary" data-teacherapprove="${r.id}">Aprobar</button>
+            <button type="button" class="btn btn-outline" data-teacherreject="${r.id}">Rechazar</button>
+          </div>` : ''}
+      </div>
+    `).join('');
+    body.querySelectorAll('[data-teacherapprove],[data-teacherreject]').forEach(btn => btn.addEventListener('click', async () => {
+      const approve = btn.hasAttribute('data-teacherapprove');
+      const id = btn.dataset.teacherapprove || btn.dataset.teacherreject;
+      btn.disabled = true;
+      try{
+        await DB.admin.reviewTeacherRequest(id, approve);
+        showToast(approve ? 'Profesor dado de alta.' : 'Solicitud rechazada.');
+        await renderAdminPanelBody();
+      }catch(err){
+        showToast(err?.message || 'No se pudo actualizar la solicitud.');
+        btn.disabled = false;
+      }
+    }));
+  }catch(err){
+    body.innerHTML = `<p class="admin-panel-empty">No se pudieron cargar las solicitudes${err?.message ? ': ' + escapeHtml(err.message) : ''}.</p>`;
   }
 }
 const START_THRESHOLDS = [1,2,3,5,10,20];
@@ -10299,7 +11174,16 @@ window.addEventListener('unhandledrejection', (event) => {
 (async () => {
   let session = null;
   try {
-    ({ data: { session } } = await sb.auth.getSession());
+    // Sin protección, esta es LA llamada que más veces puede dejar la app
+    // "cargando" para siempre: es lo primero que corre al abrir la página, y
+    // si el candado interno de sesión de Supabase se atora (el mismo problema
+    // de fondo que ya arreglamos en ensureMfaSatisfied/refreshAdminStatus —
+    // ver esas notas), esta promesa nunca resuelve ni rechaza, así que nada
+    // de lo que sigue (quitar la pantalla de carga incluido) llega a correr.
+    // Con withTimeout, si se cuelga más de 8s seguimos adelante como si no
+    // hubiera sesión (falla seguro: como mucho pide iniciar sesión de nuevo,
+    // nunca deja pasar sin autenticar).
+    ({ data: { session } } = await withTimeout(sb.auth.getSession(), 8000, 'getSession (arranque)'));
   } catch(err) {
     console.warn('[arranque] no se pudo consultar la sesión inicial:', err);
   }
