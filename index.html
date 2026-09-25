@@ -4356,6 +4356,7 @@ function paintAulaClaseShell(){
       <button type="button" data-aula-tab="materiales" class="active">Materiales</button>
       <button type="button" data-aula-tab="tareas">Tareas</button>
       ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos">Alumnos</button>` : ''}
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="ajustes">Ajustes</button>` : ''}
     </div>
     <div class="aula-tab-body" id="aulaTabBody"><p class="feed-empty">Cargando…</p></div>
   `;
@@ -4376,6 +4377,7 @@ async function renderAulaClaseTab(){
   if(aulaClaseTab === 'materiales') return renderAulaMaterialesTab(body);
   if(aulaClaseTab === 'tareas') return renderAulaTareasTab(body);
   if(aulaClaseTab === 'alumnos') return renderAulaAlumnosTab(body);
+  if(aulaClaseTab === 'ajustes') return renderAulaAjustesTab(body);
 }
 
 const AULA_MATERIAL_ICONS = { texto:'📝', link:'🔗', imagen:'🖼️', pdf:'📄', word:'📃', powerpoint:'📊', otro:'📎' };
@@ -4740,12 +4742,34 @@ async function openGradeSubmission(assignment, sub, rosterRow){
 }
 
 async function renderAulaAlumnosTab(body){
-  let roster = [];
+  let roster = [], pending = [];
   try{
-    roster = await DB.classroom.listRoster(aulaClaseCache.id);
-    await Promise.all(roster.map(r => getUserCached(r.student_id)));
-  }catch(err){ roster = []; }
-  body.innerHTML = roster.length ? roster.map(r => {
+    const tasks = [DB.classroom.listRoster(aulaClaseCache.id)];
+    if(aulaClaseCache.joinMode === 'approval') tasks.push(DB.classroom.listPendingRequests(aulaClaseCache.id));
+    const results = await Promise.all(tasks);
+    roster = results[0] || [];
+    pending = results[1] || [];
+    await Promise.all([...roster, ...pending].map(r => getUserCached(r.student_id)));
+  }catch(err){ /* se pinta con lo que sí haya llegado */ }
+
+  const pendingHTML = aulaClaseCache.joinMode === 'approval' ? `
+    <h4 class="aula-section-label" style="margin-top:0;">Solicitudes pendientes</h4>
+    ${pending.length ? pending.map(r => {
+      const name = usersCache[r.student_id]?.name || 'Alumno';
+      return `
+      <div class="aula-student-row" style="gap:8px; flex-wrap:wrap;">
+        <div class="avatar">${escapeHtml(name[0]?.toUpperCase() || '?')}</div>
+        <div style="min-width:0; flex:1;">
+          <strong>${escapeHtml(name)}</strong>
+          <small>№ control: ${escapeHtml(r.control_number)}</small>
+        </div>
+        <button type="button" class="btn btn-primary btn-small aula-request-approve" data-id="${r.id}">Aceptar</button>
+        <button type="button" class="btn-text aula-request-reject" data-id="${r.id}" style="color:#a3392c;">Rechazar</button>
+      </div>`;
+    }).join('') : '<p class="aula-empty">No hay solicitudes en espera.</p>'}
+  ` : '';
+
+  const rosterHTML = roster.length ? roster.map(r => {
     const name = usersCache[r.student_id]?.name || 'Alumno';
     return `
       <div class="aula-student-row">
@@ -4755,7 +4779,148 @@ async function renderAulaAlumnosTab(body){
           <small>№ control: ${escapeHtml(r.control_number)}</small>
         </div>
       </div>`;
-  }).join('') : '<p class="aula-empty">Todavía no hay alumnos inscritos. Comparte el código de la clase.</p>';
+  }).join('') : '<p class="aula-empty">Todavía no hay alumnos inscritos. Comparte el código de la clase (pestaña Ajustes).</p>';
+
+  body.innerHTML = `
+    <button type="button" class="btn btn-outline btn-small" id="aulaEnrollBtn" style="margin-bottom:14px;">＋ Dar de alta a un alumno</button>
+    ${pendingHTML}
+    <h4 class="aula-section-label">Alumnos inscritos</h4>
+    ${rosterHTML}
+  `;
+
+  document.getElementById('aulaEnrollBtn')?.addEventListener('click', openEnrollStudentModal);
+  body.querySelectorAll('.aula-request-approve').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try{
+        await DB.classroom.reviewJoinRequest(btn.dataset.id, true);
+        showToast('Alumno aceptado.');
+        renderAulaAlumnosTab(body);
+      }catch(err){ showToast('No se pudo aceptar la solicitud.'); btn.disabled = false; }
+    });
+  });
+  body.querySelectorAll('.aula-request-reject').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if(!confirm('¿Rechazar esta solicitud? El alumno podría intentar unirse de nuevo.')) return;
+      btn.disabled = true;
+      try{
+        await DB.classroom.reviewJoinRequest(btn.dataset.id, false);
+        showToast('Solicitud rechazada.');
+        renderAulaAlumnosTab(body);
+      }catch(err){ showToast('No se pudo rechazar la solicitud.'); btn.disabled = false; }
+    });
+  });
+}
+
+function openEnrollStudentModal(){
+  modalBox.className = 'modal';
+  modalContent.innerHTML = `
+    <h3>Dar de alta a un alumno</h3>
+    <p class="section-desc">Búscalo por su nombre de usuario. Queda inscrito de una vez, sin código ni aprobación.</p>
+    <form id="enrollSearchForm">
+      <input id="enrollSearchInput" placeholder="nombre de usuario…" autocomplete="off" required>
+      <button type="submit" class="btn btn-outline btn-small" style="margin-top:8px;">Buscar</button>
+    </form>
+    <div id="enrollSearchResults" style="margin-top:10px;"></div>
+  `;
+  modalBackdrop.classList.add('open');
+  document.getElementById('enrollSearchForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const q = document.getElementById('enrollSearchInput').value.trim();
+    const resultsEl = document.getElementById('enrollSearchResults');
+    if(!q){ resultsEl.innerHTML = ''; return; }
+    resultsEl.innerHTML = '<p class="feed-empty">Buscando…</p>';
+    try{
+      const people = await DB.users.search(q);
+      if(!people.length){ resultsEl.innerHTML = '<p class="aula-empty">No se encontró a nadie con ese nombre de usuario.</p>'; return; }
+      resultsEl.innerHTML = people.map(p => `
+        <div class="aula-student-row" data-user-id="${p.id}" style="cursor:pointer;">
+          <div class="avatar">${escapeHtml((p.name||'?')[0]?.toUpperCase() || '?')}</div>
+          <div><strong>@${escapeHtml(p.name)}</strong></div>
+        </div>`).join('');
+      resultsEl.querySelectorAll('[data-user-id]').forEach(row => {
+        const person = people.find(p => p.id === row.dataset.userId);
+        row.addEventListener('click', () => renderEnrollConfirmStep(row.dataset.userId, person));
+      });
+    }catch(err){ resultsEl.innerHTML = '<p class="aula-empty">No se pudo buscar. Intenta de nuevo.</p>'; }
+  });
+}
+
+function renderEnrollConfirmStep(userId, person){
+  modalContent.innerHTML = `
+    <button type="button" class="btn-text" id="aulaBackToSearch">← Buscar otro</button>
+    <h3>Dar de alta a @${escapeHtml(person?.name || 'alumno')}</h3>
+    <form id="enrollConfirmForm">
+      <label for="enrollControlNumber">Número de control</label>
+      <input id="enrollControlNumber" style="width:100%;" placeholder="Ej: 21120001" required>
+      <p class="auth-error" id="enrollConfirmError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Dar de alta</button>
+    </form>
+  `;
+  document.getElementById('aulaBackToSearch').addEventListener('click', openEnrollStudentModal);
+  document.getElementById('enrollConfirmForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const controlNumber = document.getElementById('enrollControlNumber').value.trim();
+    const errorEl = document.getElementById('enrollConfirmError');
+    errorEl.style.display = 'none';
+    try{
+      await DB.classroom.enrollStudent(aulaClaseCache.id, userId, controlNumber);
+      closeModal();
+      showToast('Alumno dado de alta.');
+      renderAulaClaseTab();
+    }catch(err){
+      errorEl.textContent = err.message || 'No se pudo dar de alta al alumno.';
+      errorEl.style.display = 'block';
+    }
+  });
+}
+
+function buildClassJoinUrl(joinCode){
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('view', 'aula');
+  url.searchParams.set('joinClass', joinCode);
+  return url.toString();
+}
+
+async function copyToClipboardAula(text, okMessage){
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast(okMessage);
+  }catch(err){
+    window.prompt('Copia esto:', text); // el navegador bloqueó el portapapeles — se ofrece copia manual
+  }
+}
+
+async function renderAulaAjustesTab(body){
+  const cls = aulaClaseCache;
+  const joinUrl = buildClassJoinUrl(cls.joinCode);
+  body.innerHTML = `
+    <h4 class="aula-section-label" style="margin-top:0;">Compartir clase</h4>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+      <span class="aula-clase-code" style="font-size:1.05rem;">${escapeHtml(cls.joinCode)}</span>
+      <button type="button" class="btn btn-outline btn-small" id="aulaCopyCodeBtn">Copiar código</button>
+      <button type="button" class="btn btn-outline btn-small" id="aulaCopyLinkBtn">Copiar link para unirse</button>
+    </div>
+    <h4 class="aula-section-label">¿Cómo se inscriben los alumnos?</h4>
+    <form id="aulaJoinModeForm">
+      <label class="aula-radio-row"><input type="radio" name="joinModeSetting" value="open" ${cls.joinMode !== 'approval' ? 'checked' : ''}> Abierta — con el código o el link entran directo</label>
+      <label class="aula-radio-row"><input type="radio" name="joinModeSetting" value="approval" ${cls.joinMode === 'approval' ? 'checked' : ''}> Con aprobación — tú aceptas o rechazas cada solicitud</label>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Guardar</button>
+    </form>
+  `;
+  document.getElementById('aulaCopyCodeBtn').addEventListener('click', () => copyToClipboardAula(cls.joinCode, 'Código copiado.'));
+  document.getElementById('aulaCopyLinkBtn').addEventListener('click', () => copyToClipboardAula(joinUrl, 'Link copiado.'));
+  document.getElementById('aulaJoinModeForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const chosen = document.querySelector('#aulaJoinModeForm input[name="joinModeSetting"]:checked')?.value || 'open';
+    try{
+      await DB.classroom.updateJoinMode(cls.id, chosen);
+      cls.joinMode = chosen;
+      showToast('Guardado.');
+    }catch(err){ showToast('No se pudo guardar.'); }
+  });
 }
 
 
@@ -5388,6 +5553,20 @@ function openSharedPostIfAny(){
   }catch(err){ /* si no se puede limpiar la URL, igual se abre la publicación */ }
   if(id) openPostModal(id);
 }
+// Igual que openSharedPostIfAny pero para links "Copiar link para unirse" de Aula
+// (?joinClass=CODE): precarga el modal de unirse con el código ya escrito.
+function openSharedJoinIfAny(){
+  if(!currentUser) return;
+  let code = null;
+  try{
+    const url = new URL(window.location.href);
+    code = url.searchParams.get('joinClass');
+    if(!code) return;
+    url.searchParams.delete('joinClass');
+    history.replaceState(history.state, '', url);
+  }catch(err){ /* si no se puede limpiar la URL, igual se abre el modal */ }
+  if(code) openJoinClassModal(code);
+}
 // Punto único que hace cumplir el gate; se llama al arrancar y en cada cambio de sesión.
 function enforceAuthGate(){
   if(!REQUIRE_LOGIN) return; // candado temporal desactivado: no forzar el modal de login
@@ -5397,6 +5576,7 @@ function enforceAuthGate(){
   }
   if(authBackdrop.classList.contains('open')) closeAuthModal();
   openSharedPostIfAny();
+  openSharedJoinIfAny();
 }
 
 const PW_ICON_SHOW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
