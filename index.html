@@ -858,11 +858,16 @@
     margin:0;
     font-size:1.18rem;
     line-height:1.2;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
   }
   .profile-header-actions{
     margin-left:auto;
     display:flex;
     align-items:center;
+    flex-shrink:0;
   }
   .profile-settings-btn{
     width:34px;
@@ -1100,7 +1105,7 @@
   @media(max-width:600px){.setting-row{align-items:flex-start}.settings-page{width:100%}}
   @media(max-width:700px){
     header.nav .nav-inner{padding:10px 12px;gap:8px;flex-wrap:wrap;align-items:center}.logo{order:1}.search-wrap{order:3;flex:1 1 100%;max-width:none;margin:0}.ig-icons{order:2;gap:10px;margin-left:auto}.ig-icon-btn svg{width:22px;height:22px}.ig-icon-btn .avatar{width:27px;height:27px}
-    .profile-ig-head.profile-main-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;align-items:start;margin:0 0 14px}.profile-main-head .avatar-big{width:78px;height:78px}.profile-header-actions{position:absolute;right:0;top:0}.profile-main-head{position:relative}.profile-ig-right{min-width:0;padding-right:42px}.profile-stats-row{gap:16px;justify-content:space-between}.profile-settings-entry{margin-top:16px;padding:13px}.settings-layout{display:block}.settings-nav{position:static;top:auto}.settings-mobile-back{display:none;align-items:center;gap:8px;border:0;background:none;padding:0 0 14px;color:var(--ink-soft);font:inherit;cursor:pointer}.settings-mobile-title{display:block;font-family:var(--serif);font-size:1.35rem;margin:0 0 14px}.settings-content .settings-group.active{display:block}.settings-group{border-radius:10px}.setting-row{min-height:62px;padding:14px}.settings-block input{max-width:none}.settings-page{width:100%;max-width:none}.settings-page .section-head{display:none}
+    .profile-ig-head.profile-main-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:13px;align-items:start;margin:0 0 14px}.profile-main-head .avatar-big{width:78px;height:78px}.profile-ig-right{min-width:0}.profile-stats-row{gap:16px;justify-content:space-between}.profile-settings-entry{margin-top:16px;padding:13px}.settings-layout{display:block}.settings-nav{position:static;top:auto}.settings-mobile-back{display:none;align-items:center;gap:8px;border:0;background:none;padding:0 0 14px;color:var(--ink-soft);font:inherit;cursor:pointer}.settings-mobile-title{display:block;font-family:var(--serif);font-size:1.35rem;margin:0 0 14px}.settings-content .settings-group.active{display:block}.settings-group{border-radius:10px}.setting-row{min-height:62px;padding:14px}.settings-block input{max-width:none}.settings-page{width:100%;max-width:none}.settings-page .section-head{display:none}
   }
   @media(min-width:701px){.settings-mobile-back{display:none}}
 
@@ -3974,6 +3979,7 @@ function removeCachedPost(id){ postsCache = postsCache.filter(p => p.id !== id);
 // ---------- ESTADO DE SESIÓN EN MEMORIA ----------
 let currentUser = null; // {id, name, avatarUrl}
 let usersCache = {};
+const FALLBACK_USER_NAME = 'Alguien de la comunidad'; // se repetía igual, a mano, en ~12 lugares distintos
 let activeAuthorFilter = null; // {id, name} cuando se filtra el feed por una búsqueda
 
 function normalizePrivacySettings(value){
@@ -4155,7 +4161,7 @@ let viewingUserId = null;
 function openUserProfile(userId, name){
   if(!userId) return;
   if(currentUser && userId === currentUser.id){ showView('perfil'); return; }
-  usersCache[userId] = usersCache[userId] || { id: userId, name: name || 'Alguien de la comunidad', avatarUrl: null, bio: '' };
+  usersCache[userId] = usersCache[userId] || { id: userId, name: name || FALLBACK_USER_NAME, avatarUrl: null, bio: '' };
   viewingUserId = userId;
   showView('perfilVisita');
 }
@@ -4343,7 +4349,7 @@ function openInlineProfileFeed(postId, ctx){
   }
   if(ctx.postsPanel){ ctx.postsPanel.hidden = false; }
   if(ctx.logsPanel){ ctx.logsPanel.hidden = true; }
-  const authorObj = usersCache[authorId] || { id: authorId, name: 'Alguien de la comunidad' };
+  const authorObj = usersCache[authorId] || { id: authorId, name: FALLBACK_USER_NAME };
   ctx.feed.hidden = false;
   ctx.feed.style.opacity = '0';
   ctx.feed.style.transform = 'translateY(12px)';
@@ -4351,7 +4357,7 @@ function openInlineProfileFeed(postId, ctx){
   ctx.feed.innerHTML = authorPosts.map(p => {
     const liked = currentUser ? (p.likedBy || []).includes(currentUser.id) : false;
     const saved = currentUser ? !!p._savedLocal : false;
-    return postCardHTML(p, authorObj.name || 'Alguien de la comunidad', authorObj, liked, saved);
+    return postCardHTML(p, authorObj.name || FALLBACK_USER_NAME, authorObj, liked, saved);
   }).join('');
   ctx.feed.querySelectorAll('.ig-post').forEach(article => bindPostCard(article));
   requestAnimationFrame(() => {
@@ -4410,7 +4416,7 @@ async function openAuthorFeedFromPost(postId){
   const post = getCachedPost(postId);
   if(!post) return;
   const authorObj = await getUserCached(post.authorId) || usersCache[post.authorId];
-  openUserProfile(post.authorId, authorObj?.name || 'Alguien de la comunidad');
+  openUserProfile(post.authorId, authorObj?.name || FALLBACK_USER_NAME);
 }
 
 function attachLongPressProject(tileEl, projectId){
@@ -4438,7 +4444,7 @@ async function showQuickPreviewProject(projectId){
   document.getElementById('quickPreviewBox').innerHTML = `
     <div class="quick-preview-head">
       <div class="avatar">${avatarHTML(ownerObj)}</div>
-      <span>${escapeHtml(ownerObj?.name || 'Alguien de la comunidad')}</span>
+      <span>${escapeHtml(ownerObj?.name || FALLBACK_USER_NAME)}</span>
     </div>
     <img src="${escapeHtml(img)}" alt="${escapeHtml(project.title)}">
     <p class="quick-preview-caption"><strong>${escapeHtml(project.title)}</strong> · ${project.shared ? '🌎 Bitácora pública' : '🔒 Bitácora privada'}</p>
@@ -4462,7 +4468,7 @@ async function showQuickPreview(postId){
   document.getElementById('quickPreviewBox').innerHTML = `
     <div class="quick-preview-head">
       <div class="avatar">${avatarHTML(authorObj)}</div>
-      <span>${escapeHtml(authorObj?.name || 'Alguien de la comunidad')}</span>
+      <span>${escapeHtml(authorObj?.name || FALLBACK_USER_NAME)}</span>
     </div>
     <img src="${img}" alt="${escapeHtml(post.title)}">
     <p class="quick-preview-caption"><strong>${escapeHtml(post.title)}</strong></p>
@@ -4491,7 +4497,7 @@ async function renderPostModalContent(postId){
   const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
   post._savedLocal = savedIds.includes(post.id);
   const authorObj = usersCache[post.authorId];
-  const authorName = authorObj?.name || 'Alguien de la comunidad';
+  const authorName = authorObj?.name || FALLBACK_USER_NAME;
   const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
   modalContent.innerHTML = postCardHTML(post, authorName, authorObj, liked, post._savedLocal);
   bindPostCard(modalContent.querySelector('.ig-post'));
@@ -4506,6 +4512,7 @@ const authContent = document.getElementById('authContent');
 // esquivarlo a mano sin tocar código. Al iniciar sesión de verdad, closeAuthModal() vacía el
 // formulario: por privacidad no se deja correo ni contraseña escritos en la página.
 function closeAuthModal(){
+  clearTimeout(window.__loginWatchdog);
   authBackdrop.classList.remove('open');
   authContent.innerHTML = '';
 }
@@ -4700,6 +4707,19 @@ function openAuthModal(mode, actionLabel){
     }
 
     submitBtn.disabled = true;
+    // Vigilante: signInWithPassword() puede terminar bien, pero lo que de verdad
+    // completa el login es el listener de onAuthStateChange (SIGNED_IN) de más
+    // abajo — si por lo que sea nunca llega a correr en ESTA pestaña (dos
+    // pestañas abiertas compitiendo por el candado de sesión de Supabase, por
+    // ejemplo), antes esto se quedaba con el formulario ahí sin decir nada.
+    // Si a los 12s seguimos en el mismo formulario de login, se avisa.
+    clearTimeout(window.__loginWatchdog);
+    window.__loginWatchdog = setTimeout(() => {
+      if(!authBackdrop.classList.contains('open') || !document.getElementById('authForm')) return; // ya avanzó
+      console.warn('[login] siguen en el formulario de login 12s después de enviar — probablemente el evento SIGNED_IN no llegó a procesarse en esta pestaña (revisa si tienes otra pestaña de la app abierta).');
+      errorEl.textContent = 'Esto está tardando más de lo normal. Si tienes esta página abierta en otra pestaña, ciérrala y toca "Entrar" de nuevo.';
+      errorEl.style.display = 'block';
+    }, 12000);
     try{
       if(isLogin){
         const { error } = await sb.auth.signInWithPassword({ email, password });
@@ -4894,7 +4914,7 @@ function showSetNewPasswordModal(session){
       passwordRecoveryInProgress = false;
       // Aunque venga de recuperar por correo, si la cuenta tiene 2FA se sigue
       // pidiendo — probar el correo no reemplaza el segundo factor.
-      if(!(await ensureMfaSatisfied())){
+      if(!(await ensureMfaSatisfied(session))){
         authBackdrop.classList.remove('open');
         showToast('Contraseña actualizada. Inicia sesión de nuevo para completar el 2FA.');
         return;
@@ -4926,8 +4946,10 @@ function translateAuthError(msg){
 }
 
 async function loadCurrentUserFromSession(session){
-  if(!session || !session.user){ currentUser = null; currentAuthEmail = ''; return; }
+  if(!session || !session.user){ currentUser = null; currentAuthEmail = ''; currentAuthSession = null; return; }
   currentAuthEmail = String(session.user.email || '').trim().toLowerCase();
+  currentAuthSession = session; // se reusa más abajo (refreshAdminStatus, openAdminPanel) para leer el
+  // nivel de 2FA y los factores sin volver a pedirle nada a Supabase — ver la nota junto a ensureMfaSatisfied.
   let profile = await DB.users.findById(session.user.id, true);
   if(!profile){
     await wait(600);
@@ -4948,7 +4970,7 @@ async function loadCurrentUserFromSession(session){
       // con un usuario fantasma.
       if(err?.code === '23503'){
         console.warn('Sesión huérfana (el usuario ya no existe en auth.users): cerrando sesión.', err);
-        currentUser = null; currentAuthEmail = '';
+        currentUser = null; currentAuthEmail = ''; currentAuthSession = null;
         // scope:'local' porque esta sesión es huérfana (el usuario ya no existe del lado
         // del servidor): un signOut normal (scope 'global') le pide a Supabase que revoque
         // la sesión de ESE usuario, y como no existe, responde 403 y el signOut nunca limpia
@@ -5330,12 +5352,26 @@ document.addEventListener('visibilitychange', () => {
 // publicaciones ni de usuarios de la app. El conteo en sí sigue viviendo
 // solo en la columna like_count/comment_count del post (nunca se descargan
 // ni se guardan todos los uid de quién dio like).
-const liveCountChannels = new Map(); // postId -> { channel, refs }
+const liveCountChannels = new Map(); // postId -> { channel, refs, markClosed, pendingRemoveTimer }
+// Margen de espera antes de cerrar un canal de conteos en vivo. Sin esto, un scroll rápido
+// (la publicación entra y sale de pantalla en milisegundos) abría un WebSocket y lo cerraba
+// casi de inmediato, antes de que terminara de conectar — de ahí el error en consola
+// "WebSocket is closed before the connection is established". No es un fallo real (el canal
+// de todos modos ya no hacía falta), pero abrir/cerrar conexiones de más tampoco es gratis
+// con muchos usuarios conectados a la vez. Si la publicación vuelve a entrar en vista antes
+// de que se cumpla este margen, el cierre se cancela y se sigue usando el mismo canal.
+const LIVE_COUNT_UNSUB_DELAY_MS = 400;
 
 function subscribeLiveCounts(id){
   if(!id) return;
   const existing = liveCountChannels.get(id);
-  if(existing){ existing.refs++; return; }
+  if(existing){
+    existing.refs++;
+    if(existing.pendingRemoveTimer){ clearTimeout(existing.pendingRemoveTimer); existing.pendingRemoveTimer = null; }
+    return;
+  }
+  let intentionallyClosed = false; // se pone en true justo antes de removeChannel(), para no
+  // confundir ese cierre esperado (cuando la publicación sale de pantalla) con un fallo real
   const channel = sb.channel(`post-counts-${id}`)
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts', filter: `id=eq.${id}` }, (payload) => {
       const row = payload.new;
@@ -5351,19 +5387,28 @@ function subscribeLiveCounts(id){
       }
     })
     .subscribe((status, err) => {
-      if(status !== 'SUBSCRIBED') console.warn('[postCounts]', id, status, err || ''); // DEBUG TEMPORAL
+      // 'CLOSED' es el estado normal cuando NOSOTROS cerramos el canal a propósito
+      // (unsubscribeLiveCounts, al salir de pantalla): no es un fallo, así que no se
+      // avisa. Solo se avisa ante un problema real de la conexión/canal.
+      if(intentionallyClosed && status === 'CLOSED') return;
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('[postCounts]', id, status, err || '');
     });
-  liveCountChannels.set(id, { channel, refs: 1 });
+  liveCountChannels.set(id, { channel, refs: 1, markClosed: () => { intentionallyClosed = true; }, pendingRemoveTimer: null });
 }
 
 function unsubscribeLiveCounts(id){
   const existing = liveCountChannels.get(id);
   if(!existing) return;
   existing.refs -= 1;
-  if(existing.refs <= 0){
-    sb.removeChannel(existing.channel);
+  if(existing.refs > 0) return;
+  if(existing.pendingRemoveTimer) clearTimeout(existing.pendingRemoveTimer);
+  existing.pendingRemoveTimer = setTimeout(() => {
+    const current = liveCountChannels.get(id);
+    if(!current || current.refs > 0) return; // volvió a entrar en vista mientras esperábamos
+    current.markClosed();
+    sb.removeChannel(current.channel);
     liveCountChannels.delete(id);
-  }
+  }, LIVE_COUNT_UNSUB_DELAY_MS);
 }
 
 const postCountSyncObserver = new IntersectionObserver((entries) => {
@@ -5722,7 +5767,7 @@ function bindPostCard(article){
   }));
   article.querySelectorAll('[data-openprofile]').forEach(btn => btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    openUserProfile(btn.dataset.openprofile, usersCache[btn.dataset.openprofile]?.name || 'Alguien de la comunidad');
+    openUserProfile(btn.dataset.openprofile, usersCache[btn.dataset.openprofile]?.name || FALLBACK_USER_NAME);
   }));
 }
 
@@ -5733,7 +5778,7 @@ function rerenderCardFromCache(postId){
   if(!post){ articles.forEach(a => a.remove()); return; }
   articles.forEach(article => {
     const authorObj = usersCache[post.authorId];
-    const authorName = authorObj?.name || 'Alguien de la comunidad';
+    const authorName = authorObj?.name || FALLBACK_USER_NAME;
     const liked = currentUser ? (post.likedBy||[]).includes(currentUser.id) : false;
     const saved = currentUser ? !!post._savedLocal : false;
     const html = postCardHTML(post, authorName, authorObj, liked, saved);
@@ -5851,7 +5896,7 @@ function paintFeedBatch(posts, count){
     const wrap = document.createElement('div');
     wrap.innerHTML = slice.map(post => {
       const authorObj = usersCache[post.authorId];
-      const authorName = authorObj?.name || 'Alguien de la comunidad';
+      const authorName = authorObj?.name || FALLBACK_USER_NAME;
       const liked = currentUser ? (post.likedBy || []).includes(currentUser.id) : false;
       const saved = currentUser ? !!post._savedLocal : false;
       return postCardHTML(post, authorName, authorObj, liked, saved);
@@ -6128,7 +6173,7 @@ async function openCommentsView(postId){
 
   await resolveAuthorObjs([post]);
   const authorObj = usersCache[post.authorId];
-  const authorName = authorObj?.name || 'Alguien de la comunidad';
+  const authorName = authorObj?.name || FALLBACK_USER_NAME;
   const img = (post.photos && post.photos[0]) || placeholderImage(post.id + post.title, post.category);
   replyingTo = null;
   modalBox.className = 'modal modal-wide';
@@ -6430,7 +6475,7 @@ function subscribeToPostComments(postId){
       }
     })
     .subscribe((status, err) => {
-      if(status !== 'SUBSCRIBED') console.warn('[postComments]', postId, status, err || ''); // DEBUG TEMPORAL
+      if(status !== 'SUBSCRIBED') console.warn('[postComments]', postId, status, err || '');
     });
 }
 function unsubscribeFromPostComments(){
@@ -6440,40 +6485,44 @@ function unsubscribeFromPostComments(){
   }
 }
 
+// Se usó para cazar un bug puntual de sincronización de contadores; se deja
+// detrás de esta bandera por si hace falta volver a rastrear algo parecido.
+let DEBUG_NOTIFICATIONS = false; // cambiar a true en la consola del navegador para volver a ver esos logs
+
 // Trae el estado puntual (contador, y si aplica el comentario nuevo) de UN post
 // a partir de una notificación. La usan tanto el canal en vivo como el respaldo
 // que corre al volver a la pestaña (por si el evento en vivo se perdió).
 async function refreshPostFromNotification(n){
-  console.log('[refreshPostFromNotification] notificación:', n && { type: n.type, post_id: n.post_id, comment_id: n.comment_id }); // DEBUG TEMPORAL
+  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] notificación:', n && { type: n.type, post_id: n.post_id, comment_id: n.comment_id });
   if(!n || !n.post_id || !['like','comment','reply','commentLike'].includes(n.type)){
-    console.log('[refreshPostFromNotification] descartada (sin post_id o tipo no reconocido)'); // DEBUG TEMPORAL
+    if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] descartada (sin post_id o tipo no reconocido)');
     return;
   }
   let fresh;
   try{ fresh = await DB.posts.getOne(n.post_id); }
   catch(err){ console.warn('[refreshPostFromNotification] getOne falló:', err); return; }
-  if(!fresh){ console.warn('[refreshPostFromNotification] getOne no devolvió post para', n.post_id); return; } // DEBUG TEMPORAL
-  console.log('[refreshPostFromNotification] post fresco de la BD:', { id: fresh.id, likeCount: fresh.likeCount, commentCount: fresh.commentCount }); // DEBUG TEMPORAL
+  if(!fresh){ console.warn('[refreshPostFromNotification] getOne no devolvió post para', n.post_id); return; }
+  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] post fresco de la BD:', { id: fresh.id, likeCount: fresh.likeCount, commentCount: fresh.commentCount });
   const cached = getCachedPost(fresh.id);
-  if(!cached){ console.warn('[refreshPostFromNotification] este post NO está en la caché local (postsCache) — por eso no se ve reflejado'); return; } // DEBUG TEMPORAL
-  console.log('[refreshPostFromNotification] antes:', cached.likeCount, 'después:', fresh.likeCount); // DEBUG TEMPORAL
+  if(!cached){ console.warn('[refreshPostFromNotification] este post NO está en la caché local (postsCache) — por eso no se ve reflejado'); return; }
+  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] antes:', cached.likeCount, 'después:', fresh.likeCount);
   cached.likeCount = fresh.likeCount;
   cached.commentCount = fresh.commentCount;
 
-  console.log('[refreshPostFromNotification] tipo:', n.type, '¿trae comment_id?', !!n.comment_id); // DEBUG TEMPORAL
+  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] tipo:', n.type, '¿trae comment_id?', !!n.comment_id);
   if((n.type === 'comment' || n.type === 'reply') && n.comment_id){
     cached.comments = cached.comments || [];
     const already = cached.comments.some(c => c.id === n.comment_id);
     if(already){
-      console.log('[refreshPostFromNotification] ese comentario ya estaba en caché:', n.comment_id); // DEBUG TEMPORAL
+      if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] ese comentario ya estaba en caché:', n.comment_id);
     } else {
       try{
         const { data: row, error } = await sb.from('post_comments')
           .select('id, author_id, text, created_at, parent_id')
           .eq('id', n.comment_id).maybeSingle();
-        if(error) console.warn('[refreshPostFromNotification] error al traer el comentario:', error); // DEBUG TEMPORAL
+        if(error) console.warn('[refreshPostFromNotification] error al traer el comentario:', error);
         if(row){
-          console.log('[refreshPostFromNotification] comentario traído con éxito:', row); // DEBUG TEMPORAL
+          if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] comentario traído con éxito:', row);
           cached.comments.push({
             id: row.id, authorId: row.author_id, text: row.text,
             date: new Date(row.created_at).getTime(),
@@ -6482,15 +6531,15 @@ async function refreshPostFromNotification(n){
           cached.comments.sort((a,b) => a.date - b.date);
           await getUserCached(row.author_id);
         } else {
-          console.warn('[refreshPostFromNotification] la consulta no devolvió fila para comment_id', n.comment_id); // DEBUG TEMPORAL
+          console.warn('[refreshPostFromNotification] la consulta no devolvió fila para comment_id', n.comment_id);
         }
       }catch(err){ console.warn('[refreshPostFromNotification] excepción al traer el comentario:', err); }
     }
-    console.log('[refreshPostFromNotification] comentarios en caché ahora:', cached.comments.length, 'de', cached.commentCount, 'totales'); // DEBUG TEMPORAL
+    if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] comentarios en caché ahora:', cached.comments.length, 'de', cached.commentCount, 'totales');
   }
 
   const domCard = document.querySelector(`.ig-post[data-id="${fresh.id}"]`);
-  console.log('[refreshPostFromNotification] ¿tarjeta en pantalla?', !!domCard, '— re-renderizando…'); // DEBUG TEMPORAL
+  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] ¿tarjeta en pantalla?', !!domCard, '— re-renderizando…');
   rerenderCardFromCache(fresh.id);
   updateLikeUI(fresh.id, currentUser ? (cached.likedBy||[]).includes(currentUser.id) : false, fresh.likeCount);
   const openList = document.getElementById('commentsViewList');
@@ -6516,7 +6565,7 @@ function setupNotificationsRealtime(){
   if(!currentUser) return;
   notifRealtimeChannel = sb.channel(`enraiza-notifications-realtime-${currentUser.id}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, (payload) => {
-      console.log('[notifRealtime] evento recibido:', payload.new); // DEBUG TEMPORAL
+      if(DEBUG_NOTIFICATIONS) console.log('[notifRealtime] evento recibido:', payload.new);
       if(document.getElementById('notifPanel')?.classList.contains('open')){
         renderNotificationsPanel();
       } else {
@@ -6530,9 +6579,9 @@ function setupNotificationsRealtime(){
       refreshPostFromNotification(payload.new);
     })
     .subscribe((status, err) => {
-      // DEBUG TEMPORAL: si el contador no se actualiza en vivo, abre la consola
-      // y confirma que esto diga "SUBSCRIBED". Si dice CHANNEL_ERROR/TIMED_OUT,
-      // el problema es la conexión/permiso del canal, no la lógica de arriba.
+      // Si el contador no se actualiza en vivo, abre la consola y confirma que
+      // esto diga "SUBSCRIBED". Si dice CHANNEL_ERROR/TIMED_OUT, el problema es
+      // la conexión/permiso del canal, no la lógica de arriba.
       if(status !== 'SUBSCRIBED'){
         console.warn('[notifRealtime]', status, err || '');
         notifReconnectPending = true; // se cayó: cuando reconecte, hay que revisar lo perdido
@@ -7705,7 +7754,7 @@ async function renderNotificationsPanel(){
   }));
   panel.querySelectorAll('[data-gotoprofile]').forEach(row => row.addEventListener('click', () => {
     closeNotifPanel();
-    openUserProfile(row.dataset.gotoprofile, usersCache[row.dataset.gotoprofile]?.name || 'Alguien de la comunidad');
+    openUserProfile(row.dataset.gotoprofile, usersCache[row.dataset.gotoprofile]?.name || FALLBACK_USER_NAME);
   }));
   DB.notifications.markAllSeen(currentUser.id).then(() => { notifUnreadCount = 0; checkNotifDot(); }).catch(() => {});
 }
@@ -9623,16 +9672,6 @@ async function trustThisDevice(days = 30){
     return true;
   }catch(err){ console.warn('No se pudo confiar en el dispositivo:', err); return false; }
 }
-async function isThisDeviceTrusted(){
-  try{
-    const token = localStorage.getItem('enraiza_trust_token');
-    if(!token) return false;
-    const { data, error } = await sb.rpc('is_device_trusted', { p_token: token });
-    if(error) return false;
-    return !!data;
-  }catch(err){ return false; }
-}
-
 // ---------- EXIGIR 2FA AL INICIAR SESIÓN (antes solo se podía configurar, pero
 // nunca se pedía de vuelta: cualquiera con la contraseña entraba igual) ----------
 // Único punto de entrada para todo inicio de sesión (login con contraseña Y
@@ -9641,20 +9680,100 @@ async function isThisDeviceTrusted(){
 // verificado, aquí se detiene el login hasta pedir el código y subir a aal2.
 // Si cancela, se cierra esa sesión a medias en vez de dejarla abierta sin el
 // segundo factor.
-async function ensureMfaSatisfied(){
-  if(passwordRecoveryInProgress) return true; // el modal de "nueva contraseña" ya se encarga de pedirlo aparte
+// Si cualquiera de las llamadas a Supabase de aquí abajo (consultar el nivel
+// de 2FA, listar factores, revisar si el dispositivo es de confianza) se
+// queda colgada por lo que sea — dos pestañas abiertas compitiendo por el
+// mismo candado de sesión, una reconexión rara, etc. — esto evita que el
+// login se quede esperando para siempre: a los N segundos se sigue adelante
+// como si esa llamada hubiera fallado, en vez de trabar todo el flujo.
+// Antes esta sección tenía ~15 console.log sueltos marcados "DEBUG TEMPORAL"
+// que se usaron para cazar el colgado del login y el botón de admin que no
+// se pintaba. Ya cumplieron su función; en vez de borrarlos (por si hace
+// falta volver a diagnosticar algo parecido), quedan detrás de esta bandera.
+let DEBUG_LOGIN = false; // cambiar a true en la consola del navegador para volver a ver esos logs
+// Decodifica el payload de un JWT de Supabase (sin verificar la firma — no hace falta:
+// solo se usa para LEER el nivel de 2FA (claim "aal") que el propio servidor ya puso ahí
+// al emitir el token; la verificación de verdad de cada código sigue pasando por
+// sb.auth.mfa.verify(), en el servidor). Nunca lanza: si el token viene raro, devuelve null.
+function decodeSupabaseJwtPayload(token){
   try{
-    const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    if(error || !data) return true; // no bloqueamos el login por un error de red al consultar
-    if(data.nextLevel !== 'aal2' || data.currentLevel === data.nextLevel) return true; // no tiene 2FA, o ya se cumplió
-    if(await isThisDeviceTrusted()) return true; // ya se confió en este navegador hace ≤30 días
-    const { data: factors } = await sb.auth.mfa.listFactors();
-    const factor = (factors?.totp || []).find(f => f.status === 'verified');
-    if(!factor) return true; // caso raro (factor a medio verificar): no lo bloqueamos por eso
-    return await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve));
-  }catch(err){ return true; }
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(atob(base64).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2,'0')).join(''));
+    return JSON.parse(json);
+  }catch(err){ return null; }
+}
+function withTimeout(promise, ms, label){
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => {
+      console.warn(`[login] "${label}" tardó más de ${ms}ms sin responder — se sigue adelante sin esperarla.`);
+      resolve({ data: null, error: { message: 'timeout', code: 'CLIENT_TIMEOUT' } });
+    }, ms)),
+  ]);
+}
+async function isThisDeviceTrusted(){
+  try{
+    const token = localStorage.getItem('enraiza_trust_token');
+    if(!token) return false;
+    const { data, error } = await withTimeout(sb.rpc('is_device_trusted', { p_token: token }), 8000, 'is_device_trusted');
+    if(error) return false;
+    return !!data;
+  }catch(err){ return false; }
+}
+// Dos caminos distintos de arranque (el listener SIGNED_IN y la carga directa
+// de la página al recargar) pueden llamar a ensureMfaSatisfied() casi al
+// mismo tiempo. Sin este candado, la segunda llamada quedaba esperando
+// detrás del candado interno de sesión de Supabase mientras la primera
+// todavía lo tenía tomado — de ahí los timeouts de 10s "fantasma" que no
+// correspondían a ningún problema real. Ahora, si ya hay una consulta en
+// curso, todos los que llegan mientras tanto simplemente esperan ese mismo
+// resultado en vez de disparar su propia consulta duplicada.
+let mfaCheckInFlight = null;
+// IMPORTANTE (arreglo de seguridad, no solo de rendimiento): esto antes llamaba a
+// sb.auth.mfa.getAuthenticatorAssuranceLevel() y a sb.auth.mfa.listFactors(), ambas
+// protegidas por el candado interno de sesión de Supabase (navigator.locks). Con dos
+// pestañas abiertas compitiendo por ese candado, esas llamadas se colgaban ~10s — y el
+// código viejo, al "vencerse" ese plazo (o si la llamada fallaba por cualquier otra razón),
+// TRATABA el timeout/error como "esta cuenta no tiene 2FA" y dejaba entrar sin pedir el
+// código. Eso era un hueco de seguridad real: bastaba con tener dos pestañas abiertas (o
+// cualquier cosa que retrasara esa llamada) para saltarse el segundo factor.
+// Ahora se lee el nivel actual (claim "aal" del JWT) y los factores verificados directo del
+// objeto de sesión que YA tenemos — session.user.factors viene incluido sin pedirle nada
+// más a Supabase — así que no hay candado que esperar ni nada que "vencer": si la cuenta
+// de verdad tiene 2FA, SIEMPRE se pide el código, sin importar qué tan lenta o rara esté la
+// red. Se recibe `session` como parámetro en vez de volver a consultarla.
+async function ensureMfaSatisfied(session){
+  if(passwordRecoveryInProgress) return true; // el modal de "nueva contraseña" ya se encarga de pedirlo aparte
+  if(mfaCheckInFlight) return mfaCheckInFlight;
+  mfaCheckInFlight = (async () => {
+    if(!session || !session.access_token || !session.user) return true; // sin sesión no hay nada que verificar
+    const payload = decodeSupabaseJwtPayload(session.access_token);
+    const currentLevel = payload?.aal || null;
+    const verifiedFactors = (session.user.factors || []).filter(f => f.status === 'verified');
+    if(DEBUG_LOGIN) console.log('[login] ensureMfaSatisfied (local, sin red) →', { currentLevel, factoresVerificados: verifiedFactors.length });
+    if(verifiedFactors.length === 0 || currentLevel === 'aal2') return true; // no tiene 2FA, o ya se cumplió
+    try{
+      const trusted = await isThisDeviceTrusted();
+      if(DEBUG_LOGIN) console.log('[login] ¿dispositivo de confianza?', trusted);
+      if(trusted) return true; // ya se confió en este navegador hace ≤30 días
+      const factor = verifiedFactors[0];
+      if(DEBUG_LOGIN) console.log('[login] mostrando el modal de código…');
+      return await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve));
+    }catch(err){
+      // A esta altura ya sabemos con certeza (con datos locales, sin red) que la cuenta
+      // SÍ tiene 2FA pendiente — así que ante cualquier error inesperado mostrando el
+      // reto no hay forma segura de "dejar pasar" como antes: se cierra la sesión a
+      // medias en vez de arriesgarse a abrir la app sin el segundo factor.
+      console.warn('[login] ensureMfaSatisfied: error inesperado pidiendo el 2FA, se cierra la sesión por seguridad:', err);
+      try{ await sb.auth.signOut(); }catch(_){}
+      return false;
+    }
+  })();
+  try{ return await mfaCheckInFlight; }
+  finally{ mfaCheckInFlight = null; }
 }
 function showMfaChallengeModal(factorId, resolve, opts = {}){
+  clearTimeout(window.__loginWatchdog); // ya avanzó del formulario de login al de código: no hace falta seguir vigilando
   const { signOutOnCancel = true, offerTrustDevice = true } = opts;
   authContent.innerHTML = `
     <h3>Verificación en dos pasos</h3>
@@ -9885,6 +10004,11 @@ async function renderProfile(){
   if(!document.getElementById('profileLogsPanel').hidden) renderProfileLogs();
 }
 let currentAuthEmail = '';
+// Copia de la sesión actual, actualizada cada vez que loadCurrentUserFromSession() recibe
+// una — para leer el nivel de 2FA (aal) y los factores localmente (del JWT / del objeto de
+// sesión) en vez de volver a llamarle a Supabase, que es justo lo que se colgaba con varias
+// pestañas abiertas. Ver la nota grande junto a ensureMfaSatisfied().
+let currentAuthSession = null;
 // ---------- ADMINISTRADOR (soporte.enraiza@gmail.com) ----------
 // isPlatformAdmin es la bandera de PRIVILEGIOS reales (panel de admin, ver
 // reportes). Se arma en dos pasos independientes, y los DOS tienen que dar
@@ -9901,20 +10025,25 @@ let isPlatformAdmin = false;
 async function refreshAdminStatus(){
   currentUserIsAdmin = false;
   isPlatformAdmin = false;
-  if(!currentUser){ console.log('[admin] no hay currentUser todavía'); return; } // DEBUG TEMPORAL
+  if(!currentUser){ if(DEBUG_LOGIN) console.log('[admin] no hay currentUser todavía'); return; }
   try{
     const { data, error } = await sb.rpc('get_my_admin_flag');
-    console.log('[admin] get_my_admin_flag →', { data, error: error?.message || error?.code || null }); // DEBUG TEMPORAL
+    if(DEBUG_LOGIN) console.log('[admin] get_my_admin_flag →', { data, error: error?.message || error?.code || null });
     if(error || !data) return;
     currentUserIsAdmin = true;
-  }catch(err){ console.log('[admin] get_my_admin_flag lanzó excepción:', err); return; } // DEBUG TEMPORAL
+  }catch(err){ if(DEBUG_LOGIN) console.log('[admin] get_my_admin_flag lanzó excepción:', err); return; }
   try{
-    const { data, error } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-    console.log('[admin] getAuthenticatorAssuranceLevel →', { currentLevel: data?.currentLevel, nextLevel: data?.nextLevel, error: error?.message || null }); // DEBUG TEMPORAL
-    if(error || !data) return;
-    isPlatformAdmin = data.currentLevel === 'aal2';
-  }catch(err){ console.log('[admin] getAuthenticatorAssuranceLevel lanzó excepción:', err); /* si falla la consulta, nunca se activa por accidente */ }
-  console.log('[admin] resultado final → currentUserIsAdmin:', currentUserIsAdmin, 'isPlatformAdmin:', isPlatformAdmin); // DEBUG TEMPORAL
+    // Mismo cambio que en ensureMfaSatisfied: en vez de sb.auth.mfa.getAuthenticatorAssuranceLevel()
+    // (que se podía colgar por el mismo candado interno de sesión de Supabase con varias
+    // pestañas abiertas), se lee el nivel directo del JWT de currentAuthSession — la sesión
+    // que ya tenemos guardada. Sin red, sin candado, sin nada que "vencer" a los 10s. Y como
+    // isPlatformAdmin ya arrancó en false arriba, cualquier problema al leer el token lo deja
+    // en false igual que antes: nunca se activa por accidente.
+    const payload = currentAuthSession?.access_token ? decodeSupabaseJwtPayload(currentAuthSession.access_token) : null;
+    if(DEBUG_LOGIN) console.log('[admin] nivel actual (desde el JWT local):', payload?.aal || null);
+    isPlatformAdmin = payload?.aal === 'aal2';
+  }catch(err){ if(DEBUG_LOGIN) console.log('[admin] no se pudo leer el nivel de 2FA:', err); /* si falla la lectura, nunca se activa por accidente */ }
+  if(DEBUG_LOGIN) console.log('[admin] resultado final → currentUserIsAdmin:', currentUserIsAdmin, 'isPlatformAdmin:', isPlatformAdmin);
 }
 function isVerifiedOwner(user){
   if(!user) return false;
@@ -9943,8 +10072,9 @@ let adminReportsTab = 'conversaciones';
 async function openAdminPanel(){
   if(!currentUserIsAdmin) return; // el botón ni debería estar visible en este caso
   if(!isPlatformAdmin){
-    const { data: factors } = await sb.auth.mfa.listFactors();
-    const factor = (factors?.totp || []).find(f => f.status === 'verified');
+    // Mismo motivo que arriba: se lee el factor verificado de currentAuthSession.user.factors
+    // (ya lo trae la sesión) en vez de volver a pedírselo a Supabase con listFactors().
+    const factor = (currentAuthSession?.user?.factors || []).find(f => f.status === 'verified');
     if(!factor){ showToast('Activa 2FA en Configuración → Seguridad para usar el panel de administrador.'); return; }
     // signOutOnCancel:false porque ya estás usando la app con sesión válida —
     // cancelar este código solo cierra el intento de abrir el panel, no tu
@@ -10082,6 +10212,7 @@ if('serviceWorker' in navigator && !['localhost','127.0.0.1'].includes(location.
 // ---------- ARRANQUE ----------
 let authReady = false;
 let passwordRecoveryInProgress = false; // true mientras se atiende el enlace de "olvidé mi contraseña"
+let signedInProcessing = null; // candado: evita procesar el mismo SIGNED_IN dos veces en paralelo (ver el porqué más abajo)
 
 sb.auth.onAuthStateChange(async (event, session) => {
   if(event === 'PASSWORD_RECOVERY'){
@@ -10101,14 +10232,39 @@ sb.auth.onAuthStateChange(async (event, session) => {
   // en consola y el siguiente evento de auth se sigue procesando con normalidad.
   try{
     if(session && event === 'SIGNED_IN'){
-      if(!(await ensureMfaSatisfied())) return; // canceló el código: ya se cerró la sesión, no cargues nada
-      await loadCurrentUserFromSession(session);
-      await refreshAppAfterAuthChange();
-
-      if(currentUser){
-        await recordDailyLogin();
+      if(DEBUG_LOGIN) console.log('[login] evento SIGNED_IN recibido, authReady:', authReady);
+      // Con varias pestañas abiertas del mismo sitio, Supabase sincroniza la
+      // sesión por localStorage y CADA pestaña puede disparar su propio
+      // SIGNED_IN para el mismo login. Sin este candado, cada disparo volvía a
+      // llamar ensureMfaSatisfied() por su cuenta — cada uno con su propia
+      // consulta a Supabase y su propio modal de código — y el segundo modal
+      // pisaba al primero (borraba su formulario del DOM), dejando a ese primer
+      // intento esperando para siempre un código que ya no tenía dónde llegar;
+      // además, varias de esas consultas duplicadas competían entre sí por el
+      // mismo candado interno de sesión de Supabase, lo que producía los
+      // cuelgues de 8-10s que viste. Ahora, si ya hay un SIGNED_IN en proceso,
+      // los demás simplemente esperan ese mismo resultado en vez de duplicar
+      // todo el flujo.
+      if(signedInProcessing){
+        if(DEBUG_LOGIN) console.log('[login] ya hay un SIGNED_IN en curso — se espera ese en vez de duplicarlo');
+        await signedInProcessing;
+        return;
       }
-
+      signedInProcessing = (async () => {
+        if(!(await ensureMfaSatisfied(session))) return; // canceló el código: ya se cerró la sesión, no cargues nada
+        if(DEBUG_LOGIN) console.log('[login] 2FA resuelto (o no aplicaba), cargando el perfil…');
+        await loadCurrentUserFromSession(session);
+        await refreshAppAfterAuthChange();
+        if(DEBUG_LOGIN) console.log('[login] listo, currentUser:', currentUser?.id || null);
+        if(currentUser){
+          await recordDailyLogin();
+        }
+      })();
+      try{
+        await signedInProcessing;
+      } finally {
+        signedInProcessing = null;
+      }
       return;
     }
 
@@ -10121,6 +10277,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     if(event === 'SIGNED_OUT'){
       currentUser = null;
       currentAuthEmail = '';
+      currentAuthSession = null;
       dailyLoginRecordedForUser = null;
       await refreshAppAfterAuthChange();
     }
@@ -10160,7 +10317,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
   try {
     if(session && !passwordRecoveryInProgress){
-      if(await ensureMfaSatisfied()) await loadCurrentUserFromSession(session);
+      if(await ensureMfaSatisfied(session)) await loadCurrentUserFromSession(session);
       // si canceló el código, la sesión (a medias, sin 2FA) ya se cerró dentro de
       // ensureMfaSatisfied(); seguimos abajo como si no hubiera sesión.
     }
@@ -10181,8 +10338,7 @@ window.addEventListener('unhandledrejection', (event) => {
   // en paralelo y con Promise.allSettled, así que un fallo puntual ya no bloquea el resto
   // ni deja el arranque a medias.
   const results = await Promise.allSettled([
-    (async () => { await loadUserStatsAndBadges(); await reconcileHistoricalStats(); })(),
-    reloadFeed(),
+    (async () => { await loadUserStatsAndBadges(); await reconcileHistoricalStats(); await refreshAdminStatus(); })(),    reloadFeed(),
     renderStories(),
   ]);
   results.forEach(r => { if(r.status === 'rejected') console.warn('[arranque]', r.reason); });
@@ -10194,6 +10350,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
   try{
     renderProfile();
+    renderAdminEntryPoint();
     refreshNotifUnreadCount();
     setupRealtime();
   }catch(err){ console.warn('[arranque] render/realtime:', err); }
