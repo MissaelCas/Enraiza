@@ -4018,13 +4018,19 @@ const DB = {
       for(let i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
       return code;
     },
-    async createClass({ name, subject, description }){
+    async createClass({ name, subject, description, joinMode }){
       const join_code = this.genJoinCode();
       const { data, error } = await sb.from('classrooms')
-        .insert({ teacher_id: currentUser.id, name, subject: subject||null, description: description||null, join_code })
+        .insert({ teacher_id: currentUser.id, name, subject: subject||null, description: description||null, join_code, join_mode: joinMode === 'approval' ? 'approval' : 'open' })
         .select().single();
       if(error) throw error;
       return mapClassroomRow(data);
+    },
+    async updateJoinMode(classroomId, joinMode){
+      // Directo (no RPC): la política classrooms_update_own ya solo deja al
+      // propio profesor tocar su fila.
+      const { error } = await sb.from('classrooms').update({ join_mode: joinMode === 'approval' ? 'approval' : 'open' }).eq('id', classroomId);
+      if(error) throw error;
     },
     async myTaughtClasses(){
       const { data, error } = await sb.from('classrooms').select('*').eq('teacher_id', currentUser.id).eq('archived', false).order('created_at', { ascending:false });
@@ -4039,9 +4045,13 @@ const DB = {
       return (data||[]).map(r => r.classrooms).filter(Boolean).map(mapClassroomRow);
     },
     async joinClass(joinCode, controlNumber){
+      // join_classroom ahora devuelve una fila { classroom_id, status } en vez
+      // de solo el uuid, porque si la clase pide aprobación el resultado es
+      // "pending", no "ya estás dentro" — el cliente necesita distinguir eso.
       const { data, error } = await sb.rpc('join_classroom', { p_join_code: joinCode, p_control_number: controlNumber });
       if(error) throw error;
-      return data;
+      const row = Array.isArray(data) ? data[0] : data;
+      return { classroomId: row?.classroom_id || row, status: row?.status || 'active' };
     },
     async getClass(id){
       const { data, error } = await sb.from('classrooms').select('*').eq('id', id).maybeSingle();
@@ -4088,6 +4098,21 @@ const DB = {
       if(error) throw error;
       return data || [];
     },
+    async listPendingRequests(classroomId){
+      // La política enrollments_select ya deja al profesor ver TODAS las filas
+      // de su clase (sin importar status), así que esto no necesita RPC.
+      const { data, error } = await sb.from('classroom_enrollments').select('*').eq('classroom_id', classroomId).eq('status', 'pending').order('joined_at', { ascending:true });
+      if(error) throw error;
+      return data || [];
+    },
+    async reviewJoinRequest(enrollmentId, approve){
+      const { error } = await sb.rpc('teacher_review_join_request', { p_enrollment_id: enrollmentId, p_approve: !!approve });
+      if(error) throw error;
+    },
+    async enrollStudent(classroomId, studentId, controlNumber){
+      const { error } = await sb.rpc('teacher_enroll_student', { p_classroom_id: classroomId, p_student_id: studentId, p_control_number: controlNumber });
+      if(error) throw error;
+    },
     async mySubmission(assignmentId){
       const { data, error } = await sb.from('classroom_submissions').select('*').eq('assignment_id', assignmentId).eq('student_id', currentUser.id).maybeSingle();
       if(error) throw error;
@@ -4119,7 +4144,7 @@ const DB = {
   },
 };
 function mapClassroomRow(row){
-  return { id: row.id, teacherId: row.teacher_id, name: row.name, subject: row.subject||'', description: row.description||'', joinCode: row.join_code, date: new Date(row.created_at).getTime() };
+  return { id: row.id, teacherId: row.teacher_id, name: row.name, subject: row.subject||'', description: row.description||'', joinCode: row.join_code, joinMode: row.join_mode || 'open', date: new Date(row.created_at).getTime() };
 }
 function mapMaterialRow(row){
   return { id: row.id, classroomId: row.classroom_id, teacherId: row.teacher_id, title: row.title, body: row.body||'', kind: row.kind, url: row.url||null, date: new Date(row.created_at).getTime() };
@@ -4225,13 +4250,13 @@ function openRequestTeacherModal(){
   });
 }
 
-function openJoinClassModal(){
+function openJoinClassModal(prefillCode){
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>Unirme a una clase</h3>
     <form id="joinClassForm">
       <label for="joinClassCode">Código de la clase</label>
-      <input id="joinClassCode" maxlength="6" style="width:100%; text-transform:uppercase;" placeholder="ABC123" required>
+      <input id="joinClassCode" maxlength="6" style="width:100%; text-transform:uppercase;" placeholder="ABC123" value="${escapeHtml((prefillCode||'').toUpperCase())}" required>
       <label for="joinClassControl" style="margin-top:10px; display:block;">Tu número de control</label>
       <input id="joinClassControl" style="width:100%;" placeholder="Ej: 21120001" required>
       <p class="auth-error" id="joinClassError" style="display:none;"></p>
@@ -4246,10 +4271,15 @@ function openJoinClassModal(){
     const errorEl = document.getElementById('joinClassError');
     errorEl.style.display = 'none';
     try{
-      const classroomId = await DB.classroom.joinClass(code, control);
+      const { classroomId, status } = await DB.classroom.joinClass(code, control);
       closeModal();
-      showToast('Te uniste a la clase.');
-      openAulaClase(classroomId);
+      if(status === 'pending'){
+        showToast('Solicitud enviada. El profesor tiene que aceptarte antes de que veas la clase.');
+        renderAula();
+      } else {
+        showToast('Te uniste a la clase.');
+        openAulaClase(classroomId);
+      }
     }catch(err){
       errorEl.textContent = err.message || 'No se pudo unir a la clase.';
       errorEl.style.display = 'block';
@@ -4268,6 +4298,9 @@ function openCreateClassModal(){
       <input id="createClassSubject" style="width:100%;" placeholder="Ej: Sustentabilidad">
       <label for="createClassDesc" style="margin-top:10px; display:block;">Descripción (opcional)</label>
       <textarea id="createClassDesc" rows="3" style="width:100%;"></textarea>
+      <label style="margin-top:10px; display:block;">¿Cómo se inscriben los alumnos?</label>
+      <label class="aula-radio-row"><input type="radio" name="joinMode" value="open" checked> Abierta — con el código o el link entran directo</label>
+      <label class="aula-radio-row"><input type="radio" name="joinMode" value="approval"> Con aprobación — tú aceptas o rechazas cada solicitud</label>
       <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Crear clase</button>
     </form>
   `;
@@ -4278,8 +4311,9 @@ function openCreateClassModal(){
     if(!name) return;
     const subject = document.getElementById('createClassSubject').value.trim();
     const description = document.getElementById('createClassDesc').value.trim();
+    const joinMode = modalContent.querySelector('input[name="joinMode"]:checked')?.value || 'open';
     try{
-      const cls = await DB.classroom.createClass({ name, subject, description });
+      const cls = await DB.classroom.createClass({ name, subject, description, joinMode });
       closeModal();
       showToast(`Clase creada. Código para inscribirse: ${cls.joinCode}`);
       renderAula();
@@ -4576,7 +4610,8 @@ function renderAulaSubmissionArea(assignment, sub, comments, isLate){
         showToast('Tarea entregada.');
         renderAssignmentDetailStudent(assignment);
       }catch(err){
-        errorEl.textContent = 'No se pudo entregar. Intenta de nuevo.';
+        console.error('[aula] no se pudo entregar la tarea:', err); // DEBUG TEMPORAL — para saber la causa real
+        errorEl.textContent = 'No se pudo entregar: ' + (err?.message || 'intenta de nuevo.');
         errorEl.style.display = 'block';
       }
     });
