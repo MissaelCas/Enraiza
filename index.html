@@ -309,41 +309,51 @@
   /* ---------- AULA ---------- */
   .aula-banner{ max-width:860px; margin:0 auto 16px; border:1px solid var(--line); border-radius:12px; background:var(--paper-alt); padding:12px 16px; font-size:0.84rem; color:var(--ink-soft); }
   .aula-banner.pending{ border-color:#b8860b; background:rgba(184,134,11,0.08); }
-  .aula-section-label{ max-width:860px; margin:18px auto 8px; font-family:var(--serif); font-size:1rem; color:var(--ink); }
+  .aula-section-label{ max-width:860px; margin:18px auto 8px; font-family:var(--serif); font-size:1rem; color:var(--ink); display:flex; align-items:center; gap:8px; }
   .aula-class-grid{ max-width:860px; margin:0 auto; display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
-  .aula-class-card{ border:1px solid var(--line); border-radius:12px; background:var(--white-ish); overflow:hidden; cursor:pointer; transition:box-shadow .15s ease; }
-  .aula-class-card:hover{ box-shadow:0 6px 18px rgba(35,48,29,0.1); }
-  .aula-class-card-top{ background:linear-gradient(135deg, var(--moss) 0%, #4a7a52 100%); padding:16px 14px; color:#fff; }
+  .aula-class-card{ border:1px solid var(--line); border-radius:12px; background:var(--white-ish); overflow:hidden; cursor:pointer; transition:box-shadow .15s ease, transform .15s ease; position:relative; }
+  .aula-class-card:hover{ box-shadow:0 6px 18px rgba(35,48,29,0.1); transform:translateY(-1px); }
+  .aula-class-card-top{ background:linear-gradient(135deg, var(--moss) 0%, #4a7a52 100%); padding:16px 14px; color:#fff; position:relative; }
   .aula-class-card-top strong{ display:block; font-family:var(--serif); font-size:1.05rem; }
   .aula-class-card-top span{ font-size:0.72rem; opacity:0.85; }
-  .aula-class-card-bottom{ padding:10px 14px; font-size:0.76rem; color:var(--ink-soft); display:flex; justify-content:space-between; align-items:center; }
+  .aula-class-card-bottom{ padding:10px 14px; font-size:0.76rem; color:var(--ink-soft); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .aula-class-card-pending-badge{ position:absolute; top:10px; right:10px; background:#e2b93b; color:#3a2c00; font-size:0.64rem; font-weight:800; padding:2px 8px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,0.2); }
   .aula-empty{ max-width:860px; margin:0 auto; color:var(--ink-soft); font-size:0.85rem; padding:20px 0; }
 
-  .aula-clase-head{ max-width:860px; margin:0 auto 16px; display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap; }
-  .aula-clase-head h2{ font-family:var(--serif); margin:0 0 4px; }
+  /* Encabezado tipo "banner" de la clase (más Classroom, menos formulario) */
+  .aula-clase-head{ max-width:860px; margin:0 auto 16px; border-radius:14px; overflow:hidden; background:linear-gradient(135deg, var(--moss) 0%, #355e40 100%); color:#fff; padding:22px 24px; }
+  .aula-clase-head h2{ font-family:var(--serif); margin:0 0 4px; color:#fff; font-size:1.4rem; }
+  .aula-clase-head .section-desc{ color:rgba(255,255,255,0.86); margin:0; font-size:0.82rem; }
+  .aula-clase-head-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .aula-clase-head-chip{ background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.28); color:#fff; border-radius:999px; padding:4px 12px; font-size:0.74rem; font-weight:600; display:inline-flex; align-items:center; gap:5px; }
   .aula-clase-code{ font-family:monospace; letter-spacing:0.08em; background:var(--paper-alt); border:1px solid var(--line); border-radius:6px; padding:3px 8px; font-size:0.8rem; }
-  .aula-tabs{ max-width:860px; margin:0 auto 16px; display:flex; gap:6px; border-bottom:1px solid var(--line); }
-  .aula-tabs button{ background:none; border:none; padding:9px 14px; font-size:0.82rem; font-weight:600; color:var(--ink-soft); cursor:pointer; border-bottom:2px solid transparent; }
+  .aula-clase-code.on-banner{ background:rgba(255,255,255,0.18); border-color:rgba(255,255,255,0.35); color:#fff; cursor:pointer; }
+
+  .aula-tabs{ max-width:860px; margin:0 auto 16px; display:flex; gap:6px; border-bottom:1px solid var(--line); overflow-x:auto; }
+  .aula-tabs button{ background:none; border:none; padding:9px 14px; font-size:0.82rem; font-weight:600; color:var(--ink-soft); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
   .aula-tabs button.active{ color:var(--moss-dark); border-bottom-color:var(--moss); }
+  .aula-tab-badge{ background:#a3392c; color:#fff; font-size:0.6rem; font-weight:800; border-radius:999px; padding:1px 6px; line-height:1.5; }
   .aula-tab-body{ max-width:860px; margin:0 auto; }
 
   .aula-material-row{ display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:10px; background:var(--white-ish); padding:12px 14px; margin-bottom:8px; }
   .aula-material-icon{ width:38px; height:38px; border-radius:8px; background:var(--paper-alt); display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
   .aula-material-row strong{ display:block; font-size:0.86rem; }
   .aula-material-row p{ margin:2px 0 0; font-size:0.74rem; color:var(--ink-soft); }
+  .aula-material-row time{ display:block; margin-top:3px; font-size:0.68rem; color:var(--sage); }
   .aula-material-row a{ margin-left:auto; font-size:0.76rem; font-weight:700; color:var(--moss-dark); text-decoration:none; flex-shrink:0; }
 
-  .aula-assignment-card{ border:1px solid var(--line); border-radius:10px; background:var(--white-ish); padding:14px 16px; margin-bottom:10px; cursor:pointer; }
+  .aula-assignment-card{ border:1px solid var(--line); border-radius:10px; background:var(--white-ish); padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:box-shadow .15s ease; }
   .aula-assignment-card:hover{ box-shadow:0 4px 14px rgba(35,48,29,0.08); }
   .aula-assignment-top{ display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
   .aula-assignment-top strong{ font-family:var(--serif); font-size:0.98rem; }
-  .aula-assignment-due{ font-size:0.72rem; color:var(--ink-soft); margin-top:2px; }
+  .aula-assignment-due{ font-size:0.72rem; color:var(--ink-soft); margin-top:4px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 
   .aula-pill{ display:inline-flex; align-items:center; gap:4px; font-size:0.68rem; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap; }
   .aula-pill.ontime{ background:rgba(63,107,74,0.15); color:var(--moss-dark); }
   .aula-pill.late{ background:rgba(163,57,44,0.12); color:#a3392c; }
   .aula-pill.pending{ background:var(--paper-alt); color:var(--ink-soft); border:1px solid var(--line); }
   .aula-pill.graded{ background:rgba(63,107,74,0.15); color:var(--moss-dark); }
+  .aula-pill.neutral{ background:rgba(138,163,153,0.18); color:var(--ink-soft); }
 
   .aula-student-row{ display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:10px; background:var(--white-ish); padding:10px 14px; margin-bottom:6px; }
   .aula-student-row .avatar{ width:32px; height:32px; font-size:0.76rem; flex-shrink:0; }
@@ -352,6 +362,13 @@
   .aula-student-row .aula-pill{ margin-left:auto; }
   .aula-student-row input[type="number"]{ width:56px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; text-align:center; }
 
+  /* Caja de solicitudes pendientes: se distingue del roster para que el
+     profesor la note de inmediato en vez de confundirla con la lista normal. */
+  .aula-pending-box{ border:1px solid #b8860b; background:rgba(184,134,11,0.07); border-radius:12px; padding:12px 14px 4px; margin-bottom:18px; }
+  .aula-pending-box .aula-student-row{ background:var(--white-ish); }
+  .aula-live-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:#3f6b4a; box-shadow:0 0 0 rgba(63,107,74,0.5); animation:aulaLivePulse 2s infinite; margin-right:2px; }
+  @keyframes aulaLivePulse{ 0%{ box-shadow:0 0 0 0 rgba(63,107,74,0.45); } 70%{ box-shadow:0 0 0 6px rgba(63,107,74,0); } 100%{ box-shadow:0 0 0 0 rgba(63,107,74,0); } }
+
   .aula-comment{ border-radius:10px; padding:9px 12px; margin-bottom:6px; font-size:0.8rem; }
   .aula-comment.private{ background:var(--paper-alt); }
   .aula-comment.public{ background:rgba(63,107,74,0.08); }
@@ -359,7 +376,7 @@
 
   @media(max-width:700px){
     .aula-class-grid{ grid-template-columns:1fr; }
-    .aula-clase-head{ flex-direction:column; }
+    .aula-clase-head{ border-radius:0; margin-left:-16px; margin-right:-16px; width:calc(100% + 32px); }
   }
 
   .achievement-completed-strip{border:1px solid var(--moss);background:var(--paper-alt);border-radius:14px;padding:13px;margin-bottom:18px}.achievement-completed-strip h3{font-family:var(--serif);margin:0 0 3px;font-size:1rem}.achievement-completed-strip p{margin:0 0 11px;color:var(--ink-soft);font-size:.72rem}.achievement-completed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.achievement-card{border:1px solid var(--line);border-radius:11px;background:var(--white-ish);padding:11px;display:flex;gap:10px;align-items:center;min-width:0}.achievement-card.earned{border-color:rgba(63,107,74,.38)}.achievement-card .badge-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--paper-alt);font-size:1.2rem;flex-shrink:0}.achievement-card.earned .badge-icon{background:var(--moss)}.achievement-card h4{margin:0;font-family:var(--serif);font-size:.84rem}.achievement-card p{margin:2px 0 0;color:var(--ink-soft);font-size:.68rem;line-height:1.3}.achievement-mark{margin-left:auto;font-weight:900;color:var(--moss-dark)}.achievement-category{margin:0 0 22px}.achievement-category-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}.achievement-category-head h3{margin:0;font-family:var(--serif);font-size:1rem}.achievement-category-head span{color:var(--ink-soft);font-size:.68rem}.achievement-locked-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.achievement-card.locked .badge-icon{filter:saturate(.35);opacity:.8}.achievement-progress{margin-top:5px;color:var(--moss-dark);font-weight:700;font-size:.64rem}
@@ -2582,6 +2599,7 @@ function showView(name, options = {}){
     try{ sessionStorage.setItem(LAST_VIEW_KEY, targetView); }catch(err){ /* ignore */ }
   }
   if(targetView !== 'mensajes'){ updateMessagesBadge(); syncDmThreadChannel(); }
+  if(targetView !== 'aulaClase'){ syncAulaClaseChannel(); }
   if(targetView === 'perfil') renderProfile();
   if(targetView === 'logros') renderAchievementsPage();
   if(targetView === 'misiones') renderMissionsPage();
@@ -4198,6 +4216,7 @@ async function renderAula(){
 
   const classCardHTML = (c, roleLabel) => `
     <div class="aula-class-card" data-classroom-id="${c.id}">
+      ${roleLabel === 'Profesor' && c.pendingCount ? `<span class="aula-class-card-pending-badge">${c.pendingCount} solicitud${c.pendingCount > 1 ? 'es' : ''}</span>` : ''}
       <div class="aula-class-card-top">
         <strong>${escapeHtml(c.name)}</strong>
         <span>${escapeHtml(c.subject || roleLabel)}</span>
@@ -4207,6 +4226,13 @@ async function renderAula(){
         ${roleLabel === 'Profesor' ? `<span class="aula-clase-code">${escapeHtml(c.joinCode)}</span>` : ''}
       </div>
     </div>`;
+
+  if(status.isTeacher && taught.some(c => c.joinMode === 'approval')){
+    try{
+      const counts = await Promise.all(taught.map(c => c.joinMode === 'approval' ? DB.classroom.listPendingRequests(c.id) : Promise.resolve([])));
+      taught.forEach((c, i) => { c.pendingCount = counts[i].length; });
+    }catch(err){ /* si falla, simplemente no se muestra el contador */ }
+  }
 
   let html = '';
   if(status.isTeacher){
@@ -4325,6 +4351,8 @@ function openCreateClassModal(){
 let aulaClaseTab = 'materiales';
 let aulaClaseIsTeacher = false;
 let aulaClaseCache = null;
+let aulaClasePendingCount = 0;
+let aulaClaseRosterCount = null;
 
 async function renderAulaClase(){
   aulaClaseTab = 'materiales';
@@ -4337,26 +4365,49 @@ async function renderAulaClase(){
   if(!cls){ wrap.innerHTML = '<p class="aula-empty">No se encontró la clase (o ya no tienes acceso a ella).</p>'; return; }
   aulaClaseCache = cls;
   aulaClaseIsTeacher = cls.teacherId === currentUser.id;
+  aulaClasePendingCount = 0;
+  aulaClaseRosterCount = null;
+  try{
+    if(aulaClaseIsTeacher){
+      const tasks = [DB.classroom.listRoster(cls.id)];
+      if(cls.joinMode === 'approval') tasks.push(DB.classroom.listPendingRequests(cls.id));
+      const [roster, pending] = await Promise.all(tasks);
+      aulaClaseRosterCount = roster.length;
+      aulaClasePendingCount = pending ? pending.length : 0;
+    } else {
+      await getUserCached(cls.teacherId);
+    }
+  }catch(err){ /* la cabecera se pinta igual, solo sin estos datos extra */ }
   paintAulaClaseShell();
   await renderAulaClaseTab();
+  syncAulaClaseChannel();
 }
 
 function paintAulaClaseShell(){
   const wrap = document.getElementById('aulaClaseContent');
   const cls = aulaClaseCache;
+  const chips = [];
+  if(cls.subject) chips.push(`<span class="aula-clase-head-chip">📘 ${escapeHtml(cls.subject)}</span>`);
+  if(aulaClaseIsTeacher){
+    chips.push(`<span class="aula-clase-head-chip">🧑‍🎓 ${aulaClaseRosterCount ?? '—'} alumno${aulaClaseRosterCount === 1 ? '' : 's'}</span>`);
+    chips.push(`<span class="aula-clase-head-chip">${cls.joinMode === 'approval' ? '🔒 Con aprobación' : '🔓 Abierta'}</span>`);
+  } else {
+    chips.push(`<span class="aula-clase-head-chip">👩‍🏫 ${escapeHtml(usersCache[cls.teacherId]?.name || 'tu profesor')}</span>`);
+  }
   wrap.innerHTML = `
     <div class="aula-clase-head">
-      <div>
-        <h2>${escapeHtml(cls.name)}</h2>
-        ${cls.subject ? `<p class="section-desc">${escapeHtml(cls.subject)}</p>` : ''}
+      <h2>${escapeHtml(cls.name)}</h2>
+      ${cls.description ? `<p class="section-desc">${escapeHtml(cls.description)}</p>` : ''}
+      <div class="aula-clase-head-meta">
+        ${chips.join('')}
+        ${aulaClaseIsTeacher ? `<span class="aula-clase-code on-banner" id="aulaHeadCode" title="Copiar código para inscribirse">🔑 ${escapeHtml(cls.joinCode)}</span>` : ''}
       </div>
-      ${aulaClaseIsTeacher ? `<span class="aula-clase-code" title="Código para inscribirse a esta clase">${escapeHtml(cls.joinCode)}</span>` : ''}
     </div>
     <div class="aula-tabs">
-      <button type="button" data-aula-tab="materiales" class="active">Materiales</button>
-      <button type="button" data-aula-tab="tareas">Tareas</button>
-      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos">Alumnos</button>` : ''}
-      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="ajustes">Ajustes</button>` : ''}
+      <button type="button" data-aula-tab="materiales" class="active">📚 Materiales</button>
+      <button type="button" data-aula-tab="tareas">📝 Tareas</button>
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos">🧑‍🎓 Alumnos<span class="aula-tab-badge" id="aulaAlumnosBadge" style="${aulaClasePendingCount ? '' : 'display:none;'}">${aulaClasePendingCount || ''}</span></button>` : ''}
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="ajustes">⚙️ Ajustes</button>` : ''}
     </div>
     <div class="aula-tab-body" id="aulaTabBody"><p class="feed-empty">Cargando…</p></div>
   `;
@@ -4368,6 +4419,18 @@ function paintAulaClaseShell(){
       renderAulaClaseTab();
     });
   });
+  document.getElementById('aulaHeadCode')?.addEventListener('click', () => copyToClipboardAula(cls.joinCode, 'Código copiado.'));
+}
+
+function updateAulaAlumnosTabBadge(){
+  const badge = document.getElementById('aulaAlumnosBadge');
+  if(!badge) return;
+  if(aulaClasePendingCount > 0){
+    badge.textContent = String(aulaClasePendingCount);
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 async function renderAulaClaseTab(){
@@ -4378,6 +4441,62 @@ async function renderAulaClaseTab(){
   if(aulaClaseTab === 'tareas') return renderAulaTareasTab(body);
   if(aulaClaseTab === 'alumnos') return renderAulaAlumnosTab(body);
   if(aulaClaseTab === 'ajustes') return renderAulaAjustesTab(body);
+}
+
+// ---------- TIEMPO REAL: la clase se actualiza sola, como los mensajes ----------
+let aulaClaseChannel = null;
+let aulaClaseChannelId = null;
+function isAulaClaseViewActive(){
+  return !!document.getElementById('aulaClase')?.classList.contains('active');
+}
+function leaveAulaClaseChannel(){
+  if(aulaClaseChannel) sb.removeChannel(aulaClaseChannel);
+  aulaClaseChannel = null;
+  aulaClaseChannelId = null;
+}
+function joinAulaClaseChannel(classroomId){
+  if(aulaClaseChannelId === classroomId) return;
+  leaveAulaClaseChannel();
+  aulaClaseChannelId = classroomId;
+  aulaClaseChannel = sb.channel(`enraiza-aula-clase-${classroomId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_enrollments', filter: `classroom_id=eq.${classroomId}` }, (payload) => {
+      onAulaEnrollmentRealtime(payload);
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_materials', filter: `classroom_id=eq.${classroomId}` }, () => {
+      if(aulaClaseTab === 'materiales') renderAulaClaseTab();
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_assignments', filter: `classroom_id=eq.${classroomId}` }, () => {
+      if(aulaClaseTab === 'tareas') renderAulaClaseTab();
+    })
+    .subscribe((status, err) => { if(status !== 'SUBSCRIBED' && err) console.warn('[aulaRealtime]', status, err); });
+}
+// Abre/cierra el canal según si de verdad estás viendo esa clase ahora mismo
+// (igual que syncDmThreadChannel con los mensajes).
+function syncAulaClaseChannel(){
+  const id = isAulaClaseViewActive() ? currentClassroomView : null;
+  if(id) joinAulaClaseChannel(id);
+  else leaveAulaClaseChannel();
+}
+async function refreshAulaPendingCount(){
+  if(!aulaClaseIsTeacher || !aulaClaseCache || aulaClaseCache.joinMode !== 'approval'){
+    aulaClasePendingCount = 0;
+    updateAulaAlumnosTabBadge();
+    return;
+  }
+  try{
+    const pending = await DB.classroom.listPendingRequests(aulaClaseCache.id);
+    aulaClasePendingCount = pending.length;
+  }catch(err){ /* deja el contador anterior si falla */ }
+  updateAulaAlumnosTabBadge();
+}
+async function onAulaEnrollmentRealtime(payload){
+  if(!aulaClaseIsTeacher) return; // a un alumno no le sirve ver los cambios de roster de otros
+  const row = payload.new || payload.old;
+  if(payload.eventType === 'INSERT' && row?.status === 'pending' && aulaClaseTab !== 'alumnos'){
+    showToast('📩 Nueva solicitud para unirse a la clase.');
+  }
+  await refreshAulaPendingCount();
+  if(aulaClaseTab === 'alumnos') renderAulaClaseTab();
 }
 
 const AULA_MATERIAL_ICONS = { texto:'📝', link:'🔗', imagen:'🖼️', pdf:'📄', word:'📃', powerpoint:'📊', otro:'📎' };
@@ -4393,11 +4512,12 @@ async function renderAulaMaterialesTab(body){
       <div style="min-width:0;">
         <strong>${escapeHtml(m.title)}</strong>
         ${m.body ? `<p>${escapeHtml(m.body)}</p>` : ''}
+        <time>Publicado ${fmtRelative(m.date)}</time>
       </div>
       ${m.url ? `<a href="${escapeHtml(m.url)}" target="_blank" rel="noopener">${m.kind === 'link' ? 'Abrir' : 'Descargar'}</a>` : ''}
       ${aulaClaseIsTeacher ? `<button type="button" class="btn-text aula-material-delete" data-id="${m.id}" style="color:#a3392c;">Borrar</button>` : ''}
     </div>
-  `).join('') : '<p class="aula-empty">Todavía no hay materiales.</p>';
+  `).join('') : `<p class="aula-empty">Todavía no hay materiales.${aulaClaseIsTeacher ? ' Agrega el primero para que tus alumnos lo vean aquí.' : ''}</p>`;
   body.innerHTML = addBtn + rows;
   document.getElementById('aulaAddMaterialBtn')?.addEventListener('click', openAddMaterialModal);
   body.querySelectorAll('.aula-material-delete').forEach(btn => {
@@ -4495,18 +4615,37 @@ async function renderAulaTareasTab(body){
   let assignments;
   try{ assignments = await DB.classroom.listAssignments(aulaClaseCache.id); }catch(err){ assignments = []; }
   const mySubs = {};
+  let rosterTotal = null;
+  const subCounts = {};
   if(!aulaClaseIsTeacher){
     const subs = await Promise.all(assignments.map(a => DB.classroom.mySubmission(a.id).catch(() => null)));
     assignments.forEach((a, i) => { mySubs[a.id] = subs[i]; });
+  } else if(assignments.length){
+    // Cuenta de entregas por tarea, para que el profesor vea de un vistazo
+    // quién va atrasado sin tener que entrar a cada tarea.
+    try{
+      const [roster, allSubs] = await Promise.all([
+        DB.classroom.listRoster(aulaClaseCache.id),
+        Promise.all(assignments.map(a => DB.classroom.listSubmissions(a.id).catch(() => []))),
+      ]);
+      rosterTotal = roster.length;
+      assignments.forEach((a, i) => { subCounts[a.id] = allSubs[i].length; });
+    }catch(err){ /* se pinta sin el contador */ }
   }
   const addBtn = aulaClaseIsTeacher ? `<button type="button" class="btn btn-outline btn-small" id="aulaAddAssignmentBtn" style="margin-bottom:12px;">＋ Nueva tarea</button>` : '';
   const cards = assignments.length ? assignments.map(a => {
     let pill = '';
     if(!aulaClaseIsTeacher){
       const sub = mySubs[a.id];
+      const overdue = !sub && a.dueAt && a.dueAt < Date.now();
       if(sub && sub.grade !== null) pill = `<span class="aula-pill graded">Calificado: ${sub.grade}/${a.maxScore}</span>`;
       else if(sub) pill = (a.dueAt && sub.submittedAt > a.dueAt) ? `<span class="aula-pill late">Entregado tarde</span>` : `<span class="aula-pill ontime">Entregado a tiempo</span>`;
+      else if(overdue) pill = `<span class="aula-pill late">⏰ Atrasada</span>`;
       else pill = `<span class="aula-pill pending">Pendiente</span>`;
+    } else if(rosterTotal !== null){
+      const count = subCounts[a.id] || 0;
+      const pillClass = count === 0 ? 'pending' : (rosterTotal > 0 && count >= rosterTotal ? 'ontime' : 'neutral');
+      pill = `<span class="aula-pill ${pillClass}">${count}/${rosterTotal} entregados</span>`;
     }
     return `
       <div class="aula-assignment-card" data-assignment-id="${a.id}">
@@ -4516,7 +4655,7 @@ async function renderAulaTareasTab(body){
         </div>
         <div class="aula-assignment-due">${a.dueAt ? 'Fecha límite: ' + fmtAulaDate(a.dueAt) : 'Sin fecha límite'} · Vale ${a.maxScore} pts</div>
       </div>`;
-  }).join('') : '<p class="aula-empty">Todavía no hay tareas.</p>';
+  }).join('') : `<p class="aula-empty">Todavía no hay tareas.${aulaClaseIsTeacher ? ' Crea la primera para que tus alumnos la vean aquí.' : ''}</p>`;
   body.innerHTML = addBtn + cards;
   document.getElementById('aulaAddAssignmentBtn')?.addEventListener('click', openAddAssignmentModal);
   body.querySelectorAll('[data-assignment-id]').forEach(card => {
@@ -4562,10 +4701,33 @@ function openAddAssignmentModal(){
   });
 }
 
+// ---------- TIEMPO REAL de una tarea: entregas nuevas / calificaciones ----------
+let aulaAssignmentChannel = null;
+let aulaAssignmentChannelId = null;
+let aulaAssignmentRealtimeHandler = null;
+function leaveAulaAssignmentChannel(){
+  if(aulaAssignmentChannel) sb.removeChannel(aulaAssignmentChannel);
+  aulaAssignmentChannel = null;
+  aulaAssignmentChannelId = null;
+  aulaAssignmentRealtimeHandler = null;
+}
+function joinAulaAssignmentChannel(assignmentId){
+  if(aulaAssignmentChannelId === assignmentId) return;
+  leaveAulaAssignmentChannel();
+  aulaAssignmentChannelId = assignmentId;
+  aulaAssignmentChannel = sb.channel(`enraiza-aula-assignment-${assignmentId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_submissions', filter: `assignment_id=eq.${assignmentId}` }, (payload) => {
+      if(aulaAssignmentRealtimeHandler) aulaAssignmentRealtimeHandler(payload);
+    })
+    .subscribe();
+}
+
 async function openAssignmentDetail(assignment){
   modalBox.className = 'modal';
   modalContent.innerHTML = '<p class="feed-empty">Cargando…</p>';
   modalBackdrop.classList.add('open');
+  joinAulaAssignmentChannel(assignment.id);
+  modalOnClose = () => leaveAulaAssignmentChannel();
   if(aulaClaseIsTeacher) return renderAssignmentDetailTeacher(assignment);
   return renderAssignmentDetailStudent(assignment);
 }
@@ -4583,6 +4745,9 @@ async function renderAssignmentDetailStudent(assignment){
     <div id="aulaSubmissionArea" style="margin-top:14px;"></div>
   `;
   renderAulaSubmissionArea(assignment, sub, comments, isLate);
+  // Si el profesor califica o comenta mientras el alumno tiene esto abierto,
+  // se actualiza solo — igual que un mensaje que llega en el chat.
+  aulaAssignmentRealtimeHandler = () => renderAssignmentDetailStudent(assignment);
 }
 
 function renderAulaSubmissionArea(assignment, sub, comments, isLate){
@@ -4681,7 +4846,7 @@ async function renderAssignmentDetailTeacher(assignment){
     <h3>${escapeHtml(assignment.title)}</h3>
     ${assignment.description ? `<p>${escapeHtml(assignment.description)}</p>` : ''}
     <div class="aula-assignment-due">${assignment.dueAt ? 'Fecha límite: ' + fmtAulaDate(assignment.dueAt) : 'Sin fecha límite'} · Vale ${assignment.maxScore} pts</div>
-    <h4 style="margin-top:14px;">Entregas</h4>
+    <h4 style="margin-top:14px; display:flex; align-items:center; gap:6px;"><span class="aula-live-dot" title="Se actualiza solo"></span>Entregas</h4>
     ${rosterHTML}
   `;
   modalContent.querySelectorAll('[data-student-id]').forEach(row => {
@@ -4690,6 +4855,8 @@ async function renderAssignmentDetailTeacher(assignment){
     const roster_row = roster.find(r => r.student_id === row.dataset.studentId);
     row.addEventListener('click', () => openGradeSubmission(assignment, sub, roster_row));
   });
+  // Vista de lista: cualquier entrega/calificación nueva refresca esto solo.
+  aulaAssignmentRealtimeHandler = () => renderAssignmentDetailTeacher(assignment);
 }
 
 async function openGradeSubmission(assignment, sub, rosterRow){
@@ -4722,6 +4889,14 @@ async function openGradeSubmission(assignment, sub, rosterRow){
     </form>
   `;
   document.getElementById('aulaBackToRoster').addEventListener('click', () => renderAssignmentDetailTeacher(assignment));
+  // Mientras el profesor está calificando esta entrega en particular, no la
+  // reemplazamos sola (le movería el formulario mientras escribe) — solo avisamos.
+  aulaAssignmentRealtimeHandler = (payload) => {
+    const row = payload.new;
+    if(row && row.student_id === sub.studentId){
+      showToast('El alumno actualizó esta entrega — vuelve a la lista para ver los cambios.');
+    }
+  };
   document.getElementById('gradeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const grade = Number(document.getElementById('gradeInput').value);
@@ -4752,21 +4927,27 @@ async function renderAulaAlumnosTab(body){
     await Promise.all([...roster, ...pending].map(r => getUserCached(r.student_id)));
   }catch(err){ /* se pinta con lo que sí haya llegado */ }
 
+  aulaClaseRosterCount = roster.length;
+  aulaClasePendingCount = pending.length;
+  updateAulaAlumnosTabBadge();
+
   const pendingHTML = aulaClaseCache.joinMode === 'approval' ? `
-    <h4 class="aula-section-label" style="margin-top:0;">Solicitudes pendientes</h4>
-    ${pending.length ? pending.map(r => {
-      const name = usersCache[r.student_id]?.name || 'Alumno';
-      return `
-      <div class="aula-student-row" style="gap:8px; flex-wrap:wrap;">
-        <div class="avatar">${escapeHtml(name[0]?.toUpperCase() || '?')}</div>
-        <div style="min-width:0; flex:1;">
-          <strong>${escapeHtml(name)}</strong>
-          <small>№ control: ${escapeHtml(r.control_number)}</small>
-        </div>
-        <button type="button" class="btn btn-primary btn-small aula-request-approve" data-id="${r.id}">Aceptar</button>
-        <button type="button" class="btn-text aula-request-reject" data-id="${r.id}" style="color:#a3392c;">Rechazar</button>
-      </div>`;
-    }).join('') : '<p class="aula-empty">No hay solicitudes en espera.</p>'}
+    <div class="aula-pending-box">
+      <h4 class="aula-section-label" style="margin-top:0;">⏳ Solicitudes pendientes</h4>
+      ${pending.length ? pending.map(r => {
+        const name = usersCache[r.student_id]?.name || 'Alumno';
+        return `
+        <div class="aula-student-row" style="gap:8px; flex-wrap:wrap;">
+          <div class="avatar">${escapeHtml(name[0]?.toUpperCase() || '?')}</div>
+          <div style="min-width:0; flex:1;">
+            <strong>${escapeHtml(name)}</strong>
+            <small>№ control: ${escapeHtml(r.control_number)}</small>
+          </div>
+          <button type="button" class="btn btn-primary btn-small aula-request-approve" data-id="${r.id}">Aceptar</button>
+          <button type="button" class="btn-text aula-request-reject" data-id="${r.id}" style="color:#a3392c;">Rechazar</button>
+        </div>`;
+      }).join('') : '<p class="aula-empty">No hay solicitudes en espera.</p>'}
+    </div>
   ` : '';
 
   const rosterHTML = roster.length ? roster.map(r => {
@@ -4784,7 +4965,7 @@ async function renderAulaAlumnosTab(body){
   body.innerHTML = `
     <button type="button" class="btn btn-outline btn-small" id="aulaEnrollBtn" style="margin-bottom:14px;">＋ Dar de alta a un alumno</button>
     ${pendingHTML}
-    <h4 class="aula-section-label">Alumnos inscritos</h4>
+    <h4 class="aula-section-label">🧑‍🎓 Alumnos inscritos${roster.length ? ` (${roster.length})` : ''}</h4>
     ${rosterHTML}
   `;
 
@@ -4800,14 +4981,20 @@ async function renderAulaAlumnosTab(body){
     });
   });
   body.querySelectorAll('.aula-request-reject').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if(!confirm('¿Rechazar esta solicitud? El alumno podría intentar unirse de nuevo.')) return;
-      btn.disabled = true;
-      try{
-        await DB.classroom.reviewJoinRequest(btn.dataset.id, false);
-        showToast('Solicitud rechazada.');
-        renderAulaAlumnosTab(body);
-      }catch(err){ showToast('No se pudo rechazar la solicitud.'); btn.disabled = false; }
+    btn.addEventListener('click', () => {
+      showConfirmDialog({
+        title: 'Rechazar solicitud',
+        message: 'El alumno no entrará a la clase. Podría intentar unirse de nuevo con el código.',
+        confirmLabel: 'Rechazar',
+        danger: true,
+        onConfirm: async () => {
+          try{
+            await DB.classroom.reviewJoinRequest(btn.dataset.id, false);
+            showToast('Solicitud rechazada.');
+            renderAulaAlumnosTab(body);
+          }catch(err){ showToast('No se pudo rechazar la solicitud.'); }
+        }
+      });
     });
   });
 }
@@ -4897,13 +5084,13 @@ async function renderAulaAjustesTab(body){
   const cls = aulaClaseCache;
   const joinUrl = buildClassJoinUrl(cls.joinCode);
   body.innerHTML = `
-    <h4 class="aula-section-label" style="margin-top:0;">Compartir clase</h4>
+    <h4 class="aula-section-label" style="margin-top:0;">🔗 Compartir clase</h4>
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
       <span class="aula-clase-code" style="font-size:1.05rem;">${escapeHtml(cls.joinCode)}</span>
       <button type="button" class="btn btn-outline btn-small" id="aulaCopyCodeBtn">Copiar código</button>
       <button type="button" class="btn btn-outline btn-small" id="aulaCopyLinkBtn">Copiar link para unirse</button>
     </div>
-    <h4 class="aula-section-label">¿Cómo se inscriben los alumnos?</h4>
+    <h4 class="aula-section-label">🚪 ¿Cómo se inscriben los alumnos?</h4>
     <form id="aulaJoinModeForm">
       <label class="aula-radio-row"><input type="radio" name="joinModeSetting" value="open" ${cls.joinMode !== 'approval' ? 'checked' : ''}> Abierta — con el código o el link entran directo</label>
       <label class="aula-radio-row"><input type="radio" name="joinModeSetting" value="approval" ${cls.joinMode === 'approval' ? 'checked' : ''}> Con aprobación — tú aceptas o rechazas cada solicitud</label>
