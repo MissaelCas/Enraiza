@@ -4522,43 +4522,8 @@ const DB = {
       return (data||[]).map(mapMaterialRow);
     },
     async addMaterial(classroomId, { title, body, kind, url }){
-      if(!currentUser?.id) throw new Error('Necesitas iniciar sesión para agregar material.');
-      const cleanTitle = String(title || '').trim();
-      if(!cleanTitle) throw new Error('El título del material es obligatorio.');
-
-      // La UI permite distinguir el tipo de archivo (PDF, Word, etc.), pero
-      // algunas instalaciones de Supabase tienen un CHECK antiguo que solo
-      // admite "texto", "link" y "archivo". Primero intentamos guardar el
-      // subtipo; si Postgres rechaza únicamente el CHECK de kind (23514),
-      // hacemos un segundo intento compatible como "archivo".
-      const requestedKind = String(kind || 'texto').trim().toLowerCase();
-
-      // La tabla actual de Supabase tiene un CHECK sobre `kind`. En esta
-      // instalación los únicos tipos que sabemos que son compatibles con el
-      // esquema que usa la app son `texto` y `link`. Los archivos subidos
-      // tienen una URL de Storage, así que se guardan como `link` en la BD
-      // (la URL sigue siendo la del archivo). Esto evita enviar `pdf`, `word`,
-      // `imagen`, etc. a Postgres y provocar el 23514.
-      const storedKind = ['texto','link'].includes(requestedKind)
-        ? requestedKind
-        : 'link';
-
-      const payload = {
-        classroom_id: classroomId,
-        teacher_id: currentUser.id,
-        title: cleanTitle,
-        body: body ? String(body).trim() : null,
-        kind: storedKind,
-        url: url || null
-      };
-
-      const result = await withUiTimeout(
-        sb.from('classroom_materials').insert(payload),
-        10000,
-        'guardar el material'
-      );
-
-      if(result.error) throw result.error;
+      const { error } = await sb.from('classroom_materials').insert({ classroom_id: classroomId, teacher_id: currentUser.id, title, body: body||null, kind, url: url||null });
+      if(error) throw error;
     },
     async removeMaterial(id){
       const { error } = await sb.from('classroom_materials').delete().eq('id', id);
@@ -5187,9 +5152,7 @@ function openAddMaterialModal(){
       showToast('Material agregado.');
       renderAulaClaseTab();
     }catch(err){
-      console.error('[Aula] agregar material:', err);
-      const detail = err?.code ? ` (${err.code})` : '';
-      errorEl.textContent = (err?.message || 'No se pudo agregar el material.') + detail;
+      errorEl.textContent = err.message || 'No se pudo agregar el material.';
       errorEl.style.display = 'block';
     }finally{ btn.disabled = false; }
   });
@@ -5729,24 +5692,9 @@ function mapPostRow(row){
   };
 }
 function mapNotificationRow(row){
-  const rawType = String(row?.type || '').trim();
-  // Compatibilidad entre nombres usados por versiones anteriores del esquema.
-  const typeAliases = {
-    comment_like: 'commentLike',
-    commentLike: 'commentLike',
-    post_like: 'like',
-    post_comment: 'comment',
-    comment_reply: 'reply',
-    new_follower: 'follow'
-  };
   return {
-    id: row.id,
-    actorId: row.actor_id,
-    type: typeAliases[rawType] || rawType,
-    postId: row.post_id || null,
-    commentId: row.comment_id || null,
-    text: row.text || '',
-    date: new Date(row.created_at).getTime(),
+    id: row.id, actorId: row.actor_id, type: row.type, postId: row.post_id || null,
+    commentId: row.comment_id || null, text: row.text || '', date: new Date(row.created_at).getTime(),
     read: !!row.read_at,
   };
 }
@@ -9956,15 +9904,7 @@ function groupNotifications(items){
   });
   return groups;
 }
-const NOTIF_VERBS = {
-  comment:'comentó en',
-  like:'le dio me gusta a',
-  reply:'respondió tu comentario en',
-  commentLike:'le dio me gusta a tu comentario en',
-  comment_like:'le dio me gusta a tu comentario en',
-  follow:'empezó a seguirte',
-  classroom_update:'publicó una actualización en'
-};
+const NOTIF_VERBS = { comment:'comentó en', like:'le dio me gusta a', reply:'respondió tu comentario en', commentLike:'le dio me gusta a tu comentario en', comment_like:'le dio me gusta a tu comentario en', follow:'empezó a seguirte' };
 function notifRowHTML(it){
   const actor = usersCache[it.actorId];
   if(it.type === 'follow'){
@@ -10397,8 +10337,11 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     const visible = enriched.filter(conv => !(conv.clearedAtMine > 0 && !conv.lastMessage));
 
     const sorted = visible.sort((a, b) => {
+      // El anclado tiene prioridad; después manda la actividad más reciente,
+      // sea mensaje leído o no leído. Así un mensaje mío posterior también
+      // mueve la conversación por encima de una anterior sin quedarse pegada
+      // por el estado de no leído.
       if (a.pinned !== b.pinned) return Number(b.pinned) - Number(a.pinned);
-      if ((a.unreadCount > 0) !== (b.unreadCount > 0)) return Number(b.unreadCount > 0) - Number(a.unreadCount > 0);
       return (b.sortTs || 0) - (a.sortTs || 0);
     });
 
@@ -10414,7 +10357,7 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
           <div class="avatar" style="width:38px;height:38px;font-size:0.74rem;">${avatarHTML(conv.otherUser)}</div>
           <div class="message-item-main">
             <div class="message-item-top">
-              <strong>${escapeHtml(conv.otherUser.name || 'Usuario')}</strong>
+              <strong>${conv.pinned ? '📌 ' : ''}${escapeHtml(conv.otherUser.name || 'Usuario')}</strong>
               <span class="message-time">${conv.lastMessage ? fmtRelative(conv.lastMessage.createdAt) : ''}</span>
             </div>
             <span class="message-preview">${previewText}</span>
@@ -12250,8 +12193,7 @@ function withTimeout(promise, ms, label){
   return Promise.race([
     promise,
     new Promise((resolve) => setTimeout(() => {
-      // La comprobación de dispositivo confiable es opcional. Si la RPC no
-      // responde, no bloqueamos el login ni llenamos la consola con un warning.
+      console.warn(`[login] "${label}" tardó más de ${ms}ms sin responder — se sigue adelante sin esperarla.`);
       resolve({ data: null, error: { message: 'timeout', code: 'CLIENT_TIMEOUT' } });
     }, ms)),
   ]);
@@ -12378,9 +12320,7 @@ function showMfaChallengeModal(factorId, resolve, opts = {}){
       if(challenge.error) throw challenge.error;
       const verified = await sb.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
       if(verified.error) throw verified.error;
-      // Supabase devuelve aquí la sesión con aal2. Pasarla explícitamente evita
-      // volver a conservar por accidente la sesión anterior (aal1).
-      await refreshCurrentAuthSessionAfterMfa(verified.data?.session || null);
+      await refreshCurrentAuthSessionAfterMfa();
       if(offerTrustDevice && document.getElementById('mfaTrustDeviceCheck')?.checked){
         await trustThisDevice(30);
       }
