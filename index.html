@@ -794,6 +794,8 @@
 .story-nav-arrow[disabled]{ opacity:0 !important; pointer-events:none; }
 @media (hover:none), (pointer:coarse){ .story-nav-arrow{ display:none; } }
   body.story-open{ overflow:hidden; height:100%; position:fixed; width:100%; }
+  /* Congela el fondo mientras hay un modal (login, etc.) abierto — ver syncPageScrollLock(). */
+  body.page-scroll-locked{ position:fixed; left:0; right:0; overflow:hidden; width:100%; }
   body.story-open #modalBackdrop{ background: rgba(0,0,0,0.92); padding:0; align-items:center; justify-content:center; }
   .story-view-backdrop{
     background: transparent;
@@ -2695,6 +2697,24 @@ function showView(name, options = {}){
   // la pinta de verdad, conservando qué conversación tenías abierta si la había.
   if(targetView === 'mensajes') renderMessagesScreen(dmOpenConversationId);
 }
+// Si hay un menú o panel flotante abierto (menú de mensaje, notificaciones,
+// mensajes rápidos, vista previa rápida, un modal, el compositor…), el botón
+// o gesto "regresar" del teléfono/navegador debe cerrarlo primero en vez de
+// dejarlo flotando sobre la vista de atrás — antes se quedaba pegado en
+// pantalla porque popstate solo sabía cambiar de vista, nunca cerrar esto.
+function closeAnyOpenOverlay(){
+  if(document.querySelector('.message-menu.open')){ closeMessageMenu(); return true; }
+  const notifPanel = document.getElementById('notifPanel');
+  if(notifPanel && notifPanel.classList.contains('open')){ closeNotifPanel(); return true; }
+  const dmQuickPanel = document.getElementById('dmPanel');
+  if(dmQuickPanel && dmQuickPanel.classList.contains('open')){ dmQuickPanel.classList.remove('open'); return true; }
+  const quickPreview = document.getElementById('quickPreviewBackdrop');
+  if(quickPreview && quickPreview.classList.contains('open')){ quickPreview.classList.remove('open'); return true; }
+  if(typeof modalBackdrop !== 'undefined' && modalBackdrop.classList.contains('open')){ closeModal(); return true; }
+  if(typeof authBackdrop !== 'undefined' && authBackdrop.classList.contains('open') && !REQUIRE_LOGIN){ closeAuthModal(); return true; }
+  if(typeof composerForm !== 'undefined' && composerForm && composerForm.classList.contains('open')){ closeComposer(); return true; }
+  return false;
+}
 window.addEventListener('popstate', (event) => {
   if(activeInlineFeedClose){
     const closeFn = activeInlineFeedClose;
@@ -2702,6 +2722,7 @@ window.addEventListener('popstate', (event) => {
     closeFn();
     return;
   }
+  if(closeAnyOpenOverlay()) return;
   const nextView = event.state && event.state.enraizaView ? event.state.enraizaView : getViewFromUrl();
   if(nextView && PERSISTABLE_VIEWS.includes(nextView)){
     showView(nextView, { silentReplace: true, force: true });
@@ -4096,7 +4117,14 @@ const DB = {
     },
     async listPublic(userId){
       const { data, error } = await sb.from('user_badges').select('badge_id,created_at').eq('user_id', userId).order('created_at',{ascending:true});
-      if(error) throw error;
+      if(error){
+        // Si la columna created_at todavía no existe en tu base (falta correr
+        // el SQL), no dejes el perfil sin insignias: se piden sin ordenar.
+        console.warn('[badges] listPublic sin created_at, revisa el SQL de insignias:', error);
+        const fallback = await sb.from('user_badges').select('badge_id').eq('user_id', userId);
+        if(fallback.error) throw fallback.error;
+        return (fallback.data||[]).map(r => ({badgeId:r.badge_id, createdAt:null}));
+      }
       return (data||[]).map(r => ({badgeId:r.badge_id,createdAt:new Date(r.created_at).getTime()}));
     },
     async award(userId, badgeId){
@@ -5737,7 +5765,9 @@ function openUserProfile(userId, name){
 function renderPublicProfileBadges(badgeRows){
   const el=document.getElementById('profileVisitBadges');
   if(!el) return;
-  const byId=new Map(BADGES.map(b=>[b.id,b]));
+  const byId=new Map(SPECIAL_BADGES.map(b=>[b.id,b]));
+  // badgeRows ya viene ordenado por created_at ascendente (DB.badges.listPublic) —
+  // así la primera insignia que se muestra es la primera que consiguió esa persona.
   const badges=(badgeRows||[]).map(r=>byId.get(r.badgeId)).filter(Boolean);
   if(!badges.length){ el.innerHTML=''; return; }
   const visible=badges.slice(0,4);
@@ -6118,6 +6148,34 @@ function closeAuthModal(){
   authBackdrop.classList.remove('open');
   authContent.innerHTML = '';
 }
+
+// ---------- BLOQUEO DE SCROLL DE FONDO mientras hay una pantalla modal ----------
+// Antes, con el login (o cualquier otro modal) abierto, la página de atrás se
+// seguía pudiendo mover con el dedo o el scroll — confuso, y perdías de vista
+// en dónde estabas. Ahora, mientras cualquiera de estos backdrops esté
+// "open", el fondo se congela sin perder tu posición: se restaura tal cual
+// estaba al cerrar el último que quedaba abierto.
+let pageScrollLockY = 0;
+function syncPageScrollLock(){
+  const quickPreview = document.getElementById('quickPreviewBackdrop');
+  const anyOpen = [modalBackdrop, authBackdrop, quickPreview].some(el => el && el.classList.contains('open'));
+  const locked = document.body.classList.contains('page-scroll-locked');
+  if(anyOpen && !locked){
+    pageScrollLockY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.classList.add('page-scroll-locked');
+    document.body.style.top = `-${pageScrollLockY}px`;
+  } else if(!anyOpen && locked){
+    document.body.classList.remove('page-scroll-locked');
+    document.body.style.top = '';
+    window.scrollTo(0, pageScrollLockY);
+  }
+}
+[modalBackdrop, authBackdrop, document.getElementById('quickPreviewBackdrop')].forEach(el => {
+  if(!el) return;
+  new MutationObserver(syncPageScrollLock).observe(el, { attributes:true, attributeFilter:['class'] });
+});
+syncPageScrollLock();
+
 // Un enlace compartido (?post=ID) se abre solo con la sesión iniciada y se usa UNA sola vez:
 // se quita de la URL al abrirlo, así cerrar la publicación o recargar no la reabre.
 function openSharedPostIfAny(){
@@ -11217,6 +11275,26 @@ const BADGES = [
 ];
 const BADGE_CATEGORIES = [...new Set(BADGES.map(b => b.cat))];
 
+// ---------- INSIGNIAS ESPECIALES ----------
+// Distintas de los logros de arriba a propósito: no son un contador más que
+// sube de tantito en tantito, sino un reconocimiento por algo más grande —
+// una racha perfecta, haber agotado TODOS los logros, etc. Por eso viven en
+// un arreglo aparte y son las únicas que se muestran como "insignias" en el
+// perfil (los logros normales se quedan en la pantalla de Logros).
+// Los ids nunca terminan en número, para no chocar con el parser de
+// progreso de getBadgeTarget()/getBadgeProgress() (ver más abajo).
+function totalMissionsClaimed(){
+  const c = userStats.counts || {};
+  return Object.keys(c).filter(k => k.startsWith('mission_claimed_') && c[k]).length;
+}
+const SPECIAL_BADGES = [
+  { id:'sp-racha-perfecta', icon:'🔥', name:'Racha perfecta', points:150, desc:'Entra a Enraíza 30 días seguidos sin fallar uno solo.', check:(s)=> (s.longest_streak||0) >= 30 },
+  { id:'sp-cazador-logros', icon:'🏆', name:'Cazador de logros', points:300, desc:`Consigue los ${BADGES.length} logros de Enraíza — no dejaste ni uno.`, check:()=> BADGES.every(b => earnedBadgeIds.has(b.id)) },
+  { id:'sp-cazador-tesoro', icon:'💎', name:'Cazador del tesoro', points:200, desc:'Reclama 25 misiones semanales a lo largo del tiempo.', check:()=> totalMissionsClaimed() >= 25 },
+  { id:'sp-alma-de-enraiza', icon:'🌳', name:'Alma de Enraíza', points:150, desc:'Junta 1,000 puntos raíz en total.', check:(s)=> (s.counts.points_total||0) >= 1000 },
+  { id:'sp-raiz-completa', icon:'🌈', name:'Raíz completa', points:180, desc:'Consigue al menos un logro en cada categoría de Enraíza.', check:()=> BADGE_CATEGORIES.every(cat => BADGES.some(b => b.cat === cat && earnedBadgeIds.has(b.id))) },
+];
+
 function getISOWeekKey(date = new Date()){
   const d = new Date(date);
   d.setHours(0,0,0,0);
@@ -11289,6 +11367,7 @@ async function reconcileHistoricalStats(){
     });
     if(pending.length) await Promise.all(pending);
     checkAndAwardBadges();
+    checkAndAwardSpecialBadges();
     checkAndAwardMissions();
   }catch(err){ /* si una consulta falla, no bloquea la app */ }
 }
@@ -11307,6 +11386,7 @@ async function recordDailyLogin(){
   */
   if(dailyLoginRecordedForUser === userId){
     checkAndAwardBadges();
+    checkAndAwardSpecialBadges();
     checkAndAwardMissions();
     return;
   }
@@ -11354,6 +11434,7 @@ async function recordDailyLogin(){
   }
 
   checkAndAwardBadges();
+  checkAndAwardSpecialBadges();
   checkAndAwardMissions();
 }
 
@@ -11367,6 +11448,7 @@ async function addPoints(amount){
 function computeCorrectPointsTotal(){
   let total = 0;
   BADGES.forEach(b => { if(earnedBadgeIds.has(b.id)) total += b.points; });
+  SPECIAL_BADGES.forEach(b => { if(earnedBadgeIds.has(b.id)) total += b.points; });
   Object.keys(userStats.counts || {}).forEach(key => {
     if(key.startsWith('mission_claimed_')){
       const missionId = key.split('_').pop();
@@ -11400,6 +11482,7 @@ async function incrementStat(field, amount){
   const wk = weeklyKey(field);
   userStats.counts[wk] = (userStats.counts[wk] || 0) + amount;
   checkAndAwardBadges();
+  checkAndAwardSpecialBadges();
   checkAndAwardMissions();
   try{
     await Promise.all([
@@ -11422,6 +11505,16 @@ async function awardBadge(badge){
 function checkAndAwardBadges(){
   if(!currentUser) return;
   BADGES.forEach(b => {
+    if(!earnedBadgeIds.has(b.id) && b.check(userStats)) awardBadge(b);
+  });
+}
+
+// Igual que checkAndAwardBadges pero para las insignias especiales — se
+// revisan aparte porque dependen de otras cosas ya ganadas (todos los
+// logros, todas las categorías), no solo de un contador de userStats.
+function checkAndAwardSpecialBadges(){
+  if(!currentUser) return;
+  SPECIAL_BADGES.forEach(b => {
     if(!earnedBadgeIds.has(b.id) && b.check(userStats)) awardBadge(b);
   });
 }
@@ -12120,8 +12213,18 @@ async function renderProfile(){
   const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id));
   const ownBadgeEl=document.getElementById('profileBadgesShowcase');
   if(ownBadgeEl){
-    const visible=earned.slice(0,4);
-    ownBadgeEl.innerHTML=visible.map(b=>`<span class="profile-badge-chip" title="${escapeHtml(b.name)} — ${escapeHtml(b.desc)}"><span class="badge-chip-icon">${b.icon}</span><span class="badge-chip-name">${escapeHtml(b.name)}</span></span>`).join('') + (earned.length>visible.length ? `<button type="button" class="profile-badges-more" data-view="logros">+${earned.length-visible.length} más</button>` : '');
+    // Ordenadas por la fecha en que se consiguieron (la primera insignia
+    // ganada aparece primero) — igual que en el perfil de otras personas.
+    const specialRows = await DB.badges.listPublic(currentUser.id).catch(() => []);
+    const byId = new Map(SPECIAL_BADGES.map(b=>[b.id,b]));
+    const specialEarned = specialRows.map(r=>byId.get(r.badgeId)).filter(Boolean);
+    const visible=specialEarned.slice(0,4);
+    ownBadgeEl.innerHTML=visible.map(b=>`<span class="profile-badge-chip" title="${escapeHtml(b.name)} — ${escapeHtml(b.desc)}"><span class="badge-chip-icon">${b.icon}</span><span class="badge-chip-name">${escapeHtml(b.name)}</span></span>`).join('') + (specialEarned.length>visible.length ? `<button type="button" class="profile-badges-more" id="profileOwnBadgesMoreBtn">+${specialEarned.length-visible.length} más</button>` : '');
+    document.getElementById('profileOwnBadgesMoreBtn')?.addEventListener('click',()=>{
+      modalBox.className='modal';
+      modalContent.innerHTML=`<h3>🏅 Tus insignias</h3><div class="achievement-completed-grid" style="margin-top:14px;">${specialEarned.map(b=>badgeCardHTML(b,true)).join('')}</div>`;
+      modalBackdrop.classList.add('open');
+    });
   }
   const doneMissions=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;
   const bs=document.getElementById('profileBadgeSummary'); if(bs) bs.textContent=`${earned.length}/${BADGES.length} logrados · ver todos`;
@@ -12331,6 +12434,11 @@ async function renderAdminTeacherRequests(body){
 const START_THRESHOLDS = [1,2,3,5,10,20];
 function getBadgeTarget(b){
   if(b.id.startsWith('start-')) return START_THRESHOLDS[Number(b.id.split('-')[1])-1] || null;
+  if(b.id === 'sp-racha-perfecta') return 30;
+  if(b.id === 'sp-cazador-logros') return BADGES.length;
+  if(b.id === 'sp-cazador-tesoro') return 25;
+  if(b.id === 'sp-alma-de-enraiza') return 1000;
+  if(b.id === 'sp-raiz-completa') return BADGE_CATEGORIES.length;
   const m = b.id.match(/-(\d+)$/);
   return m ? Number(m[1]) : null;
 }
@@ -12338,14 +12446,23 @@ function getBadgeProgress(b){
   const c=userStats.counts||{}; const m=b.id.match(/^(post|log|like|comment|save|story)-(\d+)$/);
   if(m){const map={post:'posts_created',log:'logbook_entries',like:'likes_given',comment:'comments_written',save:'posts_saved',story:'stories_created'};return Math.min(Number(m[2]),c[map[m[1]]]||0)}
   if(b.id.startsWith('streak-')) return Math.min(Number(b.id.split('-')[1]),userStats.longest_streak||0);
-  if(b.id.startsWith('start-')){const total=(c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);return Math.min(getBadgeTarget(b)||0,total)} return 0;
+  if(b.id.startsWith('start-')){const total=(c.posts_created||0)+(c.logbook_entries||0)+(c.stories_created||0);return Math.min(getBadgeTarget(b)||0,total)}
+  if(b.id === 'sp-racha-perfecta') return Math.min(30, userStats.longest_streak||0);
+  if(b.id === 'sp-cazador-logros') return BADGES.filter(x => earnedBadgeIds.has(x.id)).length;
+  if(b.id === 'sp-cazador-tesoro') return Math.min(25, totalMissionsClaimed());
+  if(b.id === 'sp-alma-de-enraiza') return Math.min(1000, c.points_total||0);
+  if(b.id === 'sp-raiz-completa') return BADGE_CATEGORIES.filter(cat => BADGES.some(x => x.cat===cat && earnedBadgeIds.has(x.id))).length;
+  return 0;
 }
 function badgeCardHTML(b,earned){const p=getBadgeProgress(b),t=getBadgeTarget(b);const txt=earned?'✓ Completado':(t?`${p}/${t} · faltan ${Math.max(0,t-p)}`:'Disponible');return `<article class="achievement-card ${earned?'earned':'locked'}"><div class="badge-icon">${b.icon}</div><div style="min-width:0;flex:1"><h4>${b.name} <span class="badge-points">+${b.points} pts</span></h4><p>${b.desc}</p><div class="achievement-progress">${txt}</div></div>${earned?'<span class="achievement-mark">✓</span>':''}</article>`;}
 function renderAchievementsPage(){
   const score=document.getElementById('achievementsPageScore'),content=document.getElementById('achievementsPageContent');
   if(!currentUser){score.innerHTML='';content.innerHTML='<div class="auth-gate"><p>Inicia sesión para ver tus logros.</p><button class="btn btn-primary btn-small" onclick="openAuthModal(\'login\')">Iniciar sesión</button></div>';return;}
   const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id)),points=userStats.counts.points_total||0;score.innerHTML=`<strong>${points}</strong><span>PUNTOS RAÍZ · ${earned.length}/${BADGES.length} LOGROS</span>`;
-  const cats=[...new Set(BADGES.map(b=>b.cat))];content.innerHTML=`<div class="growth-page-wrap">${earned.length?`<section class="achievement-completed-strip"><h3>🌿 Ya echaste raíz</h3><p>Tus logros conseguidos viven aquí y no vuelven a aparecer abajo.</p><div class="achievement-completed-grid">${earned.map(b=>badgeCardHTML(b,true)).join('')}</div></section>`:''}${cats.map(cat=>{const locked=BADGES.filter(b=>b.cat===cat&&!earnedBadgeIds.has(b.id));if(!locked.length)return '';return `<section class="achievement-category"><div class="achievement-category-head"><h3>${cat}</h3><span>${locked.length} pendientes</span></div><div class="achievement-locked-grid">${locked.map(b=>badgeCardHTML(b,false)).join('')}</div></section>`}).join('')}</div>`;
+  const specialEarned=SPECIAL_BADGES.filter(b=>earnedBadgeIds.has(b.id));
+  const specialLocked=SPECIAL_BADGES.filter(b=>!earnedBadgeIds.has(b.id));
+  const specialHTML=`<section class="achievement-category" style="margin-bottom:22px;"><div class="achievement-category-head"><h3>🏅 Insignias especiales</h3><span>${specialEarned.length}/${SPECIAL_BADGES.length}</span></div><div class="achievement-locked-grid">${[...specialEarned.map(b=>badgeCardHTML(b,true)),...specialLocked.map(b=>badgeCardHTML(b,false))].join('')}</div></section>`;
+  const cats=[...new Set(BADGES.map(b=>b.cat))];content.innerHTML=`<div class="growth-page-wrap">${specialHTML}${earned.length?`<section class="achievement-completed-strip"><h3>🌿 Ya echaste raíz</h3><p>Tus logros conseguidos viven aquí y no vuelven a aparecer abajo.</p><div class="achievement-completed-grid">${earned.map(b=>badgeCardHTML(b,true)).join('')}</div></section>`:''}${cats.map(cat=>{const locked=BADGES.filter(b=>b.cat===cat&&!earnedBadgeIds.has(b.id));if(!locked.length)return '';return `<section class="achievement-category"><div class="achievement-category-head"><h3>${cat}</h3><span>${locked.length} pendientes</span></div><div class="achievement-locked-grid">${locked.map(b=>badgeCardHTML(b,false)).join('')}</div></section>`}).join('')}</div>`;
 }
 function renderMissionsPage(){
   const score=document.getElementById('missionsPageScore'),content=document.getElementById('missionsPageContent');
