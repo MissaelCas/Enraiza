@@ -1238,16 +1238,26 @@
     .inicio-layout{ display:grid; grid-template-columns: var(--side-w) minmax(420px, var(--feed-max)) var(--side-w); gap: var(--layout-gap); align-items:start; justify-content:center; }
     .side-panel{ display:block; position:sticky; top:92px; }
   }
-  .ad-frame{
-    aspect-ratio: 3 / 4; border-radius: 14px; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; gap:5px; padding:16px; text-align:center;
-    color: var(--ink-soft); background: linear-gradient(160deg, var(--paper-alt) 0%, var(--white-ish) 100%);
-    border: 1px solid var(--line);
+  @media (max-width: 919px){
+    .inicio-layout{ display:block; }
+    .side-panel{ display:none; }
+    .mobile-tip-post{ display:block; margin:16px 0; background:var(--white-ish); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:0 4px 14px rgba(35,48,29,0.05); }
+    .mobile-tip-post-body:empty{ display:none; }
   }
-  .ad-frame-icon{ font-size:1.6rem; margin-bottom:2px; opacity:0.85; }
-  .ad-frame-tag{ font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; opacity:0.75; }
-  .ad-frame strong{ font-family: var(--serif); font-size:1.02rem; color: var(--ink); }
-  .ad-frame small{ font-size:0.72rem; }
+  @media (min-width: 920px){ .mobile-tip-post{ display:none; } }
+  .ad-frame{
+    min-height:28px; padding:4px 0; margin:0 0 10px;
+    display:block; text-align:center; box-sizing:border-box;
+    color:var(--ink-soft); background:transparent; border:0;
+    font-size:0.72rem; line-height:1.2;
+  }
+  .mobile-tip-post{ display:none; }
+  .mobile-tip-post-head{ display:flex; align-items:center; gap:10px; padding:12px 14px 8px; }
+  .mobile-tip-avatar{ width:36px; height:36px; font-size:1rem; display:flex; align-items:center; justify-content:center; background:var(--paper-alt); }
+  .mobile-tip-meta{ display:flex; flex-direction:column; min-width:0; line-height:1.25; }
+  .mobile-tip-meta strong{ font-size:0.86rem; }
+  .mobile-tip-meta span{ font-size:0.68rem; color:var(--ink-soft); }
+  .mobile-tip-post-body{ padding:4px 14px 14px; font-size:0.86rem; line-height:1.55; color:var(--ink); }
   .side-tip-card{
     border:1px solid var(--line); border-radius:12px; background:var(--paper-alt);
     padding:14px 16px; font-size:0.8rem; color:var(--ink-soft); line-height:1.55; margin-top:16px;
@@ -1727,12 +1737,7 @@
   <section id="inicio" class="view active" style="padding-top: 18px;">
     <div class="inicio-layout">
       <aside class="side-panel" aria-label="Espacio reservado para anuncios">
-        <div class="ad-frame">
-          <span class="ad-frame-icon">🌿</span>
-          <span class="ad-frame-tag">Anuncio</span>
-          <strong>Próximamente</strong>
-          <small>Espacio reservado</small>
-        </div>
+        <div class="ad-frame" aria-label="Anuncio">Anuncio</div>
       </aside>
 
       <div class="feed-col">
@@ -1774,15 +1779,21 @@
         <div id="feedEntries">
           <p class="feed-empty">Cargando publicaciones…</p>
         </div>
+
+        <article class="mobile-tip-post" id="mobileTipPost" aria-label="Consejo">
+          <div class="mobile-tip-post-head">
+            <div class="avatar mobile-tip-avatar" aria-hidden="true">🌱</div>
+            <div class="mobile-tip-meta">
+              <strong>Enraíza</strong>
+              <span>Consejo para tu día</span>
+            </div>
+          </div>
+          <div class="mobile-tip-post-body" id="mobileTipText"></div>
+        </article>
       </div>
 
       <aside class="side-panel" aria-label="Espacio reservado para anuncios">
-        <div class="ad-frame">
-          <span class="ad-frame-icon">🪴</span>
-          <span class="ad-frame-tag">Anuncio</span>
-          <strong>Próximamente</strong>
-          <small>Espacio reservado</small>
-        </div>
+        <div class="ad-frame" aria-label="Anuncio">Anuncio</div>
         <div class="side-tip-card" id="sideTipCard"></div>
       </aside>
     </div>
@@ -6948,8 +6959,11 @@ function applyProfileToUI(){
     : 'Inicia sesión para compartir un proyecto o planta';
   document.getElementById('profileDisplayName').textContent = currentUser ? currentUser.name : 'Invitado';
 
+  const tipText = GROWTH_TIPS[Math.floor(Math.random() * GROWTH_TIPS.length)];
   const tipCard = document.getElementById('sideTipCard');
-  if(tipCard) tipCard.textContent = GROWTH_TIPS[Math.floor(Math.random() * GROWTH_TIPS.length)];
+  if(tipCard) tipCard.textContent = tipText;
+  const mobileTipText = document.getElementById('mobileTipText');
+  if(mobileTipText) mobileTipText.textContent = tipText;
 
   updateAuthButtonsUI();
   syncHeaderHeightVar();
