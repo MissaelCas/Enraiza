@@ -4493,7 +4493,17 @@ function joinAulaClaseChannel(classroomId){
     .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_assignments', filter: `classroom_id=eq.${classroomId}` }, () => {
       if(aulaClaseTab === 'tareas') renderAulaClaseTab();
     })
-    .subscribe((status, err) => { if(status !== 'SUBSCRIBED' && err) console.warn('[aulaRealtime]', status, err); });
+    .subscribe((status, err) => {
+      rtLog('aula channel', classroomId, status, err || '');
+      if(status !== 'SUBSCRIBED' && err){
+        console.warn('[aulaRealtime]', classroomId, status, err);
+        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+          if(aulaClaseChannel) sb.removeChannel(aulaClaseChannel);
+          aulaClaseChannel = null;
+          aulaClaseChannelId = null;
+        }
+      }
+    });
 }
 // Abre/cierra el canal según si de verdad estás viendo esa clase ahora mismo
 // (igual que syncDmThreadChannel con los mensajes).
@@ -7635,10 +7645,156 @@ document.getElementById('composerForm').addEventListener('submit', async (e) => 
 // subscribeToPostComments / unsubscribeFromPostComments más abajo).
 // Menos canales = menos carga en Supabase Realtime con más usuarios conectados.
 // =====================================================================
+let REALTIME_DEBUG = false; // true = logs detallados de sincronización; false = modo normal
+function rtLog(...args){ if(REALTIME_DEBUG) console.debug('[REALTIME]', ...args); }
+
+function realtimeDiagnostics(){
+  const result = {
+    user: currentUser?.id || null,
+    online: navigator.onLine,
+    visibility: document.visibilityState,
+    notifications: !!notifRealtimeChannel,
+    directMessages: !!dmRealtimeChannel,
+    profiles: !!profilesRealtimeChannel,
+    social: !!socialRealtimeChannel,
+    aula: !!aulaClaseChannel,
+    dmThread: !!dmThreadChannel,
+  };
+  console.table(result);
+  return result;
+}
+window.realtimeDiagnostics = realtimeDiagnostics;
+
 function setupRealtime(){
   setupNotificationsRealtime();
   setupDmRealtime();
   setupProfilesRealtime();
+  setupSocialRealtime();
+}
+
+// Canal ligero para cambios sociales que no necesitan reconstruir toda la pantalla.
+// La UI se actualiza de forma puntual y solo cuando la vista correspondiente está abierta.
+let socialRealtimeChannel = null;
+let socialRealtimeUserId = null;
+let socialReconnectPending = false;
+let socialRefreshTimers = new Map();
+
+function scheduleSoftViewRefresh(key, fn, delay = 220){
+  clearTimeout(socialRefreshTimers.get(key));
+  socialRefreshTimers.set(key, setTimeout(() => {
+    socialRefreshTimers.delete(key);
+    Promise.resolve().then(fn).catch(err => console.warn('[REALTIME] refresh', key, err));
+  }, delay));
+}
+
+async function handleSocialRealtimePost(payload){
+  const row = payload?.new;
+  if(payload?.eventType === 'INSERT' && row?.id){
+    try{
+      const fresh = await DB.posts.listByIds([row.id]);
+      const post = fresh?.[0];
+      if(post){
+        post._savedLocal = currentUser ? mySavedIdsSet.has(post.id) : false;
+        upsertCachedPost(post);
+        await resolveAuthorObjs([post]);
+        if(isViewActive('inicio') && !getVisiblePostElement(post.id)){
+          insertRealtimePostIntoFeed(post);
+        }
+      }
+    }catch(err){ rtLog('post INSERT catch-up failed', err); }
+    return;
+  }
+  if(payload?.eventType === 'DELETE' && payload?.old?.id){
+    removeCachedPost(payload.old.id);
+    document.querySelectorAll(`.ig-post[data-id="${payload.old.id}"]`).forEach(el => {
+      postViewObserver.unobserve(el);
+      postCountSyncObserver.unobserve(el);
+      unsubscribeLiveCounts(payload.old.id);
+      el.remove();
+    });
+    return;
+  }
+}
+
+function isViewActive(id){ return !!document.getElementById(id)?.classList.contains('active'); }
+function getVisiblePostElement(id){ return document.querySelector(`.ig-post[data-id="${id}"]`); }
+
+function insertRealtimePostIntoFeed(post){
+  if(!feedEntriesEl || activeAuthorFilter) return;
+  const existing = getVisiblePostElement(post.id);
+  if(existing) return;
+  const authorObj = usersCache[post.authorId];
+  const authorName = authorObj?.name || FALLBACK_USER_NAME;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = postCardHTML(post, authorName, authorObj, currentUser ? (post.likedBy||[]).includes(currentUser.id) : false, currentUser ? !!post._savedLocal : false).trim();
+  const article = wrap.firstElementChild;
+  if(!article) return;
+  const first = feedEntriesEl.firstElementChild;
+  if(first && (first.id === 'feedSentinel' || first.id === 'feedEndMsg')) feedEntriesEl.insertBefore(article, first);
+  else feedEntriesEl.prepend(article);
+  bindPostCard(article);
+  feedRenderedCount += 1;
+}
+
+function setupSocialRealtime(){
+  if(socialRealtimeChannel && socialRealtimeUserId === currentUser?.id) return;
+  if(socialRealtimeChannel){ sb.removeChannel(socialRealtimeChannel); socialRealtimeChannel = null; }
+  socialRealtimeUserId = currentUser ? currentUser.id : null;
+  if(!currentUser) return;
+
+  socialRealtimeChannel = sb.channel(`enraiza-social-realtime-${currentUser.id}`)
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'posts' }, payload => {
+      rtLog('posts INSERT', payload.new?.id);
+      handleSocialRealtimePost(payload);
+    })
+    .on('postgres_changes', { event:'DELETE', schema:'public', table:'posts' }, payload => {
+      rtLog('posts DELETE', payload.old?.id);
+      handleSocialRealtimePost(payload);
+    })
+    .on('postgres_changes', { event:'*', schema:'public', table:'stories' }, payload => {
+      rtLog('stories', payload.eventType, payload.new?.id || payload.old?.id);
+      if(isViewActive('inicio')) scheduleSoftViewRefresh('stories', () => renderStories(), 300);
+    })
+    .on('postgres_changes', { event:'*', schema:'public', table:'user_follows' }, payload => {
+      rtLog('user_follows', payload.eventType);
+      if(isViewActive('inicio')) scheduleSoftViewRefresh('stories-follow', () => renderStories(), 350);
+      if(isViewActive('perfil') || isViewActive('perfilVisita')) scheduleSoftViewRefresh('profile-follow', () => renderProfile(), 300);
+    })
+    .on('postgres_changes', { event:'*', schema:'public', table:'logbook_entries' }, payload => {
+      rtLog('logbook_entries', payload.eventType);
+      if(isViewActive('bitacora')) scheduleSoftViewRefresh('bitacora', () => renderBitacoraProjectList(), 250);
+      if(isViewActive('proyectoBitacora') && currentProjectView && (payload.new?.project_id === currentProjectView || payload.old?.project_id === currentProjectView)){
+        scheduleSoftViewRefresh('project-log', () => renderProjectView(), 250);
+      }
+    })
+    .subscribe((status, err) => {
+      rtLog('social channel', status, err || '');
+      if(status !== 'SUBSCRIBED'){
+        socialReconnectPending = true;
+        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+          if(socialRealtimeChannel) sb.removeChannel(socialRealtimeChannel);
+          socialRealtimeChannel = null;
+        }
+      }else if(socialReconnectPending){
+        socialReconnectPending = false;
+        catchUpSocialRealtime();
+      }
+    });
+}
+
+let lastSocialCatchUp = 0;
+async function catchUpSocialRealtime(){
+  if(!currentUser) return;
+  const now = Date.now();
+  if(now - lastSocialCatchUp < 10000) return;
+  lastSocialCatchUp = now;
+  // No hacemos una recarga global. Solo sincronizamos la vista que está activa.
+  if(isViewActive('inicio')){
+    try{ await loadPostsIntoCache(); renderFeedFromCache(); }catch(err){ rtLog('feed catch-up failed', err); }
+  }
+  if(isViewActive('bitacora')) renderBitacoraProjectList().catch(()=>{});
+  if(isViewActive('proyectoBitacora') && currentProjectView) renderProjectView().catch(()=>{});
+  if(isViewActive('inicio')) renderStories().catch(()=>{});
 }
 // ---------- CAMBIOS DE PERFIL EN VIVO (foto, nombre, bio) ----------
 // Antes no existía ningún canal para esto: usersCache se llenaba una sola vez
@@ -7700,10 +7856,20 @@ function handleProfileRealtimeUpdate(row){
 // (ver el 'CHANNEL_ERROR'/'TIMED_OUT'/'CLOSED' en los .subscribe() de cada
 // canal), aquí sí se vuelve a crear.
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible' && currentUser) setupRealtime();
+  if(document.visibilityState === 'visible' && currentUser){
+    setupRealtime();
+    setTimeout(() => catchUpSocialRealtime(), 300);
+    setTimeout(() => catchUpOnNotifications(), 500);
+    setTimeout(() => catchUpOnDms(), 700);
+  }
 });
 window.addEventListener('online', () => {
-  if(currentUser) setupRealtime();
+  if(currentUser){
+    setupRealtime();
+    setTimeout(() => catchUpSocialRealtime(), 500);
+    setTimeout(() => catchUpOnNotifications(), 700);
+    setTimeout(() => catchUpOnDms(), 900);
+  }
 });
 
 // Canal de comentarios con alcance a UN solo post. Se abre cuando el usuario
@@ -7832,7 +7998,9 @@ function setupNotificationsRealtime(){
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, (payload) => {
       if(DEBUG_NOTIFICATIONS) console.log('[notifRealtime] evento recibido:', payload.new);
       if(document.getElementById('notifPanel')?.classList.contains('open')){
-        renderNotificationsPanel();
+        // Agrupa varios eventos en una sola actualización y evita que el panel
+        // parpadee/cambie a "cargando" por cada like o comentario.
+        scheduleNotificationsPanelRefresh();
       } else {
         notifUnreadCount += 1;
         checkNotifDot();
@@ -7844,6 +8012,7 @@ function setupNotificationsRealtime(){
       refreshPostFromNotification(payload.new);
     })
     .subscribe((status, err) => {
+      rtLog('notifications channel', status, err || '');
       // Si el contador no se actualiza en vivo, abre la consola y confirma que
       // esto diga "SUBSCRIBED". Si dice CHANNEL_ERROR/TIMED_OUT, el problema es
       // la conexión/permiso del canal, no la lógica de arriba.
@@ -8157,6 +8326,7 @@ function setupDmRealtime(){
       handleConversationRealtime(payload.new);
     })
     .subscribe((status, err) => {
+      rtLog('DM channel', status, err || '');
       if(status !== 'SUBSCRIBED'){
         console.warn('[dmRealtime]', status, err || '');
         dmReconnectPending = true; // se cayó: cuando reconecte, hay que refrescar lo que se haya perdido
@@ -8906,6 +9076,15 @@ function setupStorySwipeToClose(){
 // triggers en Supabase), ya no se recalculan a mano recorriendo postsCache.
 // postsCache solo sirve para completar título/foto del post cuando el tipo lo requiere.
 let notifUnreadCount = 0;
+let notifRenderTimer = null;
+let notifRenderSeq = 0;
+function scheduleNotificationsPanelRefresh(){
+  clearTimeout(notifRenderTimer);
+  notifRenderTimer = setTimeout(() => {
+    notifRenderTimer = null;
+    if(document.getElementById('notifPanel')?.classList.contains('open')) renderNotificationsPanel();
+  }, 220);
+}
 // Una sola notificación por (tipo, quién, publicación, comentario). Llegan de la más nueva a la
 // más vieja, así que se conserva la más reciente. Los comentarios/respuestas distinguen además
 // por texto para no fusionar dos comentarios distintos de la misma persona en el mismo post.
@@ -8962,7 +9141,7 @@ async function catchUpOnNotifications(){
 async function refreshNotifOnReturn(){
   if(document.visibilityState === 'hidden' || !currentUser) return;
   const now = Date.now();
-  if(now - lastNotifRefresh < 30000) return; // máx. 1 consulta cada 30 s
+  if(now - lastNotifRefresh < 10000) return; // respaldo máximo cada 10 s; Realtime sigue siendo el camino principal
   lastNotifRefresh = now;
   refreshNotifUnreadCount();
   catchUpOnNotifications();
@@ -9025,10 +9204,12 @@ function reminderRowHTML(it){
 async function renderNotificationsPanel(){
   const panel = document.getElementById('notifPanel');
   if(!panel || !currentUser) return;
+  const renderId = ++notifRenderSeq;
   let items = [];
   try{ items = await fetchNotifications(); }
   catch(err){ panel.innerHTML = '<p class="empty-note" style="padding:16px;">No se pudieron cargar las notificaciones.</p>'; return; }
   await Promise.all([...new Set(items.map(it => it.actorId))].map(id => getUserCached(id)));
+  if(renderId !== notifRenderSeq || !panel.classList.contains('open')) return;
   const reminders = buildReminders();
   const groups = groupNotifications(items);
   const section = (label, arr) => arr.length ? `<div class="notif-section-label">${label}</div>${arr.map(notifRowHTML).join('')}` : '';
