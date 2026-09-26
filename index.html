@@ -2266,9 +2266,58 @@ function fetchWithTimeout(url, options = {}){
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
+// Límite para la interfaz: ninguna operación de UI debe poder dejar un modal,
+// una vista o un botón esperando indefinidamente. El fetch global también tiene
+// AbortController, así que el límite de abajo es principalmente una barrera de UI.
+function withUiTimeout(promise, ms = 10000, label = 'operación'){
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`La operación "${label}" tardó demasiado. Revisa tu conexión e inténtalo de nuevo.`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   global: { fetch: fetchWithTimeout },
+  realtime: {
+    params: {
+      log_level: 'error',
+      reconnectAfterMs: (tries) => Math.min(1000 * Math.pow(2, Math.max(0, tries - 1)), 10000),
+    },
+  },
 });
+
+// Supabase Realtime ya hace reconexión y rejoin de canales automáticamente.
+// Nunca destruimos un canal persistente desde su propio callback de CLOSED/
+// CHANNEL_ERROR/TIMED_OUT. Si realmente queda cerrado, lo recuperamos con
+// backoff, evitando la cascada removeChannel -> CLOSED -> removeChannel.
+const realtimeRecoveryTimers = new Map();
+const realtimeRecoveryAttempts = new Map();
+const realtimeRecoveryInProgress = new Set();
+function scheduleRealtimeRecovery(key, getChannel, recreate, reason){
+  if(!currentUser || realtimeRecoveryTimers.has(key) || realtimeRecoveryInProgress.has(key)) return;
+  const attempt = (realtimeRecoveryAttempts.get(key) || 0) + 1;
+  realtimeRecoveryAttempts.set(key, attempt);
+  const delay = Math.min(1500 * Math.pow(2, Math.min(attempt - 1, 3)), 10000);
+  const timer = setTimeout(async () => {
+    realtimeRecoveryTimers.delete(key);
+    if(!currentUser) return;
+    const ch = getChannel();
+    if(!ch){ recreate(); return; }
+    if(ch.state === 'joined' || ch.state === 'joining') return;
+    realtimeRecoveryInProgress.add(key);
+    try{ await sb.removeChannel(ch); }catch(err){ /* ya estaba cerrado */ }
+    try{ if(getChannel() === ch) recreate(); }
+    finally{ realtimeRecoveryInProgress.delete(key); }
+  }, delay);
+  realtimeRecoveryTimers.set(key, timer);
+  console.warn('[Realtime] recuperación programada', key, reason || '', `en ${delay}ms`);
+}
+function markRealtimeHealthy(key){
+  const timer = realtimeRecoveryTimers.get(key);
+  if(timer){ clearTimeout(timer); realtimeRecoveryTimers.delete(key); }
+  realtimeRecoveryAttempts.delete(key);
+}
+
 const BUCKET = 'enraiza';
 const STORY_DAY_MS = 24 * 60 * 60 * 1000;
 const STORY_DURATION_MS = 5000;
@@ -2607,8 +2656,8 @@ function showView(name, options = {}){
   if(targetView === 'configuracion'){ renderSettingsPage(); if(window.settingsResetToMenu) window.settingsResetToMenu(); }
   if(targetView === 'perfilVisita') renderUserProfileVisit();
   if(targetView === 'bitacora') renderBitacoraProjectList();
-  if(targetView === 'aula') renderAula();
-  if(targetView === 'aulaClase') renderAulaClase();
+  if(targetView === 'aula') renderAula().catch(err => console.warn('[showView] Aula:', err));
+  if(targetView === 'aulaClase') renderAulaClase().catch(err => console.warn('[showView] Aula clase:', err));
   // Antes solo el clic en el ícono del avión llamaba a renderMessagesScreen()
   // explícitamente, así que recargar la página, usar el botón atrás, o
   // restaurar la sesión dejaban la pantalla de Mensajes vacía hasta que la
@@ -3340,21 +3389,50 @@ const DB = {
     async listComments(postId){
       if(!postId) return [];
 
+      /*
+       * No dependemos de la relación embebida comment_likes para leer el
+       * comentario. Primero traemos los comentarios reales y después sus likes.
+       * Así un problema de la relación PostgREST no hace que parezca que
+       * "desaparecieron" todos los comentarios.
+       */
       const { data, error } = await sb
         .from('post_comments')
-        .select('*, comment_likes(user_id)')
+        .select('id, post_id, author_id, text, parent_id, created_at')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
       if(error) throw error;
 
-      return (data || []).map(c => ({
+      const rows = data || [];
+      if(!rows.length) return [];
+
+      const ids = rows.map(c => c.id);
+      let likesByComment = new Map();
+
+      try{
+        const { data: likes, error: likesError } = await sb
+          .from('comment_likes')
+          .select('comment_id, user_id')
+          .in('comment_id', ids);
+
+        if(!likesError){
+          likesByComment = new Map();
+          (likes || []).forEach(l => {
+            if(!likesByComment.has(l.comment_id)) likesByComment.set(l.comment_id, []);
+            likesByComment.get(l.comment_id).push(l.user_id);
+          });
+        }
+      }catch(_err){
+        // Los likes son accesorios: nunca deben impedir cargar comentarios.
+      }
+
+      return rows.map(c => ({
         id: c.id,
         authorId: c.author_id,
         text: c.text,
         date: new Date(c.created_at).getTime(),
         parentId: c.parent_id || null,
-        likedBy: (c.comment_likes || []).map(l => l.user_id),
+        likedBy: likesByComment.get(c.id) || []
       }));
     },
     async create({ authorId, title, category, notes, photos, projectId }){
@@ -3393,24 +3471,54 @@ const DB = {
         };
       },
       async addComment(id, { text, parentId }){
-      const { data, error } = await sb.rpc('create_post_comment', {
-        p_post_id: id,
-        p_text: text,
-        p_parent_id: parentId || null
-      });
+        if(!currentUser?.id) throw new Error('Necesitas iniciar sesión para comentar.');
+        const cleanText = String(text || '').trim();
+        if(!id || !cleanText) throw new Error('Comentario no válido.');
 
-      if(error){
-        console.error('[COMMENTS] create_post_comment error:', error);
-        throw error;
-      }
+        /*
+         * La ruta principal sigue siendo el RPC porque ahí viven las reglas de
+         * negocio/notificaciones del servidor. Si el RPC falla por una función
+         * antigua o desincronizada, hacemos fallback a INSERT directo.
+         */
+        let data = null;
+        let rpcError = null;
 
-      if(!data){
-        throw new Error('Supabase no devolvió el comentario creado.');
-      }
+        const rpc = await sb.rpc('create_post_comment', {
+          p_post_id: id,
+          p_text: cleanText,
+          p_parent_id: parentId || null
+        });
 
-      return Array.isArray(data) ? data[0] : data;
-    },
-    async removeComment(commentId, authorId){
+        data = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
+        rpcError = rpc.error || null;
+
+        if(!rpcError && data?.id){
+          return data;
+        }
+
+        if(rpcError){
+          console.warn('[COMMENTS] create_post_comment falló; intentando INSERT directo:', rpcError);
+        }else{
+          console.warn('[COMMENTS] create_post_comment no devolvió una fila válida; intentando INSERT directo.');
+        }
+
+        const direct = await sb
+          .from('post_comments')
+          .insert({
+            post_id: id,
+            author_id: currentUser.id,
+            text: cleanText,
+            parent_id: parentId || null
+          })
+          .select('id, post_id, author_id, text, parent_id, created_at')
+          .single();
+
+        if(direct.error) throw (rpcError || direct.error);
+        if(!direct.data?.id) throw new Error('Supabase no devolvió el comentario creado.');
+
+        return direct.data;
+      },
+      async removeComment(commentId, authorId){
       const { error } = await sb.from('post_comments').delete().eq('id', commentId).eq('author_id', authorId);
       if(error) throw error;
       return true;
@@ -4045,11 +4153,13 @@ const DB = {
   // =====================================================================
   classroom: {
     async myStatus(){
-      const [{ data: isTeacher }, { data: reqStatus }] = await Promise.all([
-        sb.rpc('get_my_teacher_flag'),
-        sb.rpc('my_teacher_request_status'),
+      const [teacherResult, requestResult] = await Promise.all([
+        withUiTimeout(sb.rpc('get_my_teacher_flag'), 9000, 'comprobar permisos de profesor'),
+        withUiTimeout(sb.rpc('my_teacher_request_status'), 9000, 'comprobar solicitud de profesor'),
       ]);
-      return { isTeacher: !!isTeacher, requestStatus: reqStatus || null };
+      if(teacherResult?.error) throw teacherResult.error;
+      if(requestResult?.error) throw requestResult.error;
+      return { isTeacher: !!teacherResult?.data, requestStatus: requestResult?.data || null };
     },
     async requestTeacher(note){
       const { error } = await sb.from('teacher_requests').insert({ user_id: currentUser.id, note });
@@ -4062,10 +4172,18 @@ const DB = {
       return code;
     },
     async createClass({ name, subject, description, joinMode }){
+      if(!currentUser) throw new Error('Necesitas iniciar sesión para crear una clase.');
+      const status = await this.myStatus();
+      if(!status.isTeacher) throw new Error('Solo las cuentas de profesor pueden crear clases.');
       const join_code = this.genJoinCode();
-      const { data, error } = await sb.from('classrooms')
-        .insert({ teacher_id: currentUser.id, name, subject: subject||null, description: description||null, join_code, join_mode: joinMode === 'approval' ? 'approval' : 'open' })
-        .select().single();
+      const { data, error } = await withUiTimeout(
+        sb.from('classrooms')
+          .insert({ teacher_id: currentUser.id, name, subject: subject||null, description: description||null, join_code, join_mode: joinMode === 'approval' ? 'approval' : 'open' })
+          .select('id,teacher_id,name,subject,description,join_code,join_mode,created_at')
+          .single(),
+        10000,
+        'crear la clase'
+      );
       if(error) throw error;
       return mapClassroomRow(data);
     },
@@ -4076,28 +4194,53 @@ const DB = {
       if(error) throw error;
     },
     async myTaughtClasses(){
-      const { data, error } = await sb.from('classrooms').select('*').eq('teacher_id', currentUser.id).eq('archived', false).order('created_at', { ascending:false });
+      const { data, error } = await withUiTimeout(
+        sb.from('classrooms')
+          .select('id,teacher_id,name,subject,description,join_code,join_mode,created_at')
+          .eq('teacher_id', currentUser.id).eq('archived', false)
+          .order('created_at', { ascending:false }),
+        10000,
+        'cargar tus clases'
+      );
       if(error) throw error;
       return (data||[]).map(mapClassroomRow);
     },
     async myEnrolledClasses(){
-      const { data, error } = await sb.from('classroom_enrollments')
-        .select('classroom_id, classrooms(*)')
-        .eq('student_id', currentUser.id).eq('status', 'active');
+      const { data, error } = await withUiTimeout(
+        sb.from('classroom_enrollments')
+          .select('classroom_id, classrooms(id,teacher_id,name,subject,description,join_code,join_mode,created_at)')
+          .eq('student_id', currentUser.id).eq('status', 'active'),
+        10000,
+        'cargar tus clases inscritas'
+      );
       if(error) throw error;
       return (data||[]).map(r => r.classrooms).filter(Boolean).map(mapClassroomRow);
     },
     async joinClass(joinCode, controlNumber){
-      // join_classroom ahora devuelve una fila { classroom_id, status } en vez
-      // de solo el uuid, porque si la clase pide aprobación el resultado es
-      // "pending", no "ya estás dentro" — el cliente necesita distinguir eso.
-      const { data, error } = await sb.rpc('join_classroom', { p_join_code: joinCode, p_control_number: controlNumber });
+      if(!currentUser) throw new Error('Necesitas iniciar sesión para unirte a una clase.');
+      const code = String(joinCode || '').trim().toUpperCase().replace(/\s+/g, '');
+      const control = String(controlNumber || '').trim();
+      if(!/^[A-Z2-9]{6}$/.test(code)) throw new Error('El código debe tener 6 caracteres.');
+      if(!control) throw new Error('Escribe tu número de control.');
+      const { data, error } = await withUiTimeout(
+        sb.rpc('join_classroom', { p_join_code: code, p_control_number: control }),
+        10000,
+        'unirte a la clase'
+      );
       if(error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
-      return { classroomId: row?.classroom_id || row, status: row?.status || 'active' };
+      const classroomId = row?.classroom_id || row?.id || (typeof row === 'string' ? row : null);
+      if(!classroomId) throw new Error('La clase no devolvió un identificador válido. Verifica el código e inténtalo de nuevo.');
+      return { classroomId, status: row?.status || 'active' };
     },
     async getClass(id){
-      const { data, error } = await sb.from('classrooms').select('*').eq('id', id).maybeSingle();
+      const { data, error } = await withUiTimeout(
+        sb.from('classrooms')
+          .select('id,teacher_id,name,subject,description,join_code,join_mode,created_at')
+          .eq('id', id).maybeSingle(),
+        10000,
+        'cargar la clase'
+      );
       if(error) throw error;
       return data ? mapClassroomRow(data) : null;
     },
@@ -4209,72 +4352,100 @@ function openAulaClase(id){
   showView('aulaClase');
 }
 
-async function renderAula(){
+let aulaRenderToken = 0;
+let aulaRenderPromise = null;
+let aulaLastRenderedAt = 0;
+const AULA_REFRESH_MS = 30000;
+
+async function renderAula({ silent = false } = {}){
   const statusEl = document.getElementById('aulaTeacherStatus');
   const contentEl = document.getElementById('aulaContent');
   const createBtn = document.getElementById('aulaCreateBtn');
   const joinBtn = document.getElementById('aulaJoinBtn');
-  if(!statusEl || !contentEl) return;
-  statusEl.innerHTML = '';
-  contentEl.innerHTML = '<p class="feed-empty">Cargando…</p>';
-  let status, taught = [], enrolled = [];
-  try{
-    status = await DB.classroom.myStatus();
-    [taught, enrolled] = await Promise.all([
-      status.isTeacher ? DB.classroom.myTaughtClasses() : Promise.resolve([]),
-      DB.classroom.myEnrolledClasses(),
-    ]);
-  }catch(err){
-    contentEl.innerHTML = '<p class="aula-empty">No se pudo cargar Aula. Intenta de nuevo en un momento.</p>';
-    return;
-  }
-  createBtn.hidden = !status.isTeacher;
-  createBtn.onclick = openCreateClassModal;
-  joinBtn.onclick = openJoinClassModal;
+  if(!statusEl || !contentEl || !currentUser) return;
 
-  if(status.requestStatus === 'pending' && !status.isTeacher){
-    statusEl.innerHTML = `<div class="aula-banner pending">⏳ Tu solicitud para ser profesor está en revisión.</div>`;
-  } else if(!status.isTeacher){
-    statusEl.innerHTML = `<div class="aula-banner">¿Eres profesor de sustentabilidad? <button type="button" class="btn-text" id="aulaBecomeTeacherBtn">Solicita dar de alta tu cuenta</button></div>`;
-    document.getElementById('aulaBecomeTeacherBtn')?.addEventListener('click', openRequestTeacherModal);
-  }
+  // Evita dos renders de Aula simultáneos, que antes podían pisarse entre sí.
+  if(aulaRenderPromise) return aulaRenderPromise;
+  const token = ++aulaRenderToken;
 
-  const classCardHTML = (c, roleLabel) => `
-    <div class="aula-class-card" data-classroom-id="${c.id}">
-      ${roleLabel === 'Profesor' && c.pendingCount ? `<span class="aula-class-card-pending-badge">${c.pendingCount} solicitud${c.pendingCount > 1 ? 'es' : ''}</span>` : ''}
-      <div class="aula-class-card-top">
-        <strong>${escapeHtml(c.name)}</strong>
-        <span>${escapeHtml(c.subject || roleLabel)}</span>
-      </div>
-      <div class="aula-class-card-bottom">
-        <span>${roleLabel}</span>
-        ${roleLabel === 'Profesor' ? `<span class="aula-clase-code">${escapeHtml(c.joinCode)}</span>` : ''}
-      </div>
-    </div>`;
-
-  if(status.isTeacher && taught.some(c => c.joinMode === 'approval')){
+  aulaRenderPromise = (async () => {
+    if(!silent) contentEl.innerHTML = '<p class="feed-empty">Cargando…</p>';
+    let status, taught = [], enrolled = [];
     try{
-      const counts = await Promise.all(taught.map(c => c.joinMode === 'approval' ? DB.classroom.listPendingRequests(c.id) : Promise.resolve([])));
-      taught.forEach((c, i) => { c.pendingCount = counts[i].length; });
-    }catch(err){ /* si falla, simplemente no se muestra el contador */ }
-  }
+      status = await DB.classroom.myStatus();
+      if(token !== aulaRenderToken) return;
+      [taught, enrolled] = await Promise.all([
+        status.isTeacher ? DB.classroom.myTaughtClasses() : Promise.resolve([]),
+        DB.classroom.myEnrolledClasses(),
+      ]);
+    }catch(err){
+      console.warn('[Aula] carga:', err);
+      contentEl.innerHTML = `<p class="aula-empty">No se pudo cargar Aula ahora mismo.</p>
+        <button type="button" class="btn btn-outline btn-small" id="aulaRetryBtn" style="margin-top:8px;">Reintentar</button>`;
+      document.getElementById('aulaRetryBtn')?.addEventListener('click', () => renderAula());
+      return;
+    }
 
-  let html = '';
-  if(status.isTeacher){
-    html += `<h3 class="aula-section-label">Tus clases</h3>`;
-    html += taught.length
-      ? `<div class="aula-class-grid">${taught.map(c => classCardHTML(c, 'Profesor')).join('')}</div>`
-      : `<p class="aula-empty">Todavía no has creado ninguna clase.</p>`;
-  }
-  html += `<h3 class="aula-section-label">Clases en las que estás inscrito</h3>`;
-  html += enrolled.length
-    ? `<div class="aula-class-grid">${enrolled.map(c => classCardHTML(c, 'Alumno')).join('')}</div>`
-    : `<p class="aula-empty">Todavía no te has inscrito a ninguna clase. Pide el código a tu profesor.</p>`;
+    createBtn.hidden = !status.isTeacher;
+    createBtn.disabled = !status.isTeacher;
+    createBtn.onclick = () => openCreateClassModal();
+    joinBtn.disabled = false;
+    joinBtn.onclick = () => openJoinClassModal();
 
-  contentEl.innerHTML = html;
-  contentEl.querySelectorAll('[data-classroom-id]').forEach(card => {
-    card.addEventListener('click', () => openAulaClase(card.dataset.classroomId));
-  });
+    if(status.requestStatus === 'pending' && !status.isTeacher){
+      statusEl.innerHTML = `<div class="aula-banner pending">⏳ Tu solicitud para ser profesor está en revisión.</div>`;
+    } else if(!status.isTeacher){
+      statusEl.innerHTML = `<div class="aula-banner">¿Eres profesor de sustentabilidad? <button type="button" class="btn-text" id="aulaBecomeTeacherBtn">Solicita dar de alta tu cuenta</button></div>`;
+      document.getElementById('aulaBecomeTeacherBtn')?.addEventListener('click', openRequestTeacherModal);
+    } else {
+      statusEl.innerHTML = '';
+    }
+
+    const classCardHTML = (c, roleLabel) => `
+      <div class="aula-class-card" data-classroom-id="${escapeHtml(c.id)}">
+        ${roleLabel === 'Profesor' && c.pendingCount ? `<span class="aula-class-card-pending-badge">${c.pendingCount} solicitud${c.pendingCount > 1 ? 'es' : ''}</span>` : ''}
+        <div class="aula-class-card-top">
+          <strong>${escapeHtml(c.name)}</strong>
+          <span>${escapeHtml(c.subject || roleLabel)}</span>
+        </div>
+        <div class="aula-class-card-bottom">
+          <span>${roleLabel}</span>
+          ${roleLabel === 'Profesor' ? `<span class="aula-clase-code">${escapeHtml(c.joinCode)}</span>` : ''}
+        </div>
+      </div>`;
+
+    // El contador de solicitudes se consulta solo cuando hace falta y en paralelo.
+    if(status.isTeacher){
+      const approvalClasses = taught.filter(c => c.joinMode === 'approval');
+      if(approvalClasses.length){
+        try{
+          const counts = await Promise.all(approvalClasses.map(c => DB.classroom.listPendingRequests(c.id)));
+          counts.forEach((rows, i) => { approvalClasses[i].pendingCount = rows.length; });
+        }catch(err){ console.warn('[Aula] contador de solicitudes:', err); }
+      }
+    }
+
+    if(token !== aulaRenderToken) return;
+    let html = '';
+    if(status.isTeacher){
+      html += `<h3 class="aula-section-label">Tus clases</h3>`;
+      html += taught.length
+        ? `<div class="aula-class-grid">${taught.map(c => classCardHTML(c, 'Profesor')).join('')}</div>`
+        : `<p class="aula-empty">Todavía no has creado ninguna clase.</p>`;
+    }
+    html += `<h3 class="aula-section-label">Clases en las que estás inscrito</h3>`;
+    html += enrolled.length
+      ? `<div class="aula-class-grid">${enrolled.map(c => classCardHTML(c, 'Alumno')).join('')}</div>`
+      : `<p class="aula-empty">Todavía no te has inscrito a ninguna clase. Usa el código que te dio tu profesor.</p>`;
+
+    contentEl.innerHTML = html;
+    contentEl.querySelectorAll('[data-classroom-id]').forEach(card => {
+      card.addEventListener('click', () => openAulaClase(card.dataset.classroomId));
+    });
+    aulaLastRenderedAt = Date.now();
+  })().finally(() => { aulaRenderPromise = null; });
+
+  return aulaRenderPromise;
 }
 
 function openRequestTeacherModal(){
@@ -4302,43 +4473,98 @@ function openRequestTeacherModal(){
 }
 
 function openJoinClassModal(prefillCode){
+  if(!currentUser){ requireLogin('unirte a una clase'); return; }
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>Unirme a una clase</h3>
+    <p class="section-desc">Escribe el código de 6 caracteres que te dio tu profesor.</p>
     <form id="joinClassForm">
       <label for="joinClassCode">Código de la clase</label>
-      <input id="joinClassCode" maxlength="6" style="width:100%; text-transform:uppercase;" placeholder="ABC123" value="${escapeHtml((prefillCode||'').toUpperCase())}" required>
+      <input id="joinClassCode" maxlength="6" minlength="6" style="width:100%; text-transform:uppercase;" placeholder="ABC123" value="${escapeHtml((prefillCode||'').toUpperCase().replace(/\s+/g,''))}" required autocomplete="off" spellcheck="false">
       <label for="joinClassControl" style="margin-top:10px; display:block;">Tu número de control</label>
-      <input id="joinClassControl" style="width:100%;" placeholder="Ej: 21120001" required>
+      <input id="joinClassControl" style="width:100%;" placeholder="Ej: 21120001" required autocomplete="off" inputmode="numeric">
       <p class="auth-error" id="joinClassError" style="display:none;"></p>
-      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Unirme</button>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;" id="joinClassSubmit">Unirme</button>
     </form>
   `;
   modalBackdrop.classList.add('open');
-  document.getElementById('joinClassForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const code = document.getElementById('joinClassCode').value.trim();
-    const control = document.getElementById('joinClassControl').value.trim();
-    const errorEl = document.getElementById('joinClassError');
+
+  const form = document.getElementById('joinClassForm');
+  const codeInput = document.getElementById('joinClassCode');
+  const controlInput = document.getElementById('joinClassControl');
+  const errorEl = document.getElementById('joinClassError');
+  const submitBtn = document.getElementById('joinClassSubmit');
+
+  codeInput?.addEventListener('input', () => {
+    codeInput.value = codeInput.value.toUpperCase().replace(/\s+/g,'').slice(0,6);
     errorEl.style.display = 'none';
+  });
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if(submitBtn.disabled) return;
+
+    const code = codeInput.value.trim().toUpperCase().replace(/\s+/g,'');
+    const control = controlInput.value.trim();
+    errorEl.style.display = 'none';
+
+    if(!/^[A-Z2-9]{6}$/.test(code)){
+      errorEl.textContent = 'El código debe tener exactamente 6 caracteres.';
+      errorEl.style.display = 'block';
+      codeInput.focus();
+      return;
+    }
+    if(!control){
+      errorEl.textContent = 'Escribe tu número de control.';
+      errorEl.style.display = 'block';
+      controlInput.focus();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uniéndome…';
     try{
-      const { classroomId, status } = await DB.classroom.joinClass(code, control);
+      const result = await DB.classroom.joinClass(code, control);
       closeModal();
-      if(status === 'pending'){
+      if(result.status === 'pending'){
         showToast('Solicitud enviada. El profesor tiene que aceptarte antes de que veas la clase.');
-        renderAula();
-      } else {
+        await renderAula();
+      }else{
         showToast('Te uniste a la clase.');
-        openAulaClase(classroomId);
+        currentClassroomView = result.classroomId;
+        showView('aulaClase');
       }
     }catch(err){
-      errorEl.textContent = err.message || 'No se pudo unir a la clase.';
+      console.warn('[Aula] joinClass:', err);
+      const raw = String(err?.message || '');
+      const friendly = /function.*join_classroom|does not exist|PGRST202|42883/i.test(raw)
+        ? 'El servicio para unirse a clases no está disponible en este momento. Revisa la función join_classroom en Supabase.'
+        : /invalid|código|code|not found|no existe|classroom/i.test(raw)
+          ? 'No se pudo encontrar esa clase. Revisa el código y vuelve a intentarlo.'
+          : raw || 'No se pudo unir a la clase. Inténtalo de nuevo.';
+      errorEl.textContent = friendly;
       errorEl.style.display = 'block';
+    }finally{
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Unirme';
     }
   });
+
+  setTimeout(() => (prefillCode ? controlInput?.focus() : codeInput?.focus()), 0);
 }
 
-function openCreateClassModal(){
+async function openCreateClassModal(){
+  if(!currentUser){ requireLogin('crear una clase'); return; }
+  try{
+    const status = await DB.classroom.myStatus();
+    if(!status.isTeacher){
+      showToast('Tu cuenta es de alumno. Solo un profesor puede crear una clase.');
+      return;
+    }
+  }catch(err){
+    showToast('No se pudieron comprobar tus permisos. Inténtalo de nuevo.');
+    return;
+  }
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>Nueva clase</h3>
@@ -4380,6 +4606,7 @@ let aulaClasePendingCount = 0;
 let aulaClaseRosterCount = null;
 
 async function renderAulaClase(){
+  if(!currentUser) { showView('inicio'); return; }
   aulaClaseTab = 'materiales';
   const wrap = document.getElementById('aulaClaseContent');
   if(!wrap) return;
@@ -4458,14 +4685,27 @@ function updateAulaAlumnosTabBadge(){
   }
 }
 
+let aulaTabRenderToken = 0;
 async function renderAulaClaseTab(){
   const body = document.getElementById('aulaTabBody');
-  if(!body) return;
+  if(!body || !aulaClaseCache) return;
+  const token = ++aulaTabRenderToken;
+  const tab = aulaClaseTab;
   body.innerHTML = '<p class="feed-empty">Cargando…</p>';
-  if(aulaClaseTab === 'materiales') return renderAulaMaterialesTab(body);
-  if(aulaClaseTab === 'tareas') return renderAulaTareasTab(body);
-  if(aulaClaseTab === 'alumnos') return renderAulaAlumnosTab(body);
-  if(aulaClaseTab === 'ajustes') return renderAulaAjustesTab(body);
+  try{
+    if(tab === 'materiales') await renderAulaMaterialesTab(body);
+    else if(tab === 'tareas') await renderAulaTareasTab(body);
+    else if(tab === 'alumnos') await renderAulaAlumnosTab(body);
+    else if(tab === 'ajustes') await renderAulaAjustesTab(body);
+    if(token !== aulaTabRenderToken || aulaClaseTab !== tab) return;
+  }catch(err){
+    console.warn('[Aula] pestaña:', err);
+    if(token === aulaTabRenderToken && aulaClaseTab === tab){
+      body.innerHTML = `<p class="aula-empty">No se pudo cargar esta sección.</p>
+        <button type="button" class="btn btn-outline btn-small" id="aulaTabRetryBtn">Reintentar</button>`;
+      document.getElementById('aulaTabRetryBtn')?.addEventListener('click', () => renderAulaClaseTab());
+    }
+  }
 }
 
 // ---------- TIEMPO REAL: la clase se actualiza sola, como los mensajes ----------
@@ -4495,13 +4735,17 @@ function joinAulaClaseChannel(classroomId){
     })
     .subscribe((status, err) => {
       rtLog('aula channel', classroomId, status, err || '');
-      if(status !== 'SUBSCRIBED' && err){
-        console.warn('[aulaRealtime]', classroomId, status, err);
-        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-          if(aulaClaseChannel) sb.removeChannel(aulaClaseChannel);
+      if(status === 'SUBSCRIBED'){
+        markRealtimeHealthy(`aula:${classroomId}`);
+        return;
+      }
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+        console.warn('[aulaRealtime]', classroomId, status, err || '');
+        scheduleRealtimeRecovery(`aula:${classroomId}`, () => aulaClaseChannel, () => {
           aulaClaseChannel = null;
           aulaClaseChannelId = null;
-        }
+          if(isAulaClaseViewActive() && currentClassroomView === classroomId) joinAulaClaseChannel(classroomId);
+        }, status);
       }
     });
 }
@@ -7328,13 +7572,12 @@ async function handleSave(id){
 // ---------- COMENTAR: aparece al instante en la tarjeta, se guarda en segundo plano ----------
 async function postComment(id, text, parentId){
   const post = getCachedPost(id);
-  if(!post) return;
+  if(!post || !currentUser?.id) return;
 
   const cleanText = String(text || '').trim();
   if(!cleanText) return;
 
-  const tempId = 'temp' + Date.now();
-
+  const tempId = `temp-${currentUser.id}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
   const tempComment = {
     id: tempId,
     authorId: currentUser.id,
@@ -7344,54 +7587,74 @@ async function postComment(id, text, parentId){
     likedBy: []
   };
 
-  post.comments = post.comments || [];
+  post.comments = Array.isArray(post.comments) ? post.comments : [];
   post.comments.push(tempComment);
-
+  post.commentsLoaded = true;
+  post.commentCount = Math.max(Number(post.commentCount || 0), post.comments.length);
   rerenderCardFromCache(id);
 
   try{
     const saved = await DB.posts.addComment(id, {
       text: cleanText,
-      parentId
+      parentId: parentId || null
     });
 
+    /*
+     * Sustituimos únicamente el provisional por la fila confirmada.
+     * No eliminamos el comentario si una lectura posterior falla: guardar y
+     * leer son operaciones distintas y una caída de lectura no significa
+     * que el INSERT haya fallado.
+     */
+    const savedComment = {
+      id: saved.id,
+      authorId: saved.author_id || currentUser.id,
+      text: saved.text || cleanText,
+      date: saved.created_at ? new Date(saved.created_at).getTime() : Date.now(),
+      parentId: saved.parent_id || parentId || null,
+      likedBy: []
+    };
+
     const idx = post.comments.findIndex(c => c.id === tempId);
+    if(idx !== -1) post.comments[idx] = savedComment;
+    else if(!post.comments.some(c => c.id === savedComment.id)) post.comments.push(savedComment);
 
-    if(idx !== -1){
-      post.comments[idx] = {
-        id: saved.id,
-        authorId: saved.author_id,
-        text: saved.text,
-        date: new Date(saved.created_at).getTime(),
-        parentId: saved.parent_id || null,
-        likedBy: []
-      };
-    }
-
+    post.comments.sort((a,b) => a.date - b.date);
+    post.commentCount = Math.max(Number(post.commentCount || 0), post.comments.length);
     incrementStat('comments_written');
 
-    // Sincroniza inmediatamente con la base de datos.
+    /*
+     * Confirmación de lectura: si funciona, sincroniza; si falla, conserva
+     * la fila confirmada en memoria. Esto evita el falso "se borró".
+     */
     try{
       const freshComments = await DB.posts.listComments(id);
-
-      post.comments = freshComments;
+      if(Array.isArray(freshComments)){
+        post.comments = freshComments;
+        post.commentsLoaded = true;
+        post.commentCount = freshComments.length;
+      }
     }catch(syncErr){
-      console.warn('[COMMENTS] No se pudo refrescar comentarios:', syncErr);
+      console.warn('[COMMENTS] Guardado confirmado; no se pudo refrescar la lista:', syncErr);
     }
 
+    /*
+     * Si el usuario está viendo la publicación, refrescamos la lista sin
+     * depender del WebSocket. El receptor puede ponerse al día al volver a
+     * abrir/recargar porque la fuente de verdad es post_comments.
+     */
+    rerenderCardFromCache(id);
+    if(document.getElementById('commentsViewList')) renderCommentsList(post);
+    renderProfile();
+    return savedComment;
   }catch(err){
     console.error('[COMMENTS] No se pudo publicar:', err);
-
     post.comments = post.comments.filter(c => c.id !== tempId);
-
-    alert(
-      err?.message ||
-      'No se pudo publicar el comentario. Inténtalo nuevamente.'
-    );
+    post.commentCount = Math.max(0, Number(post.commentCount || 0) - 1);
+    rerenderCardFromCache(id);
+    if(document.getElementById('commentsViewList')) renderCommentsList(post);
+    alert(err?.message || 'No se pudo publicar el comentario. Inténtalo nuevamente.');
+    return null;
   }
-
-  rerenderCardFromCache(id);
-  renderProfile();
 }
 
 async function handleDeletePost(id){
@@ -7436,14 +7699,14 @@ async function openCommentsView(postId){
   const post = getCachedPost(postId);
   if(!post) return;
 
-  if(!post.commentsLoaded){
-    try{
-      post.comments = await DB.posts.listComments(post.id);
-      post.commentsLoaded = true;
-      post.commentCount = post.comments.length;
-    }catch(err){
-      showToast('No se pudieron cargar los comentarios.');
-    }
+  try{
+    const freshComments = await DB.posts.listComments(post.id);
+    post.comments = freshComments;
+    post.commentsLoaded = true;
+    post.commentCount = freshComments.length;
+  }catch(err){
+    if(!Array.isArray(post.comments)) post.comments = [];
+    showToast('No se pudieron sincronizar los comentarios. Se muestran los que ya estaban en caché.');
   }
 
   await resolveAuthorObjs([post]);
@@ -7769,15 +8032,20 @@ function setupSocialRealtime(){
     })
     .subscribe((status, err) => {
       rtLog('social channel', status, err || '');
-      if(status !== 'SUBSCRIBED'){
-        socialReconnectPending = true;
-        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-          if(socialRealtimeChannel) sb.removeChannel(socialRealtimeChannel);
-          socialRealtimeChannel = null;
-        }
-      }else if(socialReconnectPending){
+      if(status === 'SUBSCRIBED'){
+        const wasDown = socialReconnectPending;
         socialReconnectPending = false;
-        catchUpSocialRealtime();
+        markRealtimeHealthy('social');
+        if(wasDown) catchUpSocialRealtime();
+        return;
+      }
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+        socialReconnectPending = true;
+        console.warn('[socialRealtime]', status, err || '');
+        scheduleRealtimeRecovery('social', () => socialRealtimeChannel, () => {
+          socialRealtimeChannel = null;
+          setupSocialRealtime();
+        }, status);
       }
     });
 }
@@ -7820,12 +8088,16 @@ function setupProfilesRealtime(){
       handleProfileRealtimeUpdate(payload.new);
     })
     .subscribe((status, err) => {
-      if(status !== 'SUBSCRIBED'){
+      if(status === 'SUBSCRIBED'){
+        markRealtimeHealthy('profiles');
+        return;
+      }
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
         console.warn('[profilesRealtime]', status, err || '');
-        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-          if(profilesRealtimeChannel){ sb.removeChannel(profilesRealtimeChannel); }
+        scheduleRealtimeRecovery('profiles', () => profilesRealtimeChannel, () => {
           profilesRealtimeChannel = null;
-        }
+          setupProfilesRealtime();
+        }, status);
       }
     });
 }
@@ -7863,13 +8135,65 @@ document.addEventListener('visibilitychange', () => {
     setTimeout(() => catchUpOnDms(), 700);
   }
 });
-window.addEventListener('online', () => {
-  if(currentUser){
-    setupRealtime();
-    setTimeout(() => catchUpSocialRealtime(), 500);
-    setTimeout(() => catchUpOnNotifications(), 700);
-    setTimeout(() => catchUpOnDms(), 900);
+// Respaldo barato de tiempo real: si el WebSocket no entrega un evento,
+// Aula se pone al día sola cada 30 s mientras está visible. No hay polling
+// cuando la pestaña está oculta.
+let aulaFallbackRefreshTimer = null;
+function startAulaFallbackRefresh(){
+  if(aulaFallbackRefreshTimer || !currentUser) return;
+  aulaFallbackRefreshTimer = setInterval(() => {
+    if(document.hidden || !currentUser) return;
+    if(document.getElementById('aula')?.classList.contains('active')){
+      renderAula({ silent: true });
+    }else if(document.getElementById('aulaClase')?.classList.contains('active')){
+      renderAulaClase();
+    }
+  }, AULA_REFRESH_MS);
+}
+function stopAulaFallbackRefresh(){
+  if(aulaFallbackRefreshTimer){ clearInterval(aulaFallbackRefreshTimer); aulaFallbackRefreshTimer = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && currentUser){
+    startAulaFallbackRefresh();
+    if(document.getElementById('aula')?.classList.contains('active')){
+      renderAula({ silent: true });
+    }else if(document.getElementById('aulaClase')?.classList.contains('active')){
+      renderAulaClase();
+    }
   }
+});
+window.addEventListener('pagehide', stopAulaFallbackRefresh);
+startAulaFallbackRefresh();
+
+let appCatchUpTimer = null;
+function catchUpAppAfterReturn(){
+  if(!currentUser || document.hidden) return;
+  clearTimeout(appCatchUpTimer);
+  appCatchUpTimer = setTimeout(() => {
+    setupRealtime();
+    catchUpSocialRealtime().catch(() => {});
+    catchUpOnNotifications().catch(() => {});
+    catchUpOnDms().catch(() => {});
+    if(document.getElementById('mensajes')?.classList.contains('active')){
+      renderMessagesScreen(dmOpenConversationId, { preserveDraft:true });
+    }else if(document.getElementById('aula')?.classList.contains('active')){
+      renderAula({ silent:true }).catch(() => {});
+    }else if(document.getElementById('aulaClase')?.classList.contains('active')){
+      renderAulaClase().catch(() => {});
+    }
+  }, 250);
+}
+window.addEventListener('online', catchUpAppAfterReturn);
+window.addEventListener('focus', catchUpAppAfterReturn);
+
+// Supervisor liviano: no hace polling de datos. Solo vuelve a registrar los
+// canales persistentes si una sesión los perdió; el socket/rejoin lo maneja Supabase.
+setInterval(() => {
+  if(currentUser && !document.hidden) setupRealtime();
+}, 15000);
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible') catchUpAppAfterReturn();
 });
 
 // Canal de comentarios con alcance a UN solo post. Se abre cuando el usuario
@@ -7878,35 +8202,92 @@ window.addEventListener('online', () => {
 let postCommentsChannel = null;
 function subscribeToPostComments(postId){
   unsubscribeFromPostComments();
-  postCommentsChannel = sb.channel(`post-comments-${postId}`)
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'post_comments', filter: `post_id=eq.${postId}` }, (payload) => {
+  if(!postId) return;
+
+  const channelName = `post-comments-${postId}`;
+  postCommentsChannel = sb.channel(channelName)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'post_comments',
+      filter: `post_id=eq.${postId}`
+    }, async (payload) => {
       const post = getCachedPost(postId);
-      if(!post) return;
-      post.comments = post.comments || [];
+      if(!post || !payload?.new?.id) return;
+
+      post.comments = Array.isArray(post.comments) ? post.comments : [];
       const newDate = new Date(payload.new.created_at).getTime();
       const alreadyThere = post.comments.some(c =>
         c.id === payload.new.id ||
-        (c.authorId === payload.new.author_id && c.text === payload.new.text && Math.abs(c.date - newDate) < 15000)
+        (c.authorId === payload.new.author_id &&
+         c.text === payload.new.text &&
+         Math.abs(c.date - newDate) < 15000)
       );
-      if(alreadyThere) return;
-      post.comments.push({ id: payload.new.id, authorId: payload.new.author_id, text: payload.new.text, date: newDate, parentId: payload.new.parent_id || null, likedBy: [] });
-      getUserCached(payload.new.author_id).then(() => {
-        rerenderCardFromCache(post.id);
-        if(document.getElementById('commentsViewList')) renderCommentsList(post);
-      });
-    })
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'post_comments', filter: `post_id=eq.${postId}` }, (payload) => {
-      const post = getCachedPost(postId);
-      if(!post || !payload.old || !payload.old.id) return;
-      const before = (post.comments||[]).length;
-      post.comments = (post.comments||[]).filter(c => c.id !== payload.old.id && c.parentId !== payload.old.id);
-      if(post.comments.length !== before){
-        rerenderCardFromCache(post.id);
-        if(document.getElementById('commentsViewList')) renderCommentsList(post);
+
+      if(!alreadyThere){
+        post.comments.push({
+          id: payload.new.id,
+          authorId: payload.new.author_id,
+          text: payload.new.text,
+          date: newDate,
+          parentId: payload.new.parent_id || null,
+          likedBy: []
+        });
+        post.comments.sort((a,b) => a.date - b.date);
+        post.commentCount = post.comments.length;
       }
+
+      await getUserCached(payload.new.author_id).catch(() => null);
+      rerenderCardFromCache(post.id);
+      if(document.getElementById('commentsViewList')) renderCommentsList(post);
     })
-    .subscribe((status, err) => {
-      if(status !== 'SUBSCRIBED') console.warn('[postComments]', postId, status, err || '');
+    .on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'post_comments',
+      filter: `post_id=eq.${postId}`
+    }, (payload) => {
+      const post = getCachedPost(postId);
+      if(!post || !payload?.old?.id) return;
+
+      post.comments = (post.comments || []).filter(c =>
+        c.id !== payload.old.id && c.parentId !== payload.old.id
+      );
+      post.commentCount = post.comments.length;
+      rerenderCardFromCache(post.id);
+      if(document.getElementById('commentsViewList')) renderCommentsList(post);
+    })
+    .subscribe(async (status, err) => {
+      if(status === 'SUBSCRIBED'){
+        return;
+      }
+
+      console.warn('[postComments]', postId, status, err || '');
+
+      /*
+       * Realtime es transporte, no fuente de verdad. Si el canal muere,
+       * hacemos una lectura puntual del post abierto para recuperar eventos
+       * perdidos, pero NO borramos ni sustituimos el comentario local por [].
+       */
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+        const post = getCachedPost(postId);
+        if(post){
+          try{
+            const fresh = await DB.posts.listComments(postId);
+            post.comments = fresh;
+            post.commentsLoaded = true;
+            post.commentCount = fresh.length;
+            rerenderCardFromCache(postId);
+            if(document.getElementById('commentsViewList')) renderCommentsList(post);
+          }catch(syncErr){
+            console.warn('[postComments] catch-up falló:', syncErr);
+          }
+        }
+        if(postCommentsChannel){
+          sb.removeChannel(postCommentsChannel);
+          postCommentsChannel = null;
+        }
+      }
     });
 }
 function unsubscribeFromPostComments(){
@@ -7984,6 +8365,7 @@ let notifRealtimeChannel = null;
 let notifRealtimeUserId = null;
 let notifReconnectPending = false;
 function setupNotificationsRealtime(){
+  if(!currentUser) return;
   // Si ya hay un canal abierto para este mismo usuario, no lo recrees: evita
   // cortar la conexión (y perder eventos) cada vez que Supabase renueva el
   // token al volver a la pestaña (TOKEN_REFRESHED) sin que el usuario cambie.
@@ -8013,23 +8395,20 @@ function setupNotificationsRealtime(){
     })
     .subscribe((status, err) => {
       rtLog('notifications channel', status, err || '');
-      // Si el contador no se actualiza en vivo, abre la consola y confirma que
-      // esto diga "SUBSCRIBED". Si dice CHANNEL_ERROR/TIMED_OUT, el problema es
-      // la conexión/permiso del canal, no la lógica de arriba.
-      if(status !== 'SUBSCRIBED'){
-        console.warn('[notifRealtime]', status, err || '');
-        notifReconnectPending = true; // se cayó: cuando reconecte, hay que revisar lo perdido
-        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-          // El canal ya está muerto: hay que soltar la referencia, porque si no
-          // el candado de arriba ("ya hay un canal para este usuario, no lo
-          // recrees") va a creer para siempre que sigue vivo y jamás lo va a
-          // volver a armar, aunque se llame setupNotificationsRealtime() de nuevo.
-          if(notifRealtimeChannel){ sb.removeChannel(notifRealtimeChannel); }
-          notifRealtimeChannel = null;
-        }
-      } else if(notifReconnectPending){
+      if(status === 'SUBSCRIBED'){
+        const wasDown = notifReconnectPending;
         notifReconnectPending = false;
-        catchUpOnNotifications(); // recupera lo que haya llegado durante la caída
+        markRealtimeHealthy('notifications');
+        if(wasDown) catchUpOnNotifications();
+        return;
+      }
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+        console.warn('[notifRealtime]', status, err || '');
+        notifReconnectPending = true;
+        scheduleRealtimeRecovery('notifications', () => notifRealtimeChannel, () => {
+          notifRealtimeChannel = null;
+          setupNotificationsRealtime();
+        }, status);
       }
     });
 }
@@ -8327,20 +8706,20 @@ function setupDmRealtime(){
     })
     .subscribe((status, err) => {
       rtLog('DM channel', status, err || '');
-      if(status !== 'SUBSCRIBED'){
-        console.warn('[dmRealtime]', status, err || '');
-        dmReconnectPending = true; // se cayó: cuando reconecte, hay que refrescar lo que se haya perdido
-        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
-          // Mismo problema que en notifRealtime: si no se suelta la referencia,
-          // el candado de arriba nunca deja que este canal (ya muerto) se vuelva
-          // a crear, así que los mensajes/estados nuevos dejan de llegar en vivo
-          // hasta que se recargue la página.
-          if(dmRealtimeChannel){ sb.removeChannel(dmRealtimeChannel); }
-          dmRealtimeChannel = null;
-        }
-      } else if(dmReconnectPending){
+      if(status === 'SUBSCRIBED'){
+        const wasDown = dmReconnectPending;
         dmReconnectPending = false;
-        catchUpOnDms(); // refresca la lista/hilo abierto con lo que llegó durante la caída
+        markRealtimeHealthy('dm');
+        if(wasDown) catchUpOnDms();
+        return;
+      }
+      if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+        console.warn('[dmRealtime]', status, err || '');
+        dmReconnectPending = true;
+        scheduleRealtimeRecovery('dm', () => dmRealtimeChannel, () => {
+          dmRealtimeChannel = null;
+          setupDmRealtime();
+        }, status);
       }
     });
 }
@@ -11177,7 +11556,7 @@ async function startMfaEnrollment(){
         if(challenge.error) throw challenge.error;
         const verified=await sb.auth.mfa.verify({factorId:data.id,challengeId:challenge.data.id,code});
         if(verified.error) throw verified.error;
-        await refreshCurrentAuthSessionAfterMfa();
+        refreshCurrentAuthSessionAfterMfa(verified.data?.session || null);
         showToast('2FA activado. Tus acciones sensibles quedan mejor protegidas.');
         await initMfaSecurity();
         // Antes esto no se volvía a revisar hasta el siguiente login: si esta cuenta
@@ -11340,17 +11719,16 @@ async function ensureMfaSatisfied(session){
   try{ return await mfaCheckInFlight; }
   finally{ mfaCheckInFlight = null; }
 }
-async function refreshCurrentAuthSessionAfterMfa(){
-  // sb.auth.mfa.verify() ya sube el nivel de la sesión (a aal2) del lado de Supabase,
-  // pero nuestra copia guardada en currentAuthSession (la que usan refreshAdminStatus,
-  // openAdminPanel, y cualquier ensureMfaSatisfied más adelante en la misma sesión) se
-  // queda con el JWT de ANTES de verificar (aal1) si no la refrescamos aquí. Sin esto,
-  // la app puede "olvidar" que el 2FA ya se cumplió y volver a pedirlo más tarde en la
-  // misma sesión, o dejar el panel de admin apagado aunque sí se verificó.
-  try{
-    const { data } = await withTimeout(sb.auth.getSession(), 5000, 'getSession (post-2FA)');
-    if(data?.session) currentAuthSession = data.session;
-  }catch(err){ console.warn('[2FA] no se pudo refrescar la sesión tras verificar:', err); }
+function refreshCurrentAuthSessionAfterMfa(sessionFromVerify){
+  // mfa.verify() ya devuelve la sesión actualizada en su respuesta.
+  // No volvemos a llamar getSession() aquí: esa llamada podía competir por el
+  // candado interno de Auth mientras Supabase procesaba el cambio de nivel (aal1 → aal2),
+  // que es precisamente lo que estaba provocando los avisos de 5-8 s y los estados
+  // incompletos al volver a entrar a la página.
+  if(sessionFromVerify?.access_token){
+    currentAuthSession = sessionFromVerify;
+    lastMfaFreshSession = sessionFromVerify;
+  }
 }
 function showMfaChallengeModal(factorId, resolve, opts = {}){
   clearTimeout(window.__loginWatchdog); // ya avanzó del formulario de login al de código: no hace falta seguir vigilando
@@ -11834,22 +12212,20 @@ if('serviceWorker' in navigator && !['localhost','127.0.0.1'].includes(location.
 
 // ---------- ARRANQUE ----------
 let authReady = false;
-let pendingAuthEvent = null; // { event, session } — el último evento de auth que llegó
-// mientras authReady todavía era falso. Antes esos eventos se descartaban sin más: si
-// alguien iniciaba sesión justo mientras la app seguía arrancando (getSession/2FA/feed/etc.
-// pueden tardar varios segundos), el SIGNED_IN llegaba, se tiraba, y el formulario de login
-// se quedaba pegado sin avisar nada — hasta el aviso genérico de "esto está tardando" a los
-// 12s, que solo diagnostica, no arregla. Ahora se guarda el más reciente y se reprocesa en
-// cuanto el arranque termina (ver el "if(pendingAuthEvent)" junto a "authReady = true").
-let passwordRecoveryInProgress = false; // true mientras se atiende el enlace de "olvidé mi contraseña"
-let signedInProcessing = null; // candado: evita procesar el mismo SIGNED_IN dos veces en paralelo (ver el porqué más abajo)
+let pendingAuthEvent = null; // { event, session } — último evento mientras el arranque prepara la UI
+let initialAuthEventResolved = false;
+let resolveInitialAuthEvent = null;
+const initialAuthEventPromise = new Promise(resolve => { resolveInitialAuthEvent = resolve; });
+// IMPORTANTE: el callback de onAuthStateChange NO hace llamadas async a Supabase.
+// Supabase documenta que una llamada async al mismo cliente dentro de ese callback
+// puede bloquear la siguiente operación de Auth. Antes aquí se ejecutaban getSession,
+// RPC y consultas de perfil desde el propio callback, y eso explica los "getSession tardó
+// 8s" y por qué volver a entrar/reiniciar hacía que todo apareciera de golpe.
+let passwordRecoveryInProgress = false;
+let signedInProcessing = null;
 
-async function handleAuthStateChange(event, session){
+async function processAuthStateChange(event, session){
   if(event === 'PASSWORD_RECOVERY'){
-    // Esto puede llegar ANTES de que termine el arranque (el enlace del correo
-    // trae el token en la URL desde que carga la página), así que se atiende
-    // aparte del candado de authReady de abajo: mostrar el formulario no
-    // depende de que el resto de la app ya haya cargado.
     passwordRecoveryInProgress = true;
     showSetNewPasswordModal(session);
     return;
@@ -11915,6 +12291,27 @@ async function handleAuthStateChange(event, session){
     console.warn(`[onAuthStateChange] falló al procesar "${event}":`, err);
   }
 }
+function handleAuthStateChange(event, session){
+  // Capturamos INITIAL_SESSION/SIGNED_IN inmediatamente, pero devolvemos el control
+  // al callback de Supabase antes de tocar Auth, DB o Storage.
+  if(!initialAuthEventResolved && ['INITIAL_SESSION','SIGNED_IN','SIGNED_OUT'].includes(event)){
+    initialAuthEventResolved = true;
+    resolveInitialAuthEvent?.({ event, session });
+  }
+  if(event === 'PASSWORD_RECOVERY'){
+    setTimeout(() => processAuthStateChange(event, session), 0);
+    return;
+  }
+  if(!authReady){
+    pendingAuthEvent = { event, session };
+    return;
+  }
+  setTimeout(() => {
+    processAuthStateChange(event, session).catch(err =>
+      console.warn(`[onAuthStateChange] falló al procesar "${event}":`, err)
+    );
+  }, 0);
+}
 sb.auth.onAuthStateChange(handleAuthStateChange);
 // Keep-alive eliminado: la disponibilidad del proyecto se gestiona desde
 // infraestructura (cron externo), no con consultas periódicas desde cada cliente.
@@ -11930,26 +12327,23 @@ window.addEventListener('unhandledrejection', (event) => {
 (async () => {
   let session = null;
   try {
-    // Sin protección, esta es LA llamada que más veces puede dejar la app
-    // "cargando" para siempre: es lo primero que corre al abrir la página, y
-    // si el candado interno de sesión de Supabase se atora (el mismo problema
-    // de fondo que ya arreglamos en ensureMfaSatisfied/refreshAdminStatus —
-    // ver esas notas), esta promesa nunca resuelve ni rechaza, así que nada
-    // de lo que sigue (quitar la pantalla de carga incluido) llega a correr.
-    // Con withTimeout, si se cuelga más de 8s seguimos adelante como si no
-    // hubiera sesión (falla seguro: como mucho pide iniciar sesión de nuevo,
-    // nunca deja pasar sin autenticar).
-    // OJO: cuando SÍ se cumple el timeout, withTimeout resuelve {data:null,error:...}
-    // (no {data:{session:null}}) — desestructurar `data.session` directo en ese caso
-    // truena ("Cannot destructure property 'session' of 'null'"), y aunque el catch
-    // de abajo lo atrapaba, el resultado era el mismo que el bug de fondo: alguien
-    // con sesión real pero un poco lenta (>8s) se quedaba tratado como invitado, y
-    // solo entrando de nuevo a mano (o recargando con más suerte de tiempo) volvía
-    // a funcionar. Con encadenamiento opcional, nunca truena sin importar la forma.
-    const sessionResult = await withTimeout(sb.auth.getSession(), 8000, 'getSession (arranque)');
-    session = sessionResult?.data?.session || null;
+    // Supabase ya emite INITIAL_SESSION al terminar de cargar la sesión persistida.
+    // Usamos ese evento como fuente de verdad del arranque y dejamos de llamar
+    // getSession() por segunda vez. Así no competimos con el gestor interno de Auth
+    // ni bloqueamos la aplicación durante 5-8 segundos.
+    const initialAuth = await Promise.race([
+      initialAuthEventPromise,
+      wait(2500).then(() => null)
+    ]);
+    session = initialAuth?.session || pendingAuthEvent?.session || null;
+    // Si ya consumimos INITIAL_SESSION aquí, no lo volvamos a procesar al final
+    // del arranque. Los siguientes SIGNED_IN/TOKEN_REFRESHED sí seguirán entrando
+    // normalmente por el listener diferido.
+    if(initialAuth && pendingAuthEvent?.event === initialAuth.event){
+      pendingAuthEvent = null;
+    }
   } catch(err) {
-    console.warn('[arranque] no se pudo consultar la sesión inicial:', err);
+    console.warn('[arranque] no se pudo obtener la sesión inicial:', err);
   }
 
   // La pantalla de carga se quita ANTES de esperar el 2FA (si aplica), no después.
@@ -12014,9 +12408,11 @@ window.addEventListener('unhandledrejection', (event) => {
   if(pendingAuthEvent){
     const { event: pendingEvent, session: pendingSession } = pendingAuthEvent;
     pendingAuthEvent = null;
-    handleAuthStateChange(pendingEvent, pendingSession).catch(err =>
-      console.warn('[arranque] error procesando el evento de sesión pendiente:', err)
-    );
+    setTimeout(() => {
+      processAuthStateChange(pendingEvent, pendingSession).catch(err =>
+        console.warn('[arranque] error procesando el evento de sesión pendiente:', err)
+      );
+    }, 0);
   }
 
   try{
