@@ -8306,7 +8306,7 @@ let DEBUG_NOTIFICATIONS = false; // cambiar a true en la consola del navegador p
 // que corre al volver a la pestaña (por si el evento en vivo se perdió).
 async function refreshPostFromNotification(n){
   if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] notificación:', n && { type: n.type, post_id: n.post_id, comment_id: n.comment_id });
-  if(!n || !n.post_id || !['like','comment','reply','commentLike'].includes(n.type)){
+  if(!n || !n.post_id || !['like','comment','reply','commentLike','comment_like'].includes(n.type)){
     if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] descartada (sin post_id o tipo no reconocido)');
     return;
   }
@@ -9552,7 +9552,7 @@ function groupNotifications(items){
   });
   return groups;
 }
-const NOTIF_VERBS = { comment:'comentó en', like:'le dio me gusta a', reply:'respondió tu comentario en', commentLike:'le dio me gusta a tu comentario en', follow:'empezó a seguirte' };
+const NOTIF_VERBS = { comment:'comentó en', like:'le dio me gusta a', reply:'respondió tu comentario en', commentLike:'le dio me gusta a tu comentario en', comment_like:'le dio me gusta a tu comentario en', follow:'empezó a seguirte' };
 function notifRowHTML(it){
   const actor = usersCache[it.actorId];
   if(it.type === 'follow'){
