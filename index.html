@@ -3516,6 +3516,23 @@ const DB = {
 
       return data || [];
     },
+    // Antes "¿ya vi esta historia?" solo se guardaba en localStorage — por eso
+    // el aro se veía "sin ver" otra vez al entrar desde otro dispositivo o
+    // navegador (localStorage nunca sale de ese único navegador). record()
+    // de arriba YA guardaba la vista en la base; esto es lo que faltaba: leerla
+    // de vuelta de ahí en vez de solo del almacenamiento local.
+    async listMine(viewerId){
+      if(!viewerId) return [];
+
+      const { data, error } = await sb
+        .from('story_views')
+        .select('story_id')
+        .eq('viewer_id', viewerId);
+
+      if(error) throw error;
+
+      return (data || []).map(r => r.story_id);
+    },
   },
 
   saved: {
@@ -8158,11 +8175,24 @@ let currentGroupIndex = 0;
 let currentStoryIndex = 0;
 let storyTimer = null;
 const VIEWED_STORIES_KEY = 'enraiza:historias_vistas';
-function getViewedStoryIds(){
+function getLocalViewedStoryIds(){
   try{ return new Set(JSON.parse(localStorage.getItem(VIEWED_STORIES_KEY) || '[]')); }catch(err){ return new Set(); }
 }
+// Combina lo local (para que la marca se vea al instante en este mismo
+// navegador, sin esperar ida y vuelta al servidor) con lo que ya está
+// guardado en story_views (para que se vea igual desde cualquier otro
+// dispositivo o navegador donde hayas iniciado sesión).
+async function getViewedStoryIds(){
+  const set = getLocalViewedStoryIds();
+  if(!currentUser) return set;
+  try{
+    const serverIds = await DB.storyViews.listMine(currentUser.id);
+    serverIds.forEach(id => set.add(id));
+  }catch(err){ /* si falla la red, seguimos con lo que haya en local nada más */ }
+  return set;
+}
 function markStoryViewed(id){
-  const set = getViewedStoryIds();
+  const set = getLocalViewedStoryIds();
   set.add(id);
   try{ localStorage.setItem(VIEWED_STORIES_KEY, JSON.stringify([...set])); }catch(err){ /* ignore */ }
 }
@@ -8220,7 +8250,7 @@ async function renderStories(){
     return lastB - lastA;
   });
 
-  const viewed = getViewedStoryIds();
+  const viewed = await getViewedStoryIds();
   const row = document.getElementById('storiesRow');
 
   const storyThumbs = storyGroups.map((g, i) => {
