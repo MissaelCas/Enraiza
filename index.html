@@ -8575,7 +8575,7 @@ let storyRemainingMs = STORY_DURATION_MS;
 let storyTickStart = 0;
 let currentStoryVideoEl = null; // el <video> de la historia activa, si la hay (para pausar/reanudar en sync con la barra)
 
-function openStoryViewer(groupIndex){
+async function openStoryViewer(groupIndex){
   if(!storyGroups.length || !storyGroups[groupIndex]){
     modalBox.className = 'modal story-view-backdrop';
     modalContent.innerHTML = `
@@ -8596,7 +8596,7 @@ function openStoryViewer(groupIndex){
   }
   currentGroupIndex = groupIndex;
   const group = storyGroups[groupIndex];
-  const viewed = getViewedStoryIds();
+  const viewed = await getViewedStoryIds();
   const firstUnseen = group.stories.findIndex(s => !viewed.has(s.id));
   currentStoryIndex = firstUnseen >= 0 ? firstUnseen : 0;
   modalBox.className = 'modal story-view-backdrop';
@@ -11671,7 +11671,15 @@ window.addEventListener('unhandledrejection', (event) => {
     // Con withTimeout, si se cuelga más de 8s seguimos adelante como si no
     // hubiera sesión (falla seguro: como mucho pide iniciar sesión de nuevo,
     // nunca deja pasar sin autenticar).
-    ({ data: { session } } = await withTimeout(sb.auth.getSession(), 8000, 'getSession (arranque)'));
+    // OJO: cuando SÍ se cumple el timeout, withTimeout resuelve {data:null,error:...}
+    // (no {data:{session:null}}) — desestructurar `data.session` directo en ese caso
+    // truena ("Cannot destructure property 'session' of 'null'"), y aunque el catch
+    // de abajo lo atrapaba, el resultado era el mismo que el bug de fondo: alguien
+    // con sesión real pero un poco lenta (>8s) se quedaba tratado como invitado, y
+    // solo entrando de nuevo a mano (o recargando con más suerte de tiempo) volvía
+    // a funcionar. Con encadenamiento opcional, nunca truena sin importar la forma.
+    const sessionResult = await withTimeout(sb.auth.getSession(), 8000, 'getSession (arranque)');
+    session = sessionResult?.data?.session || null;
   } catch(err) {
     console.warn('[arranque] no se pudo consultar la sesión inicial:', err);
   }
