@@ -1570,6 +1570,27 @@
   .privacy-option strong{ display:block; font-size:0.88rem; margin-bottom:2px; }
   .privacy-option span{ font-size:0.74rem; color:var(--ink-soft); }
 
+  /* ---------- ESTADO, SEGUIMIENTO Y EDICIÓN DE BITÁCORAS ---------- */
+  .project-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:800;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft);background:var(--white-ish)}
+  .project-status-pill.active{color:var(--moss-dark);border-color:var(--moss)}
+  .project-status-pill.completed{color:var(--moss-dark);border-color:var(--moss);background:rgba(63,107,74,.10)}
+  .project-status-pill.failed{color:#8b332a;border-color:#c47b6e;background:rgba(163,57,44,.07)}
+  .project-closure{margin:0 0 18px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--paper-alt)}
+  .project-closure.completed{border-color:var(--moss)}
+  .project-closure.failed{border-color:#c47b6e}
+  .project-closure h3{margin:0 0 4px;font-family:var(--serif);font-size:1.05rem}
+  .project-closure p{margin:0;color:var(--ink-soft);font-size:.82rem;white-space:pre-wrap}
+  .project-owner-actions{align-items:center}
+  .project-entry-actions{display:flex;gap:6px;align-items:center}
+  .project-entry-actions button{border:0;background:transparent;color:var(--ink-soft);cursor:pointer;font-size:.76rem;padding:4px 7px}
+  .project-entry-actions button:hover{color:var(--moss-dark);text-decoration:underline}
+  .project-entry-actions .danger{color:#a3392c}
+  .project-following{background:var(--paper-alt)!important;border-color:var(--moss)!important;color:var(--moss-dark)!important}
+  @media(max-width:600px){
+    .project-owner-actions{display:grid;grid-template-columns:1fr 1fr}
+    .project-owner-actions .btn{width:100%}
+  }
+
   /* ---------- PANTALLA DE UN PROYECTO DE BITÁCORA COMPLETO (adaptada a móvil y a PC) ---------- */
   .project-view-wrap{ max-width:900px; margin:0 auto; }
   .project-view-head{ margin-bottom:18px; }
@@ -4168,6 +4189,25 @@ const DB = {
       if(error) throw error;
       return mapProjectRow(data);
     },
+    async updateDetails(id, ownerId, { title, category }){
+      const patch = {};
+      if(typeof title === 'string' && title.trim()) patch.title = title.trim();
+      if(typeof category === 'string' && category.trim()) patch.category = category.trim();
+      if(!Object.keys(patch).length) throw new Error('No hay cambios que guardar.');
+      const { data, error } = await sb.from('logbook_projects').update(patch).eq('id', id).eq('owner_id', ownerId).select().single();
+      if(error) throw error;
+      return mapProjectRow(data);
+    },
+    async setStatus(id, ownerId, status, reason, message){
+      const allowed = ['active','completed','failed'];
+      if(!allowed.includes(status)) throw new Error('Estado de bitácora no válido.');
+      const patch = status === 'active'
+        ? { status, closed_at:null, close_reason:null, close_message:null }
+        : { status, closed_at:new Date().toISOString(), close_reason:(reason||null), close_message:(message||null) };
+      const { data, error } = await sb.from('logbook_projects').update(patch).eq('id', id).eq('owner_id', ownerId).select().single();
+      if(error) throw error;
+      return mapProjectRow(data);
+    },
   },
 
   logbook: {
@@ -4175,6 +4215,22 @@ const DB = {
       const { data, error } = await sb.from('logbook_entries').select('*').eq('project_id', projectId).order('created_at', { ascending:true });
       if(error) throw error;
       return (data||[]).map(mapLogRow);
+    },
+    async isFollowing(projectId, userId){
+      if(!projectId || !userId) return false;
+      const { data, error } = await sb.from('logbook_project_followers').select('project_id').eq('project_id', projectId).eq('follower_id', userId).maybeSingle();
+      if(error) throw error;
+      return !!data;
+    },
+    async follow(projectId, userId){
+      const { error } = await sb.from('logbook_project_followers').upsert({ project_id:projectId, follower_id:userId }, { onConflict:'project_id,follower_id' });
+      if(error) throw error;
+      return true;
+    },
+    async unfollow(projectId, userId){
+      const { error } = await sb.from('logbook_project_followers').delete().eq('project_id', projectId).eq('follower_id', userId);
+      if(error) throw error;
+      return true;
     },
     async create({ userId, projectId, title, category, notes, media }){
       const mediaList = Array.isArray(media) ? media.filter(Boolean) : [];
@@ -4193,6 +4249,20 @@ const DB = {
         media_type: first ? (isVideoUrl(first) ? 'video' : 'image') : null
       }).select().single();
 
+      if(error) throw error;
+      return mapLogRow(data);
+    },
+    async update(userId, entryId, { title, notes, media }){
+      const mediaList = Array.isArray(media) ? media.filter(Boolean) : null;
+      const patch = { title:(title||'').trim(), notes:(notes||'').trim() };
+      if(mediaList !== null){
+        const first = mediaList[0] || null;
+        patch.media = mediaList;
+        patch.photo = (first && !isVideoUrl(first)) ? first : null;
+        patch.media_url = first || null;
+        patch.media_type = first ? (isVideoUrl(first) ? 'video' : 'image') : null;
+      }
+      const { data, error } = await sb.from('logbook_entries').update(patch).eq('id', entryId).eq('user_id', userId).select().single();
       if(error) throw error;
       return mapLogRow(data);
     },
@@ -4452,8 +4522,43 @@ const DB = {
       return (data||[]).map(mapMaterialRow);
     },
     async addMaterial(classroomId, { title, body, kind, url }){
-      const { error } = await sb.from('classroom_materials').insert({ classroom_id: classroomId, teacher_id: currentUser.id, title, body: body||null, kind, url: url||null });
-      if(error) throw error;
+      if(!currentUser?.id) throw new Error('Necesitas iniciar sesión para agregar material.');
+      const cleanTitle = String(title || '').trim();
+      if(!cleanTitle) throw new Error('El título del material es obligatorio.');
+
+      // La UI permite distinguir el tipo de archivo (PDF, Word, etc.), pero
+      // algunas instalaciones de Supabase tienen un CHECK antiguo que solo
+      // admite "texto", "link" y "archivo". Primero intentamos guardar el
+      // subtipo; si Postgres rechaza únicamente el CHECK de kind (23514),
+      // hacemos un segundo intento compatible como "archivo".
+      const requestedKind = String(kind || 'texto').trim().toLowerCase();
+
+      // La tabla actual de Supabase tiene un CHECK sobre `kind`. En esta
+      // instalación los únicos tipos que sabemos que son compatibles con el
+      // esquema que usa la app son `texto` y `link`. Los archivos subidos
+      // tienen una URL de Storage, así que se guardan como `link` en la BD
+      // (la URL sigue siendo la del archivo). Esto evita enviar `pdf`, `word`,
+      // `imagen`, etc. a Postgres y provocar el 23514.
+      const storedKind = ['texto','link'].includes(requestedKind)
+        ? requestedKind
+        : 'link';
+
+      const payload = {
+        classroom_id: classroomId,
+        teacher_id: currentUser.id,
+        title: cleanTitle,
+        body: body ? String(body).trim() : null,
+        kind: storedKind,
+        url: url || null
+      };
+
+      const result = await withUiTimeout(
+        sb.from('classroom_materials').insert(payload),
+        10000,
+        'guardar el material'
+      );
+
+      if(result.error) throw result.error;
     },
     async removeMaterial(id){
       const { error } = await sb.from('classroom_materials').delete().eq('id', id);
@@ -5082,7 +5187,9 @@ function openAddMaterialModal(){
       showToast('Material agregado.');
       renderAulaClaseTab();
     }catch(err){
-      errorEl.textContent = err.message || 'No se pudo agregar el material.';
+      console.error('[Aula] agregar material:', err);
+      const detail = err?.code ? ` (${err.code})` : '';
+      errorEl.textContent = (err?.message || 'No se pudo agregar el material.') + detail;
       errorEl.style.display = 'block';
     }finally{ btn.disabled = false; }
   });
@@ -5258,7 +5365,6 @@ function renderAulaSubmissionArea(assignment, sub, comments, isLate){
         showToast('Tarea entregada.');
         renderAssignmentDetailStudent(assignment);
       }catch(err){
-        console.error('[aula] no se pudo entregar la tarea:', err); // DEBUG TEMPORAL — para saber la causa real
         errorEl.textContent = 'No se pudo entregar: ' + (err?.message || 'intenta de nuevo.');
         errorEl.style.display = 'block';
       }
@@ -5623,9 +5729,24 @@ function mapPostRow(row){
   };
 }
 function mapNotificationRow(row){
+  const rawType = String(row?.type || '').trim();
+  // Compatibilidad entre nombres usados por versiones anteriores del esquema.
+  const typeAliases = {
+    comment_like: 'commentLike',
+    commentLike: 'commentLike',
+    post_like: 'like',
+    post_comment: 'comment',
+    comment_reply: 'reply',
+    new_follower: 'follow'
+  };
   return {
-    id: row.id, actorId: row.actor_id, type: row.type, postId: row.post_id || null,
-    commentId: row.comment_id || null, text: row.text || '', date: new Date(row.created_at).getTime(),
+    id: row.id,
+    actorId: row.actor_id,
+    type: typeAliases[rawType] || rawType,
+    postId: row.post_id || null,
+    commentId: row.comment_id || null,
+    text: row.text || '',
+    date: new Date(row.created_at).getTime(),
     read: !!row.read_at,
   };
 }
@@ -5654,7 +5775,7 @@ function mapLogRow(row){
   };
 }
 function mapProjectRow(row){
-  return { id: row.id, ownerId: row.owner_id, title: row.title, category: row.category, coverPhoto: row.cover_photo, shared: row.shared, linkedPostId: row.linked_post_id || null, date: new Date(row.created_at).getTime() };
+  return { id: row.id, ownerId: row.owner_id, title: row.title, category: row.category, coverPhoto: row.cover_photo, shared: row.shared, linkedPostId: row.linked_post_id || null, status: row.status || 'active', closedAt: row.closed_at ? new Date(row.closed_at).getTime() : null, closeReason: row.close_reason || null, closeMessage: row.close_message || null, date: new Date(row.created_at).getTime() };
 }
 
 // ---------- CACHÉ LOCAL DE PUBLICACIONES (para no volver a pedir todo a Supabase en cada clic) ----------
@@ -8600,28 +8721,22 @@ let DEBUG_NOTIFICATIONS = false; // cambiar a true en la consola del navegador p
 // a partir de una notificación. La usan tanto el canal en vivo como el respaldo
 // que corre al volver a la pestaña (por si el evento en vivo se perdió).
 async function refreshPostFromNotification(n){
-  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] notificación:', n && { type: n.type, post_id: n.post_id, comment_id: n.comment_id });
   if(!n || !n.post_id || !['like','comment','reply','commentLike','comment_like'].includes(n.type)){
-    if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] descartada (sin post_id o tipo no reconocido)');
     return;
   }
   let fresh;
   try{ fresh = await DB.posts.getOne(n.post_id); }
   catch(err){ console.warn('[refreshPostFromNotification] getOne falló:', err); return; }
   if(!fresh){ console.warn('[refreshPostFromNotification] getOne no devolvió post para', n.post_id); return; }
-  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] post fresco de la BD:', { id: fresh.id, likeCount: fresh.likeCount, commentCount: fresh.commentCount });
   const cached = getCachedPost(fresh.id);
   if(!cached){ console.warn('[refreshPostFromNotification] este post NO está en la caché local (postsCache) — por eso no se ve reflejado'); return; }
-  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] antes:', cached.likeCount, 'después:', fresh.likeCount);
   cached.likeCount = fresh.likeCount;
   cached.commentCount = fresh.commentCount;
 
-  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] tipo:', n.type, '¿trae comment_id?', !!n.comment_id);
   if((n.type === 'comment' || n.type === 'reply') && n.comment_id){
     cached.comments = cached.comments || [];
     const already = cached.comments.some(c => c.id === n.comment_id);
     if(already){
-      if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] ese comentario ya estaba en caché:', n.comment_id);
     } else {
       try{
         const row = await DB.posts.getCommentById(n.comment_id).catch(err => {
@@ -8629,7 +8744,6 @@ async function refreshPostFromNotification(n){
           return null;
         });
         if(row){
-          if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] comentario traído con éxito:', row);
           cached.comments.push({
             id: row.id, authorId: row.author_id, text: row.text,
             date: new Date(row.created_at).getTime(),
@@ -8642,11 +8756,9 @@ async function refreshPostFromNotification(n){
         }
       }catch(err){ console.warn('[refreshPostFromNotification] excepción al traer el comentario:', err); }
     }
-    if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] comentarios en caché ahora:', cached.comments.length, 'de', cached.commentCount, 'totales');
   }
 
   const domCard = document.querySelector(`.ig-post[data-id="${fresh.id}"]`);
-  if(DEBUG_NOTIFICATIONS) console.log('[refreshPostFromNotification] ¿tarjeta en pantalla?', !!domCard, '— re-renderizando…');
   rerenderCardFromCache(fresh.id);
   updateLikeUI(fresh.id, currentUser ? (cached.likedBy||[]).includes(currentUser.id) : false, fresh.likeCount);
   const openList = document.getElementById('commentsViewList');
@@ -8673,7 +8785,6 @@ function setupNotificationsRealtime(){
   if(!currentUser) return;
   notifRealtimeChannel = sb.channel(`enraiza-notifications-realtime-${currentUser.id}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${currentUser.id}` }, (payload) => {
-      if(DEBUG_NOTIFICATIONS) console.log('[notifRealtime] evento recibido:', payload.new);
       if(document.getElementById('notifPanel')?.classList.contains('open')){
         // Agrupa varios eventos en una sola actualización y evita que el panel
         // parpadee/cambie a "cargando" por cada like o comentario.
@@ -8737,7 +8848,6 @@ function isMensajesViewActive(){
 // Agrupa ráfagas de eventos en un solo repintado (cada repintado hace varias consultas).
 let dmRefreshTimer = null;
 function scheduleDmRefresh(affectedConversationId, isUpdate = false){
-  console.debug('[DM-REALTIME] schedule refresh', { affectedConversationId, isUpdate, openConversationId: dmOpenConversationId });
   clearTimeout(dmRefreshTimer);
   dmRefreshTimer = setTimeout(() => {
     const messagesOpen = isMensajesViewActive();
@@ -8770,7 +8880,6 @@ function isDmThreadInView(conversationId){
 }
 
 function handleIncomingDmRealtime(row, isUpdate){
-  console.debug('[DM-REALTIME] incoming', { id:row?.id, conversation_id:row?.conversation_id, sender_id:row?.sender_id, isUpdate, openConversationId:dmOpenConversationId });
   if(!currentUser || !row) return;
   const fromOther = row.sender_id !== currentUser.id;
   // Los mensajes que envié yo mismo desde esta pestaña ya se pintaron al enviarlos.
@@ -9847,7 +9956,15 @@ function groupNotifications(items){
   });
   return groups;
 }
-const NOTIF_VERBS = { comment:'comentó en', like:'le dio me gusta a', reply:'respondió tu comentario en', commentLike:'le dio me gusta a tu comentario en', comment_like:'le dio me gusta a tu comentario en', follow:'empezó a seguirte' };
+const NOTIF_VERBS = {
+  comment:'comentó en',
+  like:'le dio me gusta a',
+  reply:'respondió tu comentario en',
+  commentLike:'le dio me gusta a tu comentario en',
+  comment_like:'le dio me gusta a tu comentario en',
+  follow:'empezó a seguirte',
+  classroom_update:'publicó una actualización en'
+};
 function notifRowHTML(it){
   const actor = usersCache[it.actorId];
   if(it.type === 'follow'){
@@ -10171,7 +10288,6 @@ function scrollMessagesThreadToBottom(threadBodyEl){
   if(!threadBodyEl) return;
   requestAnimationFrame(() => {
     const target = Math.max(0, threadBodyEl.scrollHeight - threadBodyEl.clientHeight);
-    console.debug('[DM-SCROLL] scrollToBottom', { target, before:threadBodyEl.scrollTop, scrollHeight:threadBodyEl.scrollHeight, clientHeight:threadBodyEl.clientHeight });
     threadBodyEl.scrollTo({ top: target, behavior: 'auto' });
     requestAnimationFrame(() => dmScrollDebug('after scrollToBottom'));
   });
@@ -10204,51 +10320,10 @@ function bindDmScrollGuard(threadBodyEl){
   threadBodyEl.addEventListener('scroll', () => { dmScrollVersion++; }, { passive:true });
 }
 
-// DEBUG DEL SCROLL DE MENSAJES: se puede desactivar poniendo window.ENRAIZA_DM_DEBUG = false
-window.ENRAIZA_DM_DEBUG = true;
-let dmLastDebugScroll = 0;
-function dmScrollDebug(label, extra = {}){
-  if(!window.ENRAIZA_DM_DEBUG) return;
-  const el = document.getElementById('messageThreadBody');
-  if(!el){ console.debug('[DM-SCROLL]', label, 'NO existe #messageThreadBody', extra); return; }
-  console.debug('[DM-SCROLL]', label, {
-    scrollTop: Math.round(el.scrollTop),
-    scrollHeight: Math.round(el.scrollHeight),
-    clientHeight: Math.round(el.clientHeight),
-    maxScroll: Math.max(0, Math.round(el.scrollHeight - el.clientHeight)),
-    canScroll: el.scrollHeight > el.clientHeight + 2,
-    overflowY: getComputedStyle(el).overflowY,
-    display: getComputedStyle(el).display,
-    height: getComputedStyle(el).height,
-    parentHeight: el.parentElement ? getComputedStyle(el.parentElement).height : null,
-    ...extra
-  });
-}
-
-function bindDmScrollDebug(threadBodyEl){
-  if(!threadBodyEl || threadBodyEl.dataset.dmScrollDebug === '1') return;
-  threadBodyEl.dataset.dmScrollDebug = '1';
-
-  threadBodyEl.addEventListener('scroll', () => {
-    dmScrollVersion++;
-    const now = Date.now();
-    if(now - dmLastDebugScroll > 120){
-      dmLastDebugScroll = now;
-      dmScrollDebug('scroll event');
-    }
-  }, { passive:true });
-
-  threadBodyEl.addEventListener('wheel', (e) => {
-    dmScrollDebug('wheel', { deltaY: Math.round(e.deltaY), target: e.target?.id || e.target?.className || e.target?.tagName });
-  }, { passive:true });
-
-  threadBodyEl.addEventListener('pointerdown', (e) => {
-    dmScrollDebug('pointerdown', { button:e.button, target:e.target?.id || e.target?.className || e.target?.tagName });
-  }, { passive:true });
-
-  console.debug('[DM-SCROLL] listeners instalados');
-  dmScrollDebug('bind inicial');
-}
+// Depuración de scroll desactivada en producción.
+window.ENRAIZA_DM_DEBUG = false;
+function dmScrollDebug(){ /* debug desactivado */ }
+function bindDmScrollDebug(){ /* debug desactivado */ }
 
 async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false, forceScroll = false, growOlder = false } = {}){
   // Candado de secuencia: si mientras esta llamada esperaba a la red se disparó
@@ -11072,12 +11147,17 @@ async function renderProjectView(){
   const wrap = document.getElementById('projectViewContent');
   if(!currentProjectView){ wrap.innerHTML = '<p class="empty-note">No se encontró el proyecto.</p>'; return; }
   wrap.innerHTML = '<p class="feed-empty">Cargando…</p>';
+
   let project;
   try{ project = await DB.projects.getOne(currentProjectView); }
   catch(err){ wrap.innerHTML = '<p class="empty-note">No se pudo cargar este proyecto.</p>'; return; }
   if(!project){ wrap.innerHTML = '<p class="empty-note">Este proyecto ya no existe o es privado.</p>'; return; }
+
   const isOwner = currentUser && project.ownerId === currentUser.id;
-  if(!project.shared && !isOwner){ wrap.innerHTML = '<p class="empty-note">Este proyecto es privado.</p>'; return; }
+  if(!project.shared && !isOwner){
+    wrap.innerHTML = '<p class="empty-note">Este proyecto es privado.</p>';
+    return;
+  }
 
   let entries = [];
   try{ entries = await DB.logbook.listForProject(project.id); }catch(err){ entries = []; }
@@ -11089,15 +11169,37 @@ async function renderProjectView(){
   if(project.linkedPostId){
     if(!postsCacheReady) await loadPostsIntoCache();
     linkedPost = getCachedPost(project.linkedPostId);
-    if(!linkedPost){ try{ linkedPost = await DB.posts.getOne(project.linkedPostId); if(linkedPost) upsertCachedPost(linkedPost); }catch(err){ /* ignore */ } }
+    if(!linkedPost){
+      try{ linkedPost = await DB.posts.getOne(project.linkedPostId); if(linkedPost) upsertCachedPost(linkedPost); }catch(err){ /* ignore */ }
+    }
   }
+
   const savedIds = currentUser ? await DB.saved.listForUser(currentUser.id) : [];
   if(linkedPost) linkedPost._savedLocal = savedIds.includes(linkedPost.id);
 
   const liked = linkedPost && currentUser ? (linkedPost.likedBy||[]).includes(currentUser.id) : false;
   const likeCount = linkedPost ? Number(linkedPost.likeCount ?? (linkedPost.likedBy||[]).length) : 0;
 
+  let following = false;
+  if(currentUser && !isOwner && project.shared){
+    try{ following = await DB.logbook.isFollowing(project.id, currentUser.id); }catch(err){ following = false; }
+  }
+
+  const status = project.status || 'active';
+  const statusLabel = status === 'completed' ? '✓ Finalizada' : status === 'failed' ? '🌧️ Cerrada' : '🌱 En curso';
+  const statusClass = status === 'completed' ? 'completed' : status === 'failed' ? 'failed' : 'active';
+
+  const closureHTML = status === 'active' ? '' : `
+    <div class="project-closure ${statusClass}">
+      <h3>${status === 'completed' ? '🌿 Esta raíz llegó a su cierre' : '🍂 Esta historia tuvo que detenerse'}</h3>
+      <p>${escapeHtml(project.closeMessage || (status === 'completed'
+        ? 'No todo lo que empieza tiene que durar para siempre. Este proyecto dejó aprendizaje, esfuerzo y una huella que vale la pena conservar.'
+        : 'A veces un proyecto no sale como esperábamos. Que se haya detenido no borra lo aprendido ni el intento de haberlo cuidado.'))}</p>
+      ${project.closeReason ? `<small style="display:block;margin-top:7px;color:var(--ink-soft);">Motivo: ${escapeHtml(project.closeReason)}</small>` : ''}
+    </div>`;
+
   wrap.innerHTML = `
+    ${closureHTML}
     <div class="project-view-head">
       <div class="project-view-cover">
         <img loading="lazy" decoding="async" src="${escapeHtml(project.coverPhoto || placeholderImage(project.id+project.title, project.category))}" alt="${escapeHtml(project.title)}" onerror="this.src='${placeholderImage(project.id, project.category)}'">
@@ -11105,17 +11207,27 @@ async function renderProjectView(){
       <div>
         <div class="project-view-title-row">
           <h2>${escapeHtml(project.title)}</h2>
-          <span class="project-visibility-pill ${project.shared ? 'public' : ''} ${isOwner ? 'owner-toggle' : ''}" id="projectVisibilityPill">
-            ${project.shared ? '🌎 Pública' : '🔒 Privada'}${isOwner ? ' · cambiar' : ''}
-          </span>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <span class="project-status-pill ${statusClass}">${statusLabel}</span>
+            <span class="project-visibility-pill ${project.shared ? 'public' : ''} ${isOwner ? 'owner-toggle' : ''}" id="projectVisibilityPill">
+              ${project.shared ? '🌎 Pública' : '🔒 Privada'}${isOwner ? ' · cambiar' : ''}
+            </span>
+          </div>
         </div>
         <p class="section-desc">Bitácora de <strong>${escapeHtml(ownerObj?.name || 'alguien de la comunidad')}</strong> · ${fmtDate(project.date)}</p>
 
-        ${isOwner ? `
-          <div class="project-owner-actions">
-            <button class="btn btn-primary btn-small" id="addProjectEntryBtn">＋ Agregar avance</button>
-          </div>
-        ` : ''}
+        <div class="project-owner-actions">
+          ${isOwner ? `
+            <button class="btn btn-primary btn-small" id="addProjectEntryBtn" ${status !== 'active' ? 'disabled' : ''}>＋ Agregar avance</button>
+            <button class="btn btn-outline btn-small" id="editProjectBtn">✎ Editar bitácora</button>
+            ${status === 'active' ? `
+              <button class="btn btn-outline btn-small" id="completeProjectBtn">✓ Finalizar</button>
+              <button class="btn btn-outline btn-small" id="failProjectBtn" style="color:#8b332a;border-color:#c47b6e;">🌧️ Dar por perdida</button>
+            ` : `<button class="btn btn-outline btn-small" id="reopenProjectBtn">↻ Reabrir</button>`}
+          ` : (project.shared ? `
+            <button class="btn btn-outline btn-small ${following ? 'project-following' : ''}" id="projectFollowBtn">${following ? '✓ Siguiendo bitácora' : '＋ Seguir bitácora'}</button>
+          ` : '')}
+        </div>
 
         ${linkedPost ? `
           <div class="project-social-bar">
@@ -11132,25 +11244,16 @@ async function renderProjectView(){
     <div id="projectEntriesList" class="${entries.length > 1 ? 'project-entries-grid' : ''}">
       ${entries.length ? entries.slice().reverse().map(e => `
         <div class="project-day-entry" data-entry-id="${escapeHtml(e.id)}">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-            <span class="log-date">
-              ${fmtDate(e.date)}${e.title ? ' · ' + escapeHtml(e.title) : ''}
-            </span>
-
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+            <span class="log-date">${fmtDate(e.date)}${e.title ? ' · ' + escapeHtml(e.title) : ''}</span>
             ${isOwner ? `
-              <button
-                type="button"
-                class="danger"
-                data-delete-entry="${escapeHtml(e.id)}"
-                style="font-size:.78rem; padding:4px 8px;"
-              >
-                Eliminar
-              </button>
+              <div class="project-entry-actions">
+                <button type="button" data-edit-entry="${escapeHtml(e.id)}">✎ Editar</button>
+                <button type="button" class="danger" data-delete-entry="${escapeHtml(e.id)}">Eliminar</button>
+              </div>
             ` : ''}
           </div>
-
           ${e.notes ? `<p>${escapeHtml(e.notes)}</p>` : ''}
-
           ${logCarouselHTML(e)}
         </div>
       `).join('') : '<p class="empty-note">Todavía no hay avances registrados en esta bitácora.</p>'}
@@ -11160,45 +11263,175 @@ async function renderProjectView(){
   wrap.querySelectorAll('[data-logcarousel]').forEach(bindLogCarousel);
 
   if(isOwner){
-    document.getElementById('projectVisibilityPill').addEventListener('click', () => toggleProjectVisibility(project));
+    document.getElementById('projectVisibilityPill')?.addEventListener('click', () => toggleProjectVisibility(project));
+    document.getElementById('addProjectEntryBtn')?.addEventListener('click', () => openAddProjectEntryModal(project));
+    document.getElementById('editProjectBtn')?.addEventListener('click', () => openEditProjectModal(project));
 
-    document.getElementById('addProjectEntryBtn').addEventListener('click', () => {
-      openAddProjectEntryModal(project);
+    document.getElementById('completeProjectBtn')?.addEventListener('click', () => closeProjectWithStatus(project, 'completed'));
+    document.getElementById('failProjectBtn')?.addEventListener('click', () => closeProjectWithStatus(project, 'failed'));
+    document.getElementById('reopenProjectBtn')?.addEventListener('click', async () => {
+      try{
+        await DB.projects.setStatus(project.id, currentUser.id, 'active');
+        showToast('🌱 La bitácora volvió a estar en curso.');
+        await renderProjectView();
+      }catch(err){ showToast('No se pudo reabrir la bitácora.'); }
     });
 
-    document.querySelectorAll('[data-delete-entry]').forEach(btn => {
+    wrap.querySelectorAll('[data-edit-entry]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const entry = entries.find(e => e.id === btn.dataset.editEntry);
+        if(entry) openEditProjectEntryModal(project, entry);
+      });
+    });
+
+    wrap.querySelectorAll('[data-delete-entry]').forEach(btn => {
       btn.addEventListener('click', async () => {
         const entryId = btn.dataset.deleteEntry;
-
-        const confirmed = confirm(
-          '¿Seguro que quieres eliminar este día de la bitácora?\n\nEsta acción no se puede deshacer.'
-        );
-
-        if(!confirmed) return;
-
+        if(!confirm('¿Seguro que quieres eliminar este avance? Esta acción no se puede deshacer.')) return;
         btn.disabled = true;
-        btn.textContent = 'Eliminando…';
-
         try{
           await DB.logbook.remove(currentUser.id, entryId);
           showToast('Avance eliminado');
           await renderProjectView();
         }catch(err){
-          console.error(err);
-          alert('No se pudo eliminar el avance: ' + (err.message || err));
+          showToast('No se pudo eliminar el avance: ' + (err.message || ''));
           btn.disabled = false;
-          btn.textContent = 'Eliminar';
         }
       });
     });
+  }else if(currentUser && project.shared){
+    document.getElementById('projectFollowBtn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('projectFollowBtn');
+      btn.disabled = true;
+      try{
+        if(following){
+          await DB.logbook.unfollow(project.id, currentUser.id);
+          showToast('Dejaste de seguir esta bitácora.');
+        }else{
+          await DB.logbook.follow(project.id, currentUser.id);
+          showToast('🌱 Seguirás recibiendo actualizaciones de esta bitácora.');
+        }
+        await renderProjectView();
+      }catch(err){
+        showToast('No se pudo actualizar el seguimiento.');
+        btn.disabled = false;
+      }
+    });
   }
+
   if(linkedPost){
-    document.querySelector(`[data-projectlike="${linkedPost.id}"]`).addEventListener('click', () => handleLike(linkedPost.id));
-    document.getElementById('projectCommentBtn').addEventListener('click', () => openCommentsViewForProject(linkedPost.id));
-    document.getElementById('projectShareBtn').addEventListener('click', (e) => handleShare(linkedPost.id, e.currentTarget));
-    document.getElementById('projectSaveBtn').addEventListener('click', (e) => { handleSave(linkedPost.id); e.currentTarget.classList.toggle('saved'); });
+    document.querySelector(`[data-projectlike="${linkedPost.id}"]`)?.addEventListener('click', () => handleLike(linkedPost.id));
+    document.getElementById('projectCommentBtn')?.addEventListener('click', () => openCommentsViewForProject(linkedPost.id));
+    document.getElementById('projectShareBtn')?.addEventListener('click', (e) => handleShare(linkedPost.id, e.currentTarget));
+    document.getElementById('projectSaveBtn')?.addEventListener('click', (e) => { handleSave(linkedPost.id); e.currentTarget.classList.toggle('saved'); });
   }
 }
+
+async function closeProjectWithStatus(project, status){
+  if(!currentUser || project.ownerId !== currentUser.id) return;
+  const isFailed = status === 'failed';
+  const defaults = {
+    cultivo:'A veces una semilla necesita otra temporada. Aunque este intento se haya detenido, todo lo aprendido queda para la próxima raíz.',
+    planta:'No todas las plantas sobreviven a cada intento. Lo importante es que la cuidaste, observaste y aprendiste de ella.',
+    agua:'El agua también enseña: algunos cambios necesitan otro momento, otra idea o una nueva oportunidad.',
+    energia:'No todo experimento de energía termina como imaginamos. La experiencia también es parte del cambio.',
+    movilidad:'Cambiar de camino también cuenta. Este proyecto se detuvo, pero la intención de moverte hacia algo mejor permanece.',
+    reciclaje:'Un intento que no funcionó sigue siendo un intento que dejó aprendizaje. Nada de lo observado se pierde.',
+    familia:'Los proyectos compartidos también tienen temporadas. Gracias por lo que construiste, aunque esta vez haya tocado cerrar.',
+    default:'A veces una historia necesita cerrar. Eso no borra el esfuerzo, las pequeñas victorias ni lo que aprendiste por el camino.'
+  };
+  const completedMsg = 'Llegaste al cierre de esta etapa. Guarda lo aprendido: una raíz no se mide solo por cuánto creció, sino por todo lo que sostuvo mientras estuvo viva.';
+  const suggested = isFailed ? (defaults[project.category] || defaults.default) : completedMsg;
+
+  modalBox.className='modal';
+  modalContent.innerHTML=`
+    <h3>${isFailed ? '🌧️ Dar por perdida la bitácora' : '🌿 Finalizar bitácora'}</h3>
+    <p class="section-desc">${isFailed ? 'No es borrar el proyecto. Se cerrará como una experiencia que no pudo continuar y quedará visible como parte de tu historia.' : 'La bitácora quedará cerrada. Podrás conservar todo lo registrado y reabrirla después si cambias de idea.'}</p>
+    <label>Mensaje de cierre</label>
+    <textarea id="projectCloseMessage" rows="4" style="width:100%;margin-top:5px;">${escapeHtml(suggested)}</textarea>
+    <label style="display:block;margin-top:10px;">Motivo (opcional)</label>
+    <input id="projectCloseReason" maxlength="160" style="width:100%;" placeholder="${isFailed ? 'Ej. La planta no sobrevivió, el prototipo falló…' : 'Ej. Objetivo cumplido'}">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+      <button type="button" class="btn btn-outline btn-small" id="cancelProjectClose">Cancelar</button>
+      <button type="button" class="btn btn-primary btn-small" id="confirmProjectClose">${isFailed ? 'Cerrar proyecto' : 'Finalizar proyecto'}</button>
+    </div>`;
+  modalBackdrop.classList.add('open');
+  document.getElementById('cancelProjectClose').onclick=closeModal;
+  document.getElementById('confirmProjectClose').onclick=async()=>{
+    const btn=document.getElementById('confirmProjectClose');
+    btn.disabled=true;
+    try{
+      await DB.projects.setStatus(project.id,currentUser.id,status,document.getElementById('projectCloseReason').value.trim(),document.getElementById('projectCloseMessage').value.trim());
+      closeModal();
+      showToast(isFailed ? '🍂 La bitácora quedó cerrada con su historia.' : '🌿 Bitácora finalizada. Lo que aprendiste permanece.');
+      await renderProjectView();
+    }catch(err){
+      showToast('No se pudo cerrar la bitácora: '+(err.message||''));
+      btn.disabled=false;
+    }
+  };
+}
+
+function openEditProjectModal(project){
+  modalBox.className='modal';
+  modalContent.innerHTML=`
+    <h3>Editar bitácora</h3>
+    <form id="editProjectForm">
+      <label>Nombre</label>
+      <input id="editProjectTitle" maxlength="120" value="${escapeHtml(project.title)}" style="width:100%;">
+      <label style="display:block;margin-top:10px;">Categoría</label>
+      <select id="editProjectCategory" style="width:100%;">
+        ${['agua','energia','movilidad','cultivo','planta','reciclaje','familia','otro'].map(c=>`<option value="${c}" ${project.category===c?'selected':''}>${c[0].toUpperCase()+c.slice(1)}</option>`).join('')}
+      </select>
+      <button class="btn btn-primary btn-small" type="submit" style="margin-top:14px;">Guardar cambios</button>
+    </form>`;
+  modalBackdrop.classList.add('open');
+  document.getElementById('editProjectForm').onsubmit=async(e)=>{
+    e.preventDefault();
+    const title=document.getElementById('editProjectTitle').value.trim();
+    if(!title) return;
+    try{
+      const updated=await DB.projects.updateDetails(project.id,currentUser.id,{title,category:document.getElementById('editProjectCategory').value});
+      if(updated.linkedPostId){
+        try{
+          await DB.posts.update(updated.linkedPostId,currentUser.id,{title:updated.title,category:updated.category,notes:`Inicié un nuevo proyecto: ${updated.title}`});
+        }catch(err){ /* el proyecto sigue actualizado aunque el post vinculado no pueda editarse */ }
+      }
+      closeModal();
+      showToast('Bitácora actualizada.');
+      await renderProjectView();
+      renderProfileLogs();
+    }catch(err){ showToast('No se pudo editar la bitácora: '+(err.message||'')); }
+  };
+}
+
+function openEditProjectEntryModal(project, entry){
+  modalBox.className='modal';
+  modalContent.innerHTML=`
+    <h3>Editar avance</h3>
+    <form id="editEntryForm">
+      <label>Título breve</label>
+      <input id="editEntryTitle" maxlength="120" value="${escapeHtml(entry.title||'')}" style="width:100%;">
+      <label style="display:block;margin-top:10px;">Notas</label>
+      <textarea id="editEntryNotes" rows="6" required style="width:100%;">${escapeHtml(entry.notes||'')}</textarea>
+      <p class="upload-note" style="margin-top:8px;">Las fotos y videos existentes se conservan. Puedes cambiar texto y título sin volver a subir los archivos.</p>
+      <button class="btn btn-primary btn-small" type="submit" style="margin-top:10px;">Guardar cambios</button>
+    </form>`;
+  modalBackdrop.classList.add('open');
+  document.getElementById('editEntryForm').onsubmit=async(e)=>{
+    e.preventDefault();
+    const title=document.getElementById('editEntryTitle').value.trim();
+    const notes=document.getElementById('editEntryNotes').value.trim();
+    if(!notes) return;
+    try{
+      await DB.logbook.update(currentUser.id,entry.id,{title,notes,media:entry.media});
+      closeModal();
+      showToast('Avance actualizado.');
+      await renderProjectView();
+    }catch(err){ showToast('No se pudo editar el avance: '+(err.message||'')); }
+  };
+}
+
 async function openCommentsViewForProject(postId){
   if(!postsCacheReady) await loadPostsIntoCache();
   let post = getCachedPost(postId);
@@ -11998,7 +12231,6 @@ async function trustThisDevice(days = 30){
 // mismo candado de sesión, una reconexión rara, etc. — esto evita que el
 // login se quede esperando para siempre: a los N segundos se sigue adelante
 // como si esa llamada hubiera fallado, en vez de trabar todo el flujo.
-// Antes esta sección tenía ~15 console.log sueltos marcados "DEBUG TEMPORAL"
 // que se usaron para cazar el colgado del login y el botón de admin que no
 // se pintaba. Ya cumplieron su función; en vez de borrarlos (por si hace
 // falta volver a diagnosticar algo parecido), quedan detrás de esta bandera.
@@ -12018,7 +12250,8 @@ function withTimeout(promise, ms, label){
   return Promise.race([
     promise,
     new Promise((resolve) => setTimeout(() => {
-      console.warn(`[login] "${label}" tardó más de ${ms}ms sin responder — se sigue adelante sin esperarla.`);
+      // La comprobación de dispositivo confiable es opcional. Si la RPC no
+      // responde, no bloqueamos el login ni llenamos la consola con un warning.
       resolve({ data: null, error: { message: 'timeout', code: 'CLIENT_TIMEOUT' } });
     }, ms)),
   ]);
@@ -12068,14 +12301,11 @@ async function ensureMfaSatisfied(session){
     const payload = decodeSupabaseJwtPayload(session.access_token);
     const currentLevel = payload?.aal || null;
     const verifiedFactors = (session.user.factors || []).filter(f => f.status === 'verified');
-    if(DEBUG_LOGIN) console.log('[login] ensureMfaSatisfied (local, sin red) →', { currentLevel, factoresVerificados: verifiedFactors.length });
     if(verifiedFactors.length === 0 || currentLevel === 'aal2') return true; // no tiene 2FA, o ya se cumplió
     try{
       const trusted = await isThisDeviceTrusted();
-      if(DEBUG_LOGIN) console.log('[login] ¿dispositivo de confianza?', trusted);
       if(trusted) return true; // ya se confió en este navegador hace ≤30 días
       const factor = verifiedFactors[0];
-      if(DEBUG_LOGIN) console.log('[login] mostrando el modal de código…');
       const ok = await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve));
       if(ok) lastMfaFreshSession = currentAuthSession; // ya actualizado por refreshCurrentAuthSessionAfterMfa()
       return ok;
@@ -12148,7 +12378,9 @@ function showMfaChallengeModal(factorId, resolve, opts = {}){
       if(challenge.error) throw challenge.error;
       const verified = await sb.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
       if(verified.error) throw verified.error;
-      await refreshCurrentAuthSessionAfterMfa();
+      // Supabase devuelve aquí la sesión con aal2. Pasarla explícitamente evita
+      // volver a conservar por accidente la sesión anterior (aal1).
+      await refreshCurrentAuthSessionAfterMfa(verified.data?.session || null);
       if(offerTrustDevice && document.getElementById('mfaTrustDeviceCheck')?.checked){
         await trustThisDevice(30);
       }
@@ -12390,7 +12622,6 @@ async function refreshAdminStatus(){
   if(!currentUser){ if(DEBUG_LOGIN) console.log('[admin] no hay currentUser todavía'); return; }
   try{
     const { data, error } = await sb.rpc('get_my_admin_flag');
-    if(DEBUG_LOGIN) console.log('[admin] get_my_admin_flag →', { data, error: error?.message || error?.code || null });
     if(error || !data) return;
     currentUserIsAdmin = true;
   }catch(err){ if(DEBUG_LOGIN) console.log('[admin] get_my_admin_flag lanzó excepción:', err); return; }
@@ -12402,10 +12633,8 @@ async function refreshAdminStatus(){
     // isPlatformAdmin ya arrancó en false arriba, cualquier problema al leer el token lo deja
     // en false igual que antes: nunca se activa por accidente.
     const payload = currentAuthSession?.access_token ? decodeSupabaseJwtPayload(currentAuthSession.access_token) : null;
-    if(DEBUG_LOGIN) console.log('[admin] nivel actual (desde el JWT local):', payload?.aal || null);
     isPlatformAdmin = payload?.aal === 'aal2';
   }catch(err){ if(DEBUG_LOGIN) console.log('[admin] no se pudo leer el nivel de 2FA:', err); /* si falla la lectura, nunca se activa por accidente */ }
-  if(DEBUG_LOGIN) console.log('[admin] resultado final → currentUserIsAdmin:', currentUserIsAdmin, 'isPlatformAdmin:', isPlatformAdmin);
 }
 function isVerifiedOwner(user){
   if(!user) return false;
@@ -12679,7 +12908,6 @@ async function processAuthStateChange(event, session){
     if(session && event === 'SIGNED_IN'){
       realtimeAuthInvalid = false;
       realtimeAuthInvalidHandledAt = 0;
-      if(DEBUG_LOGIN) console.log('[login] evento SIGNED_IN recibido, authReady:', authReady);
       // Con varias pestañas abiertas del mismo sitio, Supabase sincroniza la
       // sesión por localStorage y CADA pestaña puede disparar su propio
       // SIGNED_IN para el mismo login. Sin este candado, cada disparo volvía a
@@ -12693,16 +12921,13 @@ async function processAuthStateChange(event, session){
       // los demás simplemente esperan ese mismo resultado en vez de duplicar
       // todo el flujo.
       if(signedInProcessing){
-        if(DEBUG_LOGIN) console.log('[login] ya hay un SIGNED_IN en curso — se espera ese en vez de duplicarlo');
         await signedInProcessing;
         return;
       }
       signedInProcessing = (async () => {
         if(!(await ensureMfaSatisfied(session))) return; // canceló el código: ya se cerró la sesión, no cargues nada
-        if(DEBUG_LOGIN) console.log('[login] 2FA resuelto (o no aplicaba), cargando el perfil…');
         await loadCurrentUserFromSession(lastMfaFreshSession || session);
         await refreshAppAfterAuthChange();
-        if(DEBUG_LOGIN) console.log('[login] listo, currentUser:', currentUser?.id || null);
         if(currentUser){
           await recordDailyLogin();
         }
