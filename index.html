@@ -940,6 +940,15 @@
   .admin-panel-tabs{ display:flex; gap:6px; margin-bottom:14px; }
   .admin-panel-tabs button{ flex:1; border:1px solid var(--line); background:var(--paper); border-radius:8px; padding:8px; font-size:0.8rem; cursor:pointer; }
   .admin-panel-tabs button.active{ background:var(--moss); color:#fff; border-color:var(--moss); }
+  .admin-moderation-note{padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--paper);font-size:.75rem;color:var(--ink-soft);margin-bottom:12px}
+  .admin-report-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .admin-detail-card{display:grid;gap:10px;margin-top:12px;padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+  .admin-detail-card strong{font-size:.75rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.03em}
+  .admin-detail-card p{margin:3px 0 0;font-size:.86rem}
+  .admin-detail-content{white-space:pre-wrap;max-height:240px;overflow:auto;padding:8px;border-radius:7px;background:var(--white-ish)}
+  .admin-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+  .admin-review-foot{display:flex;justify-content:flex-end;margin-top:14px}
+  @media(max-width:560px){.admin-action-grid{grid-template-columns:1fr}.admin-report-actions .btn{flex:1}}
   .profile-tabs{
     display:grid;
     grid-template-columns:repeat(2,1fr);
@@ -1042,6 +1051,16 @@
   }
   .profile-visit-name-row .profile-ig-name{ margin:0; font-size:1.3rem; }
   .profile-visit-badge{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:var(--moss); color:#fff; font-size:.66rem; font-weight:900; }
+  .profile-badges-showcase{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0 2px}
+  .profile-badge-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--paper-alt);color:var(--ink);font-size:.72rem;font-weight:700;white-space:nowrap;cursor:default}
+  .profile-badge-chip .badge-chip-icon{font-size:.95rem;line-height:1}
+  .profile-badge-chip .badge-chip-name{max-width:130px;overflow:hidden;text-overflow:ellipsis}
+  .profile-badges-more{border:0;background:transparent;color:var(--moss-dark);font-size:.72rem;font-weight:800;cursor:pointer;padding:5px 4px}
+  .profile-badge-empty{font-size:.72rem;color:var(--ink-soft);padding:4px 0}
+  .profile-avatar-pressable{cursor:pointer;touch-action:manipulation}
+  .profile-avatar-pressable:active{transform:scale(.98)}
+  .profile-avatar-hint{font-size:.65rem;color:var(--ink-soft);margin-top:4px}
+  @media(max-width:480px){.profile-badge-chip{padding:4px 7px;font-size:.67rem}.profile-badge-chip .badge-chip-name{max-width:92px}}
   .profile-visit-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
   .profile-visit-actions .btn{ padding:10px 16px; font-size:0.82rem; }
   .profile-visit-stats{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-bottom:10px; }
@@ -1270,6 +1289,14 @@
   .quick-preview-head span{ font-size: 0.85rem; font-weight:700; }
   .quick-preview-box img{ width:100%; aspect-ratio: 1/1; object-fit:cover; background: var(--paper-alt); }
   .quick-preview-caption{ padding: 10px 12px; font-size: 0.85rem; margin:0; }
+  .profile-avatar-quick{width:min(78vw,360px);aspect-ratio:1/1;background:var(--paper-alt);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .profile-avatar-quick img{width:100%;height:100%;object-fit:cover}
+  .profile-avatar-quick-placeholder{font-family:var(--serif);font-size:4rem;color:var(--white-ish);background:var(--moss);width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+  .report-reasons{display:grid;gap:7px;margin-bottom:10px}
+  .report-reason-option{display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--paper);cursor:pointer;font-size:.82rem}
+  .report-reason-option:has(input:checked){border-color:var(--moss);background:var(--paper-alt)}
+  .report-reason-option input{accent-color:var(--moss)}
+  #reportReasonDetails{width:100%;resize:vertical;border:1px solid var(--line);border-radius:9px;background:var(--paper);font:inherit;padding:9px;font-size:.8rem;min-height:70px}
   .ig-post-header-link{ all:unset; cursor:pointer; display:flex; align-items:center; gap:10px; flex:1; min-width:0; box-sizing:border-box; }
 
   .toast{
@@ -1420,14 +1447,14 @@
   .thread-menu-dropdown.conversation-list-menu{ top:100%; right:8px; margin-top:4px; left:auto; }
 
   .message-menu{
-    position:absolute; bottom:calc(100% + 6px); background:var(--white-ish); border:1px solid var(--line);
-    border-radius:12px; box-shadow:0 12px 28px rgba(35,48,29,0.18); padding:6px; display:none; z-index:30;
-    min-width:150px; opacity:0; transform:translateY(4px); transition:opacity .12s ease, transform .12s ease;
-    pointer-events:none;
+    position:fixed; left:0; top:0; background:var(--white-ish); border:1px solid var(--line);
+    border-radius:12px; box-shadow:0 12px 28px rgba(35,48,29,0.22); padding:6px; display:none; z-index:9999;
+    min-width:160px; max-width:min(240px,calc(100vw - 16px)); opacity:0; transform:translateY(4px) scale(.98);
+    transition:opacity .12s ease, transform .12s ease; pointer-events:none;
   }
-  .message-row.me .message-menu{ right:0; }
-  .message-row.them .message-menu{ left:0; }
-  .message-bubble-shell.open .message-menu{ display:block; opacity:1; transform:translateY(0); pointer-events:auto; }
+  .message-row.me .message-menu,.message-row.them .message-menu{ right:auto; left:auto; }
+  .message-bubble-shell.open .message-menu, .message-menu.open{ display:block; opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  @media(max-width:640px){.message-menu{min-width:170px;max-width:calc(100vw - 20px);padding:7px}.message-menu button{padding:10px 11px;font-size:.82rem}}
 
 .message-menu button{ display:block; width:100%; text-align:left; background:none; border:none; color:var(--ink); padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.78rem; }
   .message-menu button:hover{ background:var(--paper-alt); }
@@ -2099,6 +2126,7 @@
           </div>
           <div class="profile-stats-row" id="profileStats"></div>
           <div class="profile-bio" id="profileBioText"><strong>Enraíza</strong>🌱 Por una vida más sostenible, una raíz a la vez.</div>
+          <div class="profile-badges-showcase" id="profileBadgesShowcase" aria-label="Mis insignias"></div>
         </div>
       </div>
 
@@ -2151,7 +2179,8 @@
       <div class="back-row"><button class="back-link" data-view="inicio">← Volver</button></div>
       <div class="profile-visit-head">
         <div class="avatar-big-wrap">
-          <div class="avatar-big" id="profileVisitAvatar">?</div>
+          <div class="avatar-big profile-avatar-pressable" id="profileVisitAvatar" title="Mantén presionada para ver la foto" aria-label="Mantén presionada para ver la foto de perfil">?</div>
+          <div class="profile-avatar-hint">Mantén presionada</div>
         </div>
         <div class="profile-visit-meta">
           <div class="profile-visit-name-row">
@@ -2164,6 +2193,7 @@
           </div>
           <div class="profile-visit-stats" id="profileVisitStats"></div>
           <div class="profile-visit-bio" id="profileVisitBio"><strong>Enraíza</strong>Construyendo un cambio sostenible, proyecto a proyecto.</div>
+          <div class="profile-badges-showcase" id="profileVisitBadges" aria-label="Insignias del perfil"></div>
         </div>
       </div>
       <div class="profile-visit-section">
@@ -3034,7 +3064,7 @@ async function prepareVideoFile(file){
 // y solo se puede leer, para la sesión propia, a través del RPC
 // get_my_admin_flag() — así nadie puede pedir "¿es admin este OTRO perfil?"
 // aunque llame a la API de Supabase directo, sin pasar por esta app.
-const PROFILE_PUBLIC_COLS = 'id,username,avatar_url,bio,privacy_settings';
+const PROFILE_PUBLIC_COLS = 'id,username,avatar_url,bio,privacy_settings,moderation_status';
 const PROFILE_OWN_COLS = PROFILE_PUBLIC_COLS + ',name';
 function mapProfileRow(row){
   return {
@@ -3045,6 +3075,7 @@ function mapProfileRow(row){
     avatarUrl: row.avatar_url,
     bio: row.bio || '',
     privacySettings: normalizePrivacySettings(row.privacy_settings || {}),
+    moderationStatus: row.moderation_status || 'active',
   };
 }
 
@@ -3310,9 +3341,10 @@ const DB = {
     // Ver post_reports.sql. Cualquier persona puede reportar (no hace falta ser
     // admin); lo que sí es exclusivo de admin es LEER/cerrar esos reportes,
     // eso vive en DB.admin.listPostReports/dismissPostReport.
-    async report(postId, reporterId, reason){
+    async report(postId, reporterId, reason, details){
+      const finalReason = details ? `${reason}: ${details}` : reason;
       const { error } = await sb.from('post_reports').insert({
-        post_id: postId, reporter_id: reporterId, reason: reason || null
+        post_id: postId, reporter_id: reporterId, reason: finalReason || null
       });
       if(error && error.code === '42P01') throw new Error('Todavía no se corrió post_reports.sql en Supabase.');
       if(error) throw error;
@@ -3712,10 +3744,11 @@ const DB = {
     // Deja un registro para revisar después; nadie puede leerlo desde el cliente
     // (ver anclar_reportar.sql). No hay panel de moderación todavía — es solo
     // un buzón.
-    async report(conversationId, reportedUserId, reporterId, reason){
+    async report(conversationId, reportedUserId, reporterId, reason, details){
+      const finalReason = details ? `${reason}: ${details}` : reason;
       const { error } = await sb.from('conversation_reports').insert({
         conversation_id: conversationId, reported_user_id: reportedUserId,
-        reporter_id: reporterId, reason: reason || null
+        reporter_id: reporterId, reason: finalReason || null
       });
       if(error) throw error;
     },
@@ -4061,6 +4094,11 @@ const DB = {
       if(error) throw error;
       return (data||[]).map(r => r.badge_id);
     },
+    async listPublic(userId){
+      const { data, error } = await sb.from('user_badges').select('badge_id,created_at').eq('user_id', userId).order('created_at',{ascending:true});
+      if(error) throw error;
+      return (data||[]).map(r => ({badgeId:r.badge_id,createdAt:new Date(r.created_at).getTime()}));
+    },
     async award(userId, badgeId){
       const { error } = await sb.from('user_badges').insert({ user_id: userId, badge_id: badgeId });
       if(error && error.code !== '23505') throw error; // 23505 = ya existía, no pasa nada
@@ -4133,6 +4171,23 @@ const DB = {
     async dismissPostReport(reportId){
       const { error } = await sb.rpc('admin_dismiss_post_report', { p_report_id: reportId });
       if(error) throw error;
+    },
+    async deletePost(postId, note=''){
+      const { error } = await sb.rpc('admin_delete_post', { p_post_id: postId, p_note: note || null });
+      if(error) throw error;
+    },
+    async deleteComment(commentId, note=''){
+      const { error } = await sb.rpc('admin_delete_comment', { p_comment_id: commentId, p_note: note || null });
+      if(error) throw error;
+    },
+    async setUserStatus(userId, status, note=''){
+      const { error } = await sb.rpc('admin_set_user_status', { p_user_id: userId, p_status: status, p_note: note || null });
+      if(error) throw error;
+    },
+    async getReportDetail(kind, reportId){
+      const fn=kind==='publicaciones' ? 'admin_get_post_report_detail' : 'admin_get_conversation_report_detail';
+      const arg=kind==='publicaciones' ? {p_report_id:reportId} : {p_report_id:reportId};
+      const { data,error }=await sb.rpc(fn,arg); if(error) throw error; return Array.isArray(data)?data[0]||null:data||null;
     },
     async listTeacherRequests(){
       const { data, error } = await sb.rpc('admin_list_teacher_requests');
@@ -5645,6 +5700,31 @@ function renderSearchFilterBanner(){
   });
 }
 
+const REPORT_REASONS = [
+  ['privacy','Violación de privacidad'],
+  ['harassment','Acoso o intimidación'],
+  ['hate','Discurso de odio'],
+  ['spam','Spam o contenido engañoso'],
+  ['sexual','Contenido sexual o inapropiado'],
+  ['violence','Violencia o amenazas'],
+  ['impersonation','Suplantación de identidad'],
+  ['copyright','Propiedad intelectual'],
+  ['other','Otro motivo']
+];
+function openReportReasonDialog({title='Reportar',description='Selecciona el motivo del reporte.',onSubmit}){
+  modalBox.className='modal';
+  modalContent.innerHTML=`<h3>🚩 ${escapeHtml(title)}</h3><p class="section-desc" style="margin-bottom:14px;">${escapeHtml(description)}</p><div class="report-reasons">${REPORT_REASONS.map(([id,label],i)=>`<label class="report-reason-option"><input type="radio" name="reportReason" value="${id}" ${i===0?'checked':''}><span>${escapeHtml(label)}</span></label>`).join('')}</div><textarea id="reportReasonDetails" rows="3" maxlength="500" placeholder="Detalles adicionales (opcional)…"></textarea><div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;"><button type="button" class="btn btn-outline btn-small" id="reportCancelBtn">Cancelar</button><button type="button" class="btn btn-primary btn-small" id="reportSubmitBtn">Enviar reporte</button></div>`;
+  modalBackdrop.classList.add('open');
+  document.getElementById('reportCancelBtn').onclick=closeModal;
+  document.getElementById('reportSubmitBtn').onclick=async()=>{
+    const reason=document.querySelector('input[name=reportReason]:checked')?.value||'other';
+    const label=REPORT_REASONS.find(x=>x[0]===reason)?.[1]||'Otro motivo';
+    const details=document.getElementById('reportReasonDetails')?.value.trim()||'';
+    const btn=document.getElementById('reportSubmitBtn'); btn.disabled=true; btn.textContent='Enviando…';
+    try{ await onSubmit({reason,label,details}); closeModal(); showToast('Reporte enviado. Gracias por ayudar a mantener Enraíza segura.'); }catch(err){ btn.disabled=false; btn.textContent='Enviar reporte'; showToast(err?.message||'No se pudo enviar el reporte.'); }
+  };
+}
+
 // ---------- PERFIL DE OTRA PERSONA (desde la búsqueda o desde una publicación) ----------
 let viewingUserId = null;
 function openUserProfile(userId, name){
@@ -5654,6 +5734,21 @@ function openUserProfile(userId, name){
   viewingUserId = userId;
   showView('perfilVisita');
 }
+function renderPublicProfileBadges(badgeRows){
+  const el=document.getElementById('profileVisitBadges');
+  if(!el) return;
+  const byId=new Map(BADGES.map(b=>[b.id,b]));
+  const badges=(badgeRows||[]).map(r=>byId.get(r.badgeId)).filter(Boolean);
+  if(!badges.length){ el.innerHTML=''; return; }
+  const visible=badges.slice(0,4);
+  el.innerHTML=visible.map(b=>`<span class="profile-badge-chip" title="${escapeHtml(b.name)} — ${escapeHtml(b.desc)}"><span class="badge-chip-icon">${b.icon}</span><span class="badge-chip-name">${escapeHtml(b.name)}</span></span>`).join('') + (badges.length>visible.length ? `<button type="button" class="profile-badges-more" id="profileBadgesMoreBtn">+${badges.length-visible.length} más</button>` : '');
+  document.getElementById('profileBadgesMoreBtn')?.addEventListener('click',()=>{
+    modalBox.className='modal';
+    modalContent.innerHTML=`<h3>🏅 Insignias de ${escapeHtml(document.getElementById('profileVisitName')?.textContent||'este perfil')}</h3><div class="achievement-completed-grid" style="margin-top:14px;">${badges.map(b=>badgeCardHTML(b,true)).join('')}</div>`;
+    modalBackdrop.classList.add('open');
+  });
+}
+
 async function renderUserProfileVisit(){
   if(activeInlineFeedClose){
     const closeFn = activeInlineFeedClose;
@@ -5686,6 +5781,7 @@ async function renderUserProfileVisit(){
     usersCache[uid] = freshUser;
     nameEl.textContent = freshUser.name;
     avatarEl.innerHTML = avatarHTML(freshUser);
+    attachProfileAvatarLongPress(avatarEl, freshUser);
     if(bioEl) {
       const bioText = (freshUser.bio || '').trim() || 'Construyendo un cambio sostenible, proyecto a proyecto.';
       bioEl.textContent = bioText;
@@ -5730,6 +5826,8 @@ async function renderUserProfileVisit(){
   const posts = postsCache.filter(p => p.authorId === uid);
   const totalLikes = posts.reduce((sum, p) => sum + Number(p.likeCount ?? (p.likedBy || []).length), 0);
   const publicLogs = await DB.projects.listPublicForUser(uid).catch(() => []);
+  const publicBadgeRows = await DB.badges.listPublic(uid).catch(() => []);
+  renderPublicProfileBadges(publicBadgeRows);
   const counts = await DB.follows.getCounts(uid).catch(() => ({ followersCount: 0, followingCount: 0 }));
   const owner = usersCache[uid] || freshUser || { id: uid, privacySettings: normalizePrivacySettings({}) };
   const privacy = getProfilePrivacy(owner);
@@ -5923,6 +6021,21 @@ function attachLongPressProject(tileEl, projectId){
     openProjectView(projectId);
   });
 }
+function attachProfileAvatarLongPress(el,user){
+  if(!el || !user) return;
+  let timer=null, didHold=false;
+  const start=(e)=>{ if(e.pointerType==='mouse' && e.button!==0) return; didHold=false; clearTimeout(timer); timer=setTimeout(()=>{ didHold=true; showQuickPreviewAvatar(user); },420); };
+  const cancel=()=>clearTimeout(timer);
+  el.addEventListener('pointerdown',start);
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>el.addEventListener(ev,cancel));
+  el.addEventListener('click',e=>{ if(didHold){e.preventDefault();e.stopPropagation();didHold=false;} });
+}
+function showQuickPreviewAvatar(user){
+  const img=user.avatarUrl && /^https?:\/\//i.test(user.avatarUrl) ? user.avatarUrl : '';
+  document.getElementById('quickPreviewBox').innerHTML=`<div class="quick-preview-head"><div class="avatar">${avatarHTML(user)}</div><span>${escapeHtml(user.name||'Usuario')}</span></div><div class="profile-avatar-quick">${img?`<img src="${escapeHtml(img)}" alt="Foto de perfil de ${escapeHtml(user.name||'Usuario')}">`:`<div class="profile-avatar-quick-placeholder">${escapeHtml(initials(user.name||''))}</div>`}</div><p class="quick-preview-caption">@${escapeHtml(user.username||'usuario')}</p>`;
+  document.getElementById('quickPreviewBackdrop').classList.add('open');
+}
+
 async function showQuickPreviewProject(projectId){
   let project;
   try{ project = await DB.projects.getOne(projectId); }catch(err){ return; }
@@ -6485,7 +6598,16 @@ async function loadCurrentUserFromSession(session){
       console.error('No se pudo crear el perfil del usuario:', err);
     }
   }
-  currentUser = profile || { id: session.user.id, name: session.user.user_metadata?.username || 'Usuario', fullName: session.user.user_metadata?.name || '', avatarUrl: null };
+  currentUser = profile || { id: session.user.id, name: session.user.user_metadata?.username || 'Usuario', fullName: session.user.user_metadata?.name || '', avatarUrl: null, moderationStatus:'active' };
+  if(currentUser.moderationStatus === 'suspended' || currentUser.moderationStatus === 'deactivated'){
+    const statusLabel=currentUser.moderationStatus==='suspended' ? 'suspendida' : 'dada de baja';
+    currentUser=null;
+    currentAuthEmail='';
+    currentAuthSession=null;
+    await sb.auth.signOut({scope:'local'}).catch(()=>{});
+    showToast(`Tu cuenta está ${statusLabel}. Si crees que es un error, contacta a administración.`);
+    return;
+  }
   usersCache[currentUser.id] = currentUser;
 }
 // Antes esto hacía ~9 llamadas de red UNA TRAS OTRA en serie: cada login/logout tardaba
@@ -7272,15 +7394,11 @@ function bindPostCard(article){
     openMenuId = null;
     rerenderCardFromCache(id);
     const postId = btn.dataset.report;
-    showConfirmDialog({
+    openReportReasonDialog({
       title: 'Reportar publicación',
-      message: 'Vamos a mandar un reporte al equipo para que lo revise. Esto no borra la publicación ni bloquea a la persona.',
-      confirmLabel: 'Reportar',
-      onConfirm: async () => {
-        try{
-          await DB.posts.report(postId, currentUser.id, 'reportado desde el feed');
-          showToast('Reporte enviado. Gracias por avisarnos 🌱');
-        }catch(err){ showToast(err?.message || 'No se pudo enviar el reporte.'); }
+      description: 'Elige el motivo que mejor describe lo que encontraste. El equipo podrá revisar el contenido y tomar medidas.',
+      onSubmit: async ({label,details}) => {
+        await DB.posts.report(postId, currentUser.id, label, details);
       }
     });
   }));
@@ -9837,7 +9955,15 @@ let pendingMessageAttachment = null; // { file, url, isVideo } — foto o video 
 let pendingAttachmentConvId = null; // para limpiar el adjunto pendiente al cambiar de conversación
 
 function closeMessageMenu(){
-  document.querySelectorAll('.message-bubble-shell.open').forEach(el => el.classList.remove('open'));
+  const menus=document.querySelectorAll('.message-menu');
+  menus.forEach(menu=>{
+    menu.classList.remove('open');
+    const shell=menu._messageShell;
+    if(shell && !shell.contains(menu)) shell.appendChild(menu);
+    menu.removeAttribute('style');
+  });
+  document.querySelectorAll('.message-bubble-shell.open').forEach(el=>el.classList.remove('open'));
+  window.__activeMessageMenu=null;
 }
 
 function clearActiveReplyTarget(){
@@ -10072,16 +10198,11 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       });
       document.getElementById('listReportConversationBtn').addEventListener('click', (e) => {
         e.stopPropagation(); dd.remove();
-        showConfirmDialog({
+        openReportReasonDialog({
           title: 'Reportar conversación',
-          message: `Vamos a mandar un reporte sobre esta conversación con ${conv.otherUser?.name || 'esta persona'} para que el equipo lo revise. Esto no bloquea a la persona ni borra nada — si necesitas dejar de recibir sus mensajes, usa "Eliminar conversación".`,
-          confirmLabel: 'Reportar',
-          danger: true,
-          onConfirm: async () => {
-            try{
-              await DB.messages.report(conv.id, conv.otherUserId, currentUser.id, 'reportado desde la lista');
-              showToast('Gracias, lo vamos a revisar.');
-            }catch(err){ showToast('No se pudo enviar el reporte.'); }
+          description: `Selecciona por qué quieres reportar la conversación con ${conv.otherUser?.name || 'esta persona'}.`,
+          onSubmit: async ({label,details}) => {
+            await DB.messages.report(conv.id, conv.otherUserId, currentUser.id, label, details);
           }
         });
       });
@@ -10178,16 +10299,11 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       });
       document.getElementById('reportConversationBtn').addEventListener('click', () => {
         dd.remove();
-        showConfirmDialog({
+        openReportReasonDialog({
           title: 'Reportar conversación',
-          message: `Vamos a mandar un reporte sobre esta conversación con ${threadUser.name || 'esta persona'} para que el equipo lo revise. Esto no bloquea a la persona ni borra nada — si necesitas dejar de recibir sus mensajes, usa "Eliminar conversación".`,
-          confirmLabel: 'Reportar',
-          danger: true,
-          onConfirm: async () => {
-            try{
-              await DB.messages.report(activeConversation.id, threadUser.id, currentUser.id, 'reportado desde el chat');
-              showToast('Gracias, lo vamos a revisar.');
-            }catch(err){ showToast('No se pudo enviar el reporte.'); }
+          description: `Selecciona por qué quieres reportar la conversación con ${threadUser.name || 'esta persona'}.`,
+          onSubmit: async ({label,details}) => {
+            await DB.messages.report(activeConversation.id, threadUser.id, currentUser.id, label, details);
           }
         });
       });
@@ -10327,42 +10443,87 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
 
     let msgHoldTimer = null;
     let msgDidHold = false;
+    let msgPointerId = null;
+    let msgHoldStartX = 0;
+    let msgHoldStartY = 0;
+    let activeMessageMenu = null;
+    function positionMessageMenu(shell, menu){
+      if(!shell || !menu) return;
+      const rect=shell.getBoundingClientRect();
+      const menuW=Math.min(menu.offsetWidth || 180, window.innerWidth-20);
+      const menuH=menu.offsetHeight || 180;
+      let left = shell.classList.contains('mine') ? rect.right-menuW : rect.left;
+      left=Math.max(10,Math.min(left,window.innerWidth-menuW-10));
+      let top=rect.top-menuH-8;
+      if(top<10) top=rect.bottom+8;
+      if(top+menuH>window.innerHeight-10) top=Math.max(10,window.innerHeight-menuH-10);
+      menu.style.left=`${left}px`; menu.style.top=`${top}px`;
+    }
+    const openThisMenu = (bubble) => {
+      const shell=bubble.closest('.message-bubble-shell');
+      if(!shell) return;
+      document.querySelectorAll('.message-bubble-shell.open').forEach(el=>{ if(el!==shell) el.classList.remove('open'); });
+      if(activeMessageMenu && activeMessageMenu !== shell.querySelector('.message-menu')){
+        // Cierra el menú que hubiera quedado abierto de OTRO mensaje regresándolo
+        // a su lugar original — nunca con .remove(), porque eso lo borraba del
+        // DOM para siempre y ese mensaje se quedaba sin menú de ahí en adelante.
+        const prevShell = activeMessageMenu._messageShell;
+        activeMessageMenu.classList.remove('open');
+        activeMessageMenu.removeAttribute('style');
+        if(prevShell) prevShell.appendChild(activeMessageMenu);
+      }
+      const menu=shell.querySelector('.message-menu');
+      if(!menu) return;
+      document.body.appendChild(menu);
+      shell.classList.add('open');
+      menu.classList.add('open'); // la visibilidad real depende de esta clase puesta en el menú, no de que esté anidado en la burbuja (ver CSS): al reparentarlo a <body> para posicionarlo, el selector .message-bubble-shell.open .message-menu ya no podía aplicar nunca.
+      activeMessageMenu=menu;
+      msgDidHold=true;
+      requestAnimationFrame(()=>positionMessageMenu(shell,menu));
+    };
+    const closeThisMenu=()=>{
+      if(activeMessageMenu){
+        activeMessageMenu.classList.remove('open');
+        const shell=activeMessageMenu._messageShell;
+        if(shell) shell.appendChild(activeMessageMenu);
+        activeMessageMenu.removeAttribute('style');
+        activeMessageMenu=null;
+      }
+      document.querySelectorAll('.message-bubble-shell.open').forEach(el=>el.classList.remove('open'));
+    };
+    window.addEventListener('resize',()=>{ if(activeMessageMenu) positionMessageMenu(activeMessageMenu._messageShell,activeMessageMenu); },{passive:true});
     threadBodyEl.querySelectorAll('.message-bubble').forEach((bubble) => {
-      const openThisMenu = () => {
-        const shell = bubble.closest('.message-bubble-shell');
-        if(!shell) return;
-        document.querySelectorAll('.message-bubble-shell.open').forEach(el => {
-          if(el !== shell) el.classList.remove('open');
-        });
-        shell.classList.toggle('open');
-        msgDidHold = true;
-        // Se arma "cerrar con el siguiente clic afuera" hasta el próximo tick, y solo si
-        // el clic cae fuera del propio menú. Antes esto se armaba una sola vez al pintar
-        // toda la pantalla de mensajes (no al abrir el menú), así que en celular el clic
-        // sintetizado que el navegador dispara justo al soltar el dedo tras la pulsación
-        // larga —que suele caer sobre el menú recién aparecido, no sobre la burbuja—
-        // lo cerraba de inmediato: se veía abrir y cerrarse solo.
-        if(shell.classList.contains('open')){
-          setTimeout(() => {
-            document.addEventListener('click', function onOutsideClick(ev){
-              if(ev.target.closest('.message-bubble-shell')) return;
-              closeMessageMenu();
-            }, { once:true });
-          }, 0);
-        }
-      };
-      bubble.addEventListener('pointerdown', (event) => {
-        if(event.target.closest('.message-reply-quote')) return;
-        msgDidHold = false;
-        clearTimeout(msgHoldTimer);
-        msgHoldTimer = setTimeout(openThisMenu, 380);
+      const shell=bubble.closest('.message-bubble-shell');
+      const menu=shell?.querySelector('.message-menu');
+      if(menu) menu._messageShell=shell;
+      const cancelHold=()=>{ clearTimeout(msgHoldTimer); msgHoldTimer=null; };
+      bubble.addEventListener('pointerdown',(event)=>{
+        if(event.pointerType==='mouse' && event.button!==0) return;
+        if(event.target.closest('.message-reply-quote') || event.target.closest('.message-menu')) return;
+        msgDidHold=false; msgPointerId=event.pointerId; msgHoldStartX=event.clientX; msgHoldStartY=event.clientY; cancelHold();
+        msgHoldTimer=setTimeout(()=>{
+          msgHoldTimer=null;
+          if(msgPointerId!==null) openThisMenu(bubble);
+        },520);
       });
-      bubble.addEventListener('contextmenu', (event) => { event.preventDefault(); openThisMenu(); });
-      ['pointerup','pointerleave','pointercancel'].forEach(evt => bubble.addEventListener(evt, () => clearTimeout(msgHoldTimer)));
-      bubble.addEventListener('click', (event) => {
-        if(msgDidHold){ event.preventDefault(); event.stopPropagation(); msgDidHold = false; }
+      bubble.addEventListener('pointermove',(event)=>{
+        if(msgPointerId!==event.pointerId) return;
+        if(Math.hypot(event.clientX-msgHoldStartX,event.clientY-msgHoldStartY)>10) cancelHold();
+      });
+      bubble.addEventListener('pointerup',(event)=>{ if(msgPointerId===event.pointerId){ cancelHold(); msgPointerId=null; } });
+      bubble.addEventListener('pointercancel',()=>{ cancelHold(); msgPointerId=null; });
+      bubble.addEventListener('contextmenu',(event)=>{ event.preventDefault(); cancelHold(); openThisMenu(bubble); });
+      bubble.addEventListener('click',(event)=>{
+        if(msgDidHold){ event.preventDefault(); event.stopPropagation(); msgDidHold=false; return; }
       });
     });
+    if(!window.__dmMessageMenuOutsideBound){
+      window.__dmMessageMenuOutsideBound=true;
+      document.addEventListener('click',(ev)=>{
+        if(ev.target.closest('.message-menu') || ev.target.closest('.message-bubble')) return;
+        closeMessageMenu();
+      });
+    }
 
     threadBodyEl.querySelectorAll('[data-message-action]').forEach((actionBtn) => {
       actionBtn.addEventListener('click', async (event) => {
@@ -11957,6 +12118,11 @@ async function renderProfile(){
   else if(!stats.ownPostList.length) grid.innerHTML='<p class="profile-empty-grid">Comparte algo en Inicio para verlo aquí.</p>';
   else { grid.innerHTML=stats.ownPostList.map(p=>`<img loading="lazy" decoding="async" class="profile-post-thumb" data-goto="${p.id}" src="${(p.photos&&p.photos[0])||placeholderImage(p.id+p.title,p.category)}" alt="${escapeHtml(p.title)}">`).join(''); grid.querySelectorAll('[data-goto]').forEach(img=>attachLongPress(img,img.dataset.goto)); }
   const earned=BADGES.filter(b=>earnedBadgeIds.has(b.id));
+  const ownBadgeEl=document.getElementById('profileBadgesShowcase');
+  if(ownBadgeEl){
+    const visible=earned.slice(0,4);
+    ownBadgeEl.innerHTML=visible.map(b=>`<span class="profile-badge-chip" title="${escapeHtml(b.name)} — ${escapeHtml(b.desc)}"><span class="badge-chip-icon">${b.icon}</span><span class="badge-chip-name">${escapeHtml(b.name)}</span></span>`).join('') + (earned.length>visible.length ? `<button type="button" class="profile-badges-more" data-view="logros">+${earned.length-visible.length} más</button>` : '');
+  }
   const doneMissions=MISSIONS.filter(m=>getMissionProgress(m)>=m.target).length;
   const bs=document.getElementById('profileBadgeSummary'); if(bs) bs.textContent=`${earned.length}/${BADGES.length} logrados · ver todos`;
   const ms=document.getElementById('profileMissionSummary'); if(ms) ms.textContent=`${doneMissions}/${MISSIONS.length} completadas · ver esta semana`;
@@ -12069,36 +12235,58 @@ async function renderAdminPanelBody(){
   if(!body) return;
   if(adminReportsTab === 'profesores') return renderAdminTeacherRequests(body);
   try{
-    const rows = adminReportsTab === 'conversaciones'
-      ? await DB.admin.listConversationReports()
-      : await DB.admin.listPostReports();
-    if(!rows.length){ body.innerHTML = '<p class="admin-panel-empty">No hay reportes por revisar 🌱</p>'; return; }
-    body.innerHTML = rows.map(r => `
-      <div class="admin-report-row ${r.reviewedAt ? 'reviewed' : ''}" data-reportid="${r.id}">
-        <div class="admin-report-meta">
-          <span>${fmtRelative(r.createdAt)}</span>
-          <span>Reportó: ${escapeHtml(r.reporterName || 'usuario eliminado')}</span>
-          <span>Contra: ${escapeHtml(r.reportedName || 'usuario eliminado')}</span>
-          ${r.reviewedAt ? '<span>· ya revisado</span>' : ''}
+    const rows = adminReportsTab === 'conversaciones' ? await DB.admin.listConversationReports() : await DB.admin.listPostReports();
+    if(!rows.length){ body.innerHTML='<p class="admin-panel-empty">No hay reportes por revisar 🌱</p>'; return; }
+    body.innerHTML=`<div class="admin-moderation-note">Revisa el motivo y abre los detalles antes de aplicar una medida. Las acciones destructivas requieren confirmación.</div>`+rows.map(r=>`
+      <div class="admin-report-row ${r.reviewedAt?'reviewed':''}" data-reportid="${r.id}">
+        <div class="admin-report-meta"><span>${fmtRelative(r.createdAt)}</span><span>Reportó: ${escapeHtml(r.reporterName||'usuario eliminado')}</span><span>Contra: ${escapeHtml(r.reportedName||'usuario eliminado')}</span>${r.reviewedAt?'<span>· ya revisado</span>':''}</div>
+        <p>${escapeHtml(r.reason||'Sin motivo especificado.')}</p>
+        <div class="admin-report-actions">
+          <button type="button" class="btn btn-outline" data-adminview="${r.id}">Revisar</button>
+          ${!r.reviewedAt?`<button type="button" class="btn btn-primary" data-admindismiss="${r.id}">Cerrar reporte</button>`:''}
         </div>
-        <p>${escapeHtml(r.reason || 'Sin motivo especificado.')}</p>
-        ${!r.reviewedAt ? `<button type="button" class="btn btn-primary" data-admindismiss="${r.id}">Marcar revisado</button>` : ''}
-      </div>
-    `).join('');
-    body.querySelectorAll('[data-admindismiss]').forEach(btn => btn.addEventListener('click', async () => {
-      btn.disabled = true;
-      try{
-        if(adminReportsTab === 'conversaciones') await DB.admin.dismissConversationReport(btn.dataset.admindismiss);
-        else await DB.admin.dismissPostReport(btn.dataset.admindismiss);
-        await renderAdminPanelBody();
-      }catch(err){
-        showToast(err?.message || 'No se pudo actualizar el reporte.');
-        btn.disabled = false;
-      }
+      </div>`).join('');
+    body.querySelectorAll('[data-adminview]').forEach(btn=>btn.addEventListener('click',()=>openAdminReportReview(btn.dataset.adminview)));
+    body.querySelectorAll('[data-admindismiss]').forEach(btn=>btn.addEventListener('click',async()=>{
+      btn.disabled=true; try{ if(adminReportsTab==='conversaciones') await DB.admin.dismissConversationReport(btn.dataset.admindismiss); else await DB.admin.dismissPostReport(btn.dataset.admindismiss); await renderAdminPanelBody(); }catch(err){btn.disabled=false;showToast(err?.message||'No se pudo cerrar el reporte.');}
     }));
-  }catch(err){
-    body.innerHTML = `<p class="admin-panel-empty">No se pudieron cargar los reportes${err?.message ? ': ' + escapeHtml(err.message) : ''}.</p>`;
-  }
+  }catch(err){ body.innerHTML=`<p class="admin-panel-empty">No se pudieron cargar los reportes${err?.message?': '+escapeHtml(err.message):''}.</p>`; }
+}
+async function openAdminReportReview(reportId){
+  const kind=adminReportsTab;
+  modalBox.className='modal'; modalContent.innerHTML='<p class="feed-empty">Cargando reporte…</p>'; modalBackdrop.classList.add('open');
+  try{
+    const d=await DB.admin.getReportDetail(kind,reportId);
+    if(!d){modalContent.innerHTML='<p class="admin-panel-empty">No se encontró el reporte.</p>';return;}
+    const reportedUserId=d.reported_user_id||d.author_id||d.user_id||d.participant_id||'';
+    const postId=d.post_id||'';
+    const commentId=d.comment_id||'';
+    const name=d.reported_name||d.author_name||d.user_name||'usuario';
+    modalContent.innerHTML=`
+      <h3>🔎 Revisar reporte</h3>
+      <div class="admin-detail-card">
+        <div><strong>Motivo</strong><p>${escapeHtml(d.reason||'Sin motivo')}</p></div>
+        ${d.reporter_name?`<div><strong>Reportó</strong><p>${escapeHtml(d.reporter_name)}</p></div>`:''}
+        <div><strong>Cuenta reportada</strong><p>${escapeHtml(name)}</p></div>
+        ${d.post_title?`<div><strong>Publicación</strong><p>${escapeHtml(d.post_title)}</p></div>`:''}
+        ${d.post_notes?`<div><strong>Contenido</strong><p class="admin-detail-content">${escapeHtml(d.post_notes)}</p></div>`:''}
+        ${d.conversation_id?`<div><strong>Conversación</strong><p>Conversación entre participantes reportada.</p></div>`:''}
+      </div>
+      <div class="admin-action-grid">
+        ${postId?`<button type="button" class="btn btn-outline" id="adminDeleteReportedPost">🗑️ Eliminar publicación</button>`:''}
+        ${commentId?`<button type="button" class="btn btn-outline" id="adminDeleteReportedComment">🗑️ Eliminar comentario</button>`:''}
+        ${reportedUserId?`<button type="button" class="btn btn-outline" id="adminSuspendReportedUser">⛔ Suspender cuenta</button><button type="button" class="btn btn-primary" id="adminRestoreReportedUser">✓ Quitar suspensión</button>`:''}
+      </div>
+      <div class="admin-review-foot"><button type="button" class="btn btn-outline btn-small" id="adminCloseReview">Cerrar revisión</button></div>`;
+    document.getElementById('adminCloseReview').onclick=()=>{closeModal();};
+    document.getElementById('adminDeleteReportedPost')?.addEventListener('click',()=>adminConfirmAction('Eliminar publicación','La publicación se eliminará de la plataforma. Esta acción no se puede deshacer.',async()=>{await DB.admin.deletePost(postId,'Medida aplicada tras revisión de reporte');showToast('Publicación eliminada.');await renderAdminPanelBody();}));
+    document.getElementById('adminDeleteReportedComment')?.addEventListener('click',()=>adminConfirmAction('Eliminar comentario','El comentario se eliminará de la plataforma.',async()=>{await DB.admin.deleteComment(commentId,'Medida aplicada tras revisión de reporte');showToast('Comentario eliminado.');await renderAdminPanelBody();}));
+    document.getElementById('adminSuspendReportedUser')?.addEventListener('click',()=>adminConfirmAction('Suspender cuenta',`La cuenta de ${name} quedará suspendida y la plataforma podrá bloquear su acceso/actividad.`,async()=>{await DB.admin.setUserStatus(reportedUserId,'suspended','Medida aplicada tras revisión de reporte');showToast('Cuenta suspendida.');}));
+    document.getElementById('adminRestoreReportedUser')?.addEventListener('click',()=>adminConfirmAction('Quitar suspensión',`La cuenta de ${name} volverá a estado activo.`,async()=>{await DB.admin.setUserStatus(reportedUserId,'active','Suspensión retirada por administración');showToast('Cuenta restaurada.');}));
+  }catch(err){ modalContent.innerHTML=`<p class="admin-panel-empty">No se pudo abrir el reporte: ${escapeHtml(err?.message||'error')}</p>`; }
+}
+function adminConfirmAction(title,message,action){
+  showConfirmDialog({title,message,confirmLabel:'Aplicar medida',cancelLabel:'Cancelar',danger:true,onConfirm:async()=>{try{await action();}catch(err){showToast(err?.message||'No se pudo aplicar la medida.');}}});
 }
 // Aprobar aquí es lo único que de verdad da de alta a un profesor (is_teacher se
 // actualiza del lado del servidor, dentro de admin_review_teacher_request — el
