@@ -1340,10 +1340,10 @@
   .messages-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 16px 10px; border-bottom:1px solid var(--line); }
   .messages-header h2{ margin:0; font-family:var(--serif); font-size:1.12rem; }
   .messages-list{ flex:1; overflow-y:auto; background: var(--paper); }
-  .messages-chat{ flex:1; display:flex; flex-direction:column; min-width:0; background: var(--white-ish); }
+  .messages-chat{ flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; background: var(--white-ish); }
   .message-thread-header{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--line); min-height:68px; }
   .message-thread-header strong{ font-size:0.96rem; }
-  .message-thread-body{ flex:1; overflow-y:auto; overflow-x:hidden; padding:12px 16px; display:flex; flex-direction:column; justify-content:flex-end; gap:10px; background: linear-gradient(180deg, rgba(132,170,101,0.04), rgba(132,170,101,0)); }
+  .message-thread-body{ flex:1; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; touch-action:pan-y; padding:12px 16px; display:flex; flex-direction:column; justify-content:flex-start; gap:10px; background: linear-gradient(180deg, rgba(132,170,101,0.04), rgba(132,170,101,0)); }
   .message-row{ max-width:100%; min-width:0; width:fit-content; }
   .message-row.me{ margin-left:auto; }
   .message-row.them{ margin-right:auto; }
@@ -7893,11 +7893,29 @@ function isMensajesViewActive(){
 
 // Agrupa ráfagas de eventos en un solo repintado (cada repintado hace varias consultas).
 let dmRefreshTimer = null;
-function scheduleDmRefresh(){
+function scheduleDmRefresh(affectedConversationId, isUpdate = false){
+  console.debug('[DM-REALTIME] schedule refresh', { affectedConversationId, isUpdate, openConversationId: dmOpenConversationId });
   clearTimeout(dmRefreshTimer);
   dmRefreshTimer = setTimeout(() => {
-    // preserveDraft:true evita borrar lo que la persona esté escribiendo.
-    if(isMensajesViewActive()) renderMessagesScreen(dmOpenConversationId, { preserveDraft: true });
+    const messagesOpen = isMensajesViewActive();
+    const sameThread = !affectedConversationId || affectedConversationId === dmOpenConversationId;
+    const body = document.getElementById('messageThreadBody');
+
+    if(messagesOpen && sameThread){
+      const nearBottom = !body ||
+        (body.scrollHeight - body.scrollTop - body.clientHeight < 140);
+
+      // Un mensaje nuevo no debe reconstruir el hilo si estás leyendo mensajes
+      // anteriores. El repintado async podía interrumpir el scroll y devolverlo
+      // a una posición vieja. Si estás abajo, sí actualizamos normalmente.
+      if(isUpdate || nearBottom){
+        renderMessagesScreen(dmOpenConversationId, {
+          preserveDraft: true,
+          forceScroll: !isUpdate && nearBottom
+        });
+      }
+    }
+
     if(document.getElementById('dmPanel')?.classList.contains('open')) renderDmPanel();
     updateMessagesBadge();
   }, 250);
@@ -7909,6 +7927,7 @@ function isDmThreadInView(conversationId){
 }
 
 function handleIncomingDmRealtime(row, isUpdate){
+  console.debug('[DM-REALTIME] incoming', { id:row?.id, conversation_id:row?.conversation_id, sender_id:row?.sender_id, isUpdate, openConversationId:dmOpenConversationId });
   if(!currentUser || !row) return;
   const fromOther = row.sender_id !== currentUser.id;
   // Los mensajes que envié yo mismo desde esta pestaña ya se pintaron al enviarlos.
@@ -7928,7 +7947,7 @@ function handleIncomingDmRealtime(row, isUpdate){
       showToast('💬 Tienes un mensaje nuevo');
     }
   }
-  scheduleDmRefresh();
+  scheduleDmRefresh(row.conversation_id, isUpdate);
 }
 
 // La otra persona (u otro de mis dispositivos) marcó una conversación como leída.
@@ -9078,7 +9097,9 @@ async function renderDmPanel(){
       `;
     }).join('');
 
-const msgs = activeConversation ? await DB.messages.listMessages(activeConversation.id, currentUser.id, activeConversation.clearedAtMine) : [];
+    // listMessages ahora devuelve { messages, hasMore } (para la paginación del hilo
+    // principal), no un arreglo directo — este panel rápido solo necesita los mensajes.
+    const msgs = activeConversation ? (await DB.messages.listMessages(activeConversation.id, currentUser.id, activeConversation.clearedAtMine)).messages : [];
     const activeUser = activeConversation ? usersCache[activeConversation.otherUserId] || await getUserCached(activeConversation.otherUserId) : null;
     panel.dataset.activeConversationId = activeConversation ? activeConversation.id : '';
     panel.innerHTML = `
@@ -9286,7 +9307,10 @@ function renderReplyPreview(){
 function scrollMessagesThreadToBottom(threadBodyEl){
   if(!threadBodyEl) return;
   requestAnimationFrame(() => {
-    threadBodyEl.scrollTop = threadBodyEl.scrollHeight;
+    const target = Math.max(0, threadBodyEl.scrollHeight - threadBodyEl.clientHeight);
+    console.debug('[DM-SCROLL] scrollToBottom', { target, before:threadBodyEl.scrollTop, scrollHeight:threadBodyEl.scrollHeight, clientHeight:threadBodyEl.clientHeight });
+    threadBodyEl.scrollTo({ top: target, behavior: 'auto' });
+    requestAnimationFrame(() => dmScrollDebug('after scrollToBottom'));
   });
 }
 
@@ -9310,6 +9334,59 @@ function renderMessageAttachPreview(){
 }
 
 let dmScreenRenderSeq = 0;
+let dmScrollVersion = 0;
+function bindDmScrollGuard(threadBodyEl){
+  if(!threadBodyEl || threadBodyEl.dataset.dmScrollGuard === '1') return;
+  threadBodyEl.dataset.dmScrollGuard = '1';
+  threadBodyEl.addEventListener('scroll', () => { dmScrollVersion++; }, { passive:true });
+}
+
+// DEBUG DEL SCROLL DE MENSAJES: se puede desactivar poniendo window.ENRAIZA_DM_DEBUG = false
+window.ENRAIZA_DM_DEBUG = true;
+let dmLastDebugScroll = 0;
+function dmScrollDebug(label, extra = {}){
+  if(!window.ENRAIZA_DM_DEBUG) return;
+  const el = document.getElementById('messageThreadBody');
+  if(!el){ console.debug('[DM-SCROLL]', label, 'NO existe #messageThreadBody', extra); return; }
+  console.debug('[DM-SCROLL]', label, {
+    scrollTop: Math.round(el.scrollTop),
+    scrollHeight: Math.round(el.scrollHeight),
+    clientHeight: Math.round(el.clientHeight),
+    maxScroll: Math.max(0, Math.round(el.scrollHeight - el.clientHeight)),
+    canScroll: el.scrollHeight > el.clientHeight + 2,
+    overflowY: getComputedStyle(el).overflowY,
+    display: getComputedStyle(el).display,
+    height: getComputedStyle(el).height,
+    parentHeight: el.parentElement ? getComputedStyle(el.parentElement).height : null,
+    ...extra
+  });
+}
+
+function bindDmScrollDebug(threadBodyEl){
+  if(!threadBodyEl || threadBodyEl.dataset.dmScrollDebug === '1') return;
+  threadBodyEl.dataset.dmScrollDebug = '1';
+
+  threadBodyEl.addEventListener('scroll', () => {
+    dmScrollVersion++;
+    const now = Date.now();
+    if(now - dmLastDebugScroll > 120){
+      dmLastDebugScroll = now;
+      dmScrollDebug('scroll event');
+    }
+  }, { passive:true });
+
+  threadBodyEl.addEventListener('wheel', (e) => {
+    dmScrollDebug('wheel', { deltaY: Math.round(e.deltaY), target: e.target?.id || e.target?.className || e.target?.tagName });
+  }, { passive:true });
+
+  threadBodyEl.addEventListener('pointerdown', (e) => {
+    dmScrollDebug('pointerdown', { button:e.button, target:e.target?.id || e.target?.className || e.target?.tagName });
+  }, { passive:true });
+
+  console.debug('[DM-SCROLL] listeners instalados');
+  dmScrollDebug('bind inicial');
+}
+
 async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false, forceScroll = false, growOlder = false } = {}){
   // Candado de secuencia: si mientras esta llamada esperaba a la red se disparó
   // OTRA llamada más nueva a renderMessagesScreen() (por ejemplo: entras a
@@ -9341,6 +9418,10 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
   const composer = document.getElementById('messageComposerForm');
 
   if(!listEl || !threadHeaderEl || !threadBodyEl || !screen){ return; }
+  bindDmScrollGuard(threadBodyEl);
+  bindDmScrollDebug(threadBodyEl);
+  dmScrollDebug('render start', { activeConversationId, preserveDraft, forceScroll, growOlder });
+  const scrollVersionAtStart = dmScrollVersion;
   if(!currentUser){
     listEl.innerHTML = '<div class="message-item-empty">Inicia sesión para ver tus mensajes.</div>';
     threadHeaderEl.innerHTML = '';
@@ -9873,14 +9954,20 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     }
     if(composerInput && !preserveDraft) autoGrowComposer(composerInput);
 
-    // Scroll: al abrir o al enviar baja al final; si estabas leyendo mensajes antiguos, no te mueve.
+    // Scroll: una actualización de red NUNCA debe pisar un scroll que la persona
+    // hizo mientras esta renderización esperaba a Supabase. Solo el envío propio
+    // o la carga explícita de mensajes anteriores puede moverlo en ese caso.
+    const userScrolledDuringRender = dmScrollVersion !== scrollVersionAtStart;
     if(growOlder){
-      // Se prependieron mensajes arriba: mantener fija la posición visual usando
-      // la diferencia de alturas, en vez de reusar el scrollTop viejo (que ya no
-      // apunta al mismo lugar) o saltar al fondo como con un mensaje nuevo.
       threadBodyEl.scrollTop = threadBodyEl.scrollHeight - prevScroll.height + prevScroll.top;
-    } else if(!prevIds || prevScroll.near || forceScroll){ scrollMessagesThreadToBottom(threadBodyEl); }
-    else { threadBodyEl.scrollTop = prevScroll.top; }
+    } else if(forceScroll){
+      scrollMessagesThreadToBottom(threadBodyEl);
+    } else if(!userScrolledDuringRender && (!prevIds || prevScroll.near)){
+      scrollMessagesThreadToBottom(threadBodyEl);
+    } else if(!userScrolledDuringRender){
+      threadBodyEl.scrollTop = prevScroll.top;
+    }
+    dmScrollDebug('render end', { userScrolledDuringRender, prevTop:Math.round(prevScroll.top), prevHeight:Math.round(prevScroll.height), near:prevScroll.near, forceScroll, growOlder });
     paintThreadStatus();
     syncDmThreadChannel();
 
