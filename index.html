@@ -2325,25 +2325,144 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 const realtimeRecoveryTimers = new Map();
 const realtimeRecoveryAttempts = new Map();
 const realtimeRecoveryInProgress = new Set();
+let realtimeAuthRecoveryPromise = null;
+let realtimeAuthInvalid = false;
+let realtimeAuthInvalidHandledAt = 0;
+
+function isInvalidAuthError(err){
+  const msg = String(err?.message || err || '');
+  return /InvalidJWTToken|JWT.*expired|token has expired|Invalid Refresh Token|Refresh Token Not Found|refresh token/i.test(msg);
+}
+
+function cancelRealtimeRecoveryTimers(){
+  for(const timer of realtimeRecoveryTimers.values()) clearTimeout(timer);
+  realtimeRecoveryTimers.clear();
+  realtimeRecoveryAttempts.clear();
+}
+
+async function closeAllRealtimeChannels(reason='auth-invalid'){
+  cancelRealtimeRecoveryTimers();
+  const channels = [
+    ['notifications', () => notifRealtimeChannel],
+    ['dm', () => dmRealtimeChannel],
+    ['profiles', () => profilesRealtimeChannel],
+    ['social', () => socialRealtimeChannel],
+    ['aula', () => aulaClaseChannel],
+    ['aulaAssignment', () => aulaAssignmentChannel],
+    ['dmThread', () => dmThreadChannel],
+  ];
+  for(const [name,getter] of channels){
+    const ch = getter();
+    if(!ch) continue;
+    try{ await sb.removeChannel(ch); }catch(err){ console.warn('[Realtime] cerrar', name, err); }
+  }
+  notifRealtimeChannel = null;
+  dmRealtimeChannel = null;
+  profilesRealtimeChannel = null;
+  socialRealtimeChannel = null;
+  aulaClaseChannel = null;
+  aulaAssignmentChannel = null;
+  dmThreadChannel = null;
+  aulaClaseChannelId = null;
+  aulaAssignmentChannelId = null;
+  dmRealtimeUserId = null;
+  notifRealtimeUserId = null;
+  profilesRealtimeUserId = null;
+  socialRealtimeUserId = null;
+}
+
+async function invalidateLocalAuthSession(reason='auth-invalid'){
+  const now = Date.now();
+  // Evita que varios canales hagan signOut al mismo tiempo.
+  if(realtimeAuthInvalid || now - realtimeAuthInvalidHandledAt < 5000) return;
+  realtimeAuthInvalid = true;
+  realtimeAuthInvalidHandledAt = now;
+  console.warn('[Auth] sesión no renovable; se limpiará la sesión local:', reason);
+  try{ await closeAllRealtimeChannels(reason); }catch(err){ console.warn('[Auth] error cerrando Realtime:', err); }
+  try{ await sb.auth.signOut({ scope: 'local' }); }catch(err){ console.warn('[Auth] signOut local:', err); }
+  currentUser = null;
+  currentAuthEmail = '';
+  currentAuthSession = null;
+  dailyLoginRecordedForUser = null;
+  try{ await refreshAppAfterAuthChange(); }catch(err){ console.warn('[Auth] refresh tras sesión inválida:', err); }
+  try{ showToast('Tu sesión expiró. Inicia sesión nuevamente para continuar.'); }catch(err){}
+}
+
+async function ensureRealtimeAuthSession(){
+  if(!currentUser || realtimeAuthInvalid) return false;
+  if(realtimeAuthRecoveryPromise) return realtimeAuthRecoveryPromise;
+  realtimeAuthRecoveryPromise = (async () => {
+    try{
+      const { data, error } = await sb.auth.getSession();
+      if(error) throw error;
+      const session = data?.session || null;
+      if(!session?.access_token || !session?.user?.id){
+        await invalidateLocalAuthSession('sin sesión después de getSession');
+        return false;
+      }
+      // Si el token sigue vigente, Realtime puede volver a usar la sesión actual.
+      const expiresAt = Number(session.expires_at || 0) * 1000;
+      if(expiresAt && expiresAt < Date.now() + 30000){
+        const refreshed = await sb.auth.refreshSession();
+        if(refreshed.error || !refreshed.data?.session){
+          if(isInvalidAuthError(refreshed.error)) await invalidateLocalAuthSession(refreshed.error);
+          else console.warn('[Auth] no se pudo renovar la sesión:', refreshed.error);
+          return !!refreshed.data?.session;
+        }
+      }
+      const { data: freshData } = await sb.auth.getSession();
+      const fresh = freshData?.session || session;
+      if(!fresh?.access_token) return false;
+      currentAuthSession = fresh;
+      // No recreamos canales aquí. El siguiente paso de recuperación los crea
+      // únicamente después de que Auth ya tenga una sesión válida.
+      if(sb.realtime?.setAuth) {
+        try{ await sb.realtime.setAuth(fresh.access_token); }catch(err){ console.warn('[Realtime] setAuth:', err); }
+      }
+      return true;
+    }catch(err){
+      if(isInvalidAuthError(err)) await invalidateLocalAuthSession(err);
+      else console.warn('[Realtime] no se pudo validar la sesión:', err);
+      return false;
+    }finally{
+      realtimeAuthRecoveryPromise = null;
+    }
+  })();
+  return realtimeAuthRecoveryPromise;
+}
+
 function scheduleRealtimeRecovery(key, getChannel, recreate, reason){
-  if(!currentUser || realtimeRecoveryTimers.has(key) || realtimeRecoveryInProgress.has(key)) return;
+  if(!currentUser || realtimeAuthInvalid || realtimeRecoveryTimers.has(key) || realtimeRecoveryInProgress.has(key)) return;
   const attempt = (realtimeRecoveryAttempts.get(key) || 0) + 1;
   realtimeRecoveryAttempts.set(key, attempt);
-  const delay = Math.min(1500 * Math.pow(2, Math.min(attempt - 1, 3)), 10000);
+  const delay = Math.min(2000 * Math.pow(2, Math.min(attempt - 1, 4)), 30000);
   const timer = setTimeout(async () => {
     realtimeRecoveryTimers.delete(key);
-    if(!currentUser) return;
+    if(!currentUser || realtimeAuthInvalid) return;
     const ch = getChannel();
-    if(!ch){ recreate(); return; }
-    if(ch.state === 'joined' || ch.state === 'joining') return;
+    if(ch && (ch.state === 'joined' || ch.state === 'joining')) return;
     realtimeRecoveryInProgress.add(key);
-    try{ await sb.removeChannel(ch); }catch(err){ /* ya estaba cerrado */ }
-    try{ if(getChannel() === ch) recreate(); }
-    finally{ realtimeRecoveryInProgress.delete(key); }
+    try{
+      // Primero arreglamos Auth. Un JWT vencido nunca debe provocar una cascada
+      // de removeChannel/recreate mientras la sesión siga siendo inválida.
+      const authOk = await ensureRealtimeAuthSession();
+      if(!authOk || !currentUser || realtimeAuthInvalid) return;
+      const current = getChannel();
+      if(current && (current.state === 'joined' || current.state === 'joining')) return;
+      // Solo quitamos un canal que realmente quedó muerto. Nunca llamamos
+      // removeChannel() desde CLOSED/TIMED_OUT repetidamente.
+      if(current){
+        try{ await sb.removeChannel(current); }catch(err){ /* ya estaba cerrado */ }
+      }
+      if(currentUser && !realtimeAuthInvalid) recreate();
+    }finally{
+      realtimeRecoveryInProgress.delete(key);
+    }
   }, delay);
   realtimeRecoveryTimers.set(key, timer);
   console.warn('[Realtime] recuperación programada', key, reason || '', `en ${delay}ms`);
 }
+
 function markRealtimeHealthy(key){
   const timer = realtimeRecoveryTimers.get(key);
   if(timer){ clearTimeout(timer); realtimeRecoveryTimers.delete(key); }
@@ -12182,6 +12301,21 @@ function initSettingsNavigation(){
 initSettingsNavigation();
 
 async function renderProfile(){
+  // El perfil propio depende de una sesión válida. Si Auth acaba de invalidar
+  // el refresh token, no intentamos acceder a currentUser.id mientras la UI
+  // termina de cambiar a estado desconectado.
+  if(!currentUser?.id){
+    try{ applyProfileToUI(); }catch(err){}
+    const verifiedEl=document.getElementById('profileVerifiedBadge');
+    if(verifiedEl) verifiedEl.style.display='none';
+    const bioTextEl=document.getElementById('profileBioText');
+    if(bioTextEl) bioTextEl.textContent='Inicia sesión para ver tu perfil.';
+    const statsEl=document.getElementById('profileStats');
+    if(statsEl) statsEl.innerHTML='';
+    const grid=document.getElementById('profilePostGrid');
+    if(grid) grid.innerHTML='<p class="profile-empty-grid">Inicia sesión para ver tus publicaciones aquí.</p>';
+    return;
+  }
   applyProfileToUI();
   if(document.getElementById('configuracion')?.classList.contains('active')) renderSettingsPage();
   const stats=await computeStats();
@@ -12543,6 +12677,8 @@ async function processAuthStateChange(event, session){
   // en consola y el siguiente evento de auth se sigue procesando con normalidad.
   try{
     if(session && event === 'SIGNED_IN'){
+      realtimeAuthInvalid = false;
+      realtimeAuthInvalidHandledAt = 0;
       if(DEBUG_LOGIN) console.log('[login] evento SIGNED_IN recibido, authReady:', authReady);
       // Con varias pestañas abiertas del mismo sitio, Supabase sincroniza la
       // sesión por localStorage y CADA pestaña puede disparar su propio
@@ -12580,6 +12716,12 @@ async function processAuthStateChange(event, session){
     }
 
     if(session && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
+      realtimeAuthInvalid = false;
+      realtimeAuthInvalidHandledAt = 0;
+      currentAuthSession = session;
+      if(session.access_token && sb.realtime?.setAuth){
+        try{ await sb.realtime.setAuth(session.access_token); }catch(err){ console.warn('[Realtime] setAuth tras auth event:', err); }
+      }
       await loadCurrentUserFromSession(session);
       await refreshAppAfterAuthChange();
       return;
