@@ -6146,7 +6146,7 @@ function showSetNewPasswordModal(session){
       }
       authBackdrop.classList.remove('open');
       showToast('Contraseña actualizada. Ya iniciaste sesión.');
-      await loadCurrentUserFromSession(session);
+      await loadCurrentUserFromSession(lastMfaFreshSession || session);
       await refreshAppAfterAuthChange();
       showView('inicio');
     }catch(err){
@@ -10853,6 +10853,7 @@ async function startMfaEnrollment(){
         if(challenge.error) throw challenge.error;
         const verified=await sb.auth.mfa.verify({factorId:data.id,challengeId:challenge.data.id,code});
         if(verified.error) throw verified.error;
+        await refreshCurrentAuthSessionAfterMfa();
         showToast('2FA activado. Tus acciones sensibles quedan mejor protegidas.');
         await initMfaSecurity();
         // Antes esto no se volvía a revisar hasta el siguiente login: si esta cuenta
@@ -10977,10 +10978,16 @@ let mfaCheckInFlight = null;
 // más a Supabase — así que no hay candado que esperar ni nada que "vencer": si la cuenta
 // de verdad tiene 2FA, SIEMPRE se pide el código, sin importar qué tan lenta o rara esté la
 // red. Se recibe `session` como parámetro en vez de volver a consultarla.
+let lastMfaFreshSession = null; // se llena SOLO cuando ensureMfaSatisfied tuvo que mostrar
+// el reto de 2FA y se verificó con éxito — así quien la llamó puede usar esta sesión (ya
+// con aal2) en vez de la que tenía de antes de verificar, al pasarla después a
+// loadCurrentUserFromSession(). Sin esto, ese paso sobreescribía currentAuthSession con
+// el JWT viejo (aal1) justo después de haberlo arreglado en refreshCurrentAuthSessionAfterMfa().
 async function ensureMfaSatisfied(session){
   if(passwordRecoveryInProgress) return true; // el modal de "nueva contraseña" ya se encarga de pedirlo aparte
   if(mfaCheckInFlight) return mfaCheckInFlight;
   mfaCheckInFlight = (async () => {
+    lastMfaFreshSession = null;
     if(!session || !session.access_token || !session.user) return true; // sin sesión no hay nada que verificar
     const payload = decodeSupabaseJwtPayload(session.access_token);
     const currentLevel = payload?.aal || null;
@@ -10993,7 +11000,9 @@ async function ensureMfaSatisfied(session){
       if(trusted) return true; // ya se confió en este navegador hace ≤30 días
       const factor = verifiedFactors[0];
       if(DEBUG_LOGIN) console.log('[login] mostrando el modal de código…');
-      return await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve));
+      const ok = await new Promise((resolve) => showMfaChallengeModal(factor.id, resolve));
+      if(ok) lastMfaFreshSession = currentAuthSession; // ya actualizado por refreshCurrentAuthSessionAfterMfa()
+      return ok;
     }catch(err){
       // A esta altura ya sabemos con certeza (con datos locales, sin red) que la cuenta
       // SÍ tiene 2FA pendiente — así que ante cualquier error inesperado mostrando el
@@ -11006,6 +11015,18 @@ async function ensureMfaSatisfied(session){
   })();
   try{ return await mfaCheckInFlight; }
   finally{ mfaCheckInFlight = null; }
+}
+async function refreshCurrentAuthSessionAfterMfa(){
+  // sb.auth.mfa.verify() ya sube el nivel de la sesión (a aal2) del lado de Supabase,
+  // pero nuestra copia guardada en currentAuthSession (la que usan refreshAdminStatus,
+  // openAdminPanel, y cualquier ensureMfaSatisfied más adelante en la misma sesión) se
+  // queda con el JWT de ANTES de verificar (aal1) si no la refrescamos aquí. Sin esto,
+  // la app puede "olvidar" que el 2FA ya se cumplió y volver a pedirlo más tarde en la
+  // misma sesión, o dejar el panel de admin apagado aunque sí se verificó.
+  try{
+    const { data } = await withTimeout(sb.auth.getSession(), 5000, 'getSession (post-2FA)');
+    if(data?.session) currentAuthSession = data.session;
+  }catch(err){ console.warn('[2FA] no se pudo refrescar la sesión tras verificar:', err); }
 }
 function showMfaChallengeModal(factorId, resolve, opts = {}){
   clearTimeout(window.__loginWatchdog); // ya avanzó del formulario de login al de código: no hace falta seguir vigilando
@@ -11052,6 +11073,7 @@ function showMfaChallengeModal(factorId, resolve, opts = {}){
       if(challenge.error) throw challenge.error;
       const verified = await sb.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
       if(verified.error) throw verified.error;
+      await refreshCurrentAuthSessionAfterMfa();
       if(offerTrustDevice && document.getElementById('mfaTrustDeviceCheck')?.checked){
         await trustThisDevice(30);
       }
@@ -11488,10 +11510,17 @@ if('serviceWorker' in navigator && !['localhost','127.0.0.1'].includes(location.
 
 // ---------- ARRANQUE ----------
 let authReady = false;
+let pendingAuthEvent = null; // { event, session } — el último evento de auth que llegó
+// mientras authReady todavía era falso. Antes esos eventos se descartaban sin más: si
+// alguien iniciaba sesión justo mientras la app seguía arrancando (getSession/2FA/feed/etc.
+// pueden tardar varios segundos), el SIGNED_IN llegaba, se tiraba, y el formulario de login
+// se quedaba pegado sin avisar nada — hasta el aviso genérico de "esto está tardando" a los
+// 12s, que solo diagnostica, no arregla. Ahora se guarda el más reciente y se reprocesa en
+// cuanto el arranque termina (ver el "if(pendingAuthEvent)" junto a "authReady = true").
 let passwordRecoveryInProgress = false; // true mientras se atiende el enlace de "olvidé mi contraseña"
 let signedInProcessing = null; // candado: evita procesar el mismo SIGNED_IN dos veces en paralelo (ver el porqué más abajo)
 
-sb.auth.onAuthStateChange(async (event, session) => {
+async function handleAuthStateChange(event, session){
   if(event === 'PASSWORD_RECOVERY'){
     // Esto puede llegar ANTES de que termine el arranque (el enlace del correo
     // trae el token en la URL desde que carga la página), así que se atiende
@@ -11501,7 +11530,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
     showSetNewPasswordModal(session);
     return;
   }
-  if(!authReady) return;
+  if(!authReady){ pendingAuthEvent = { event, session }; return; }
 
   // Todo el cuerpo va envuelto: si algo truena a medias (ej. loadCurrentUserFromSession
   // por el error de "Invalid Refresh Token"), antes el evento se perdía en silencio y la
@@ -11530,7 +11559,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
       signedInProcessing = (async () => {
         if(!(await ensureMfaSatisfied(session))) return; // canceló el código: ya se cerró la sesión, no cargues nada
         if(DEBUG_LOGIN) console.log('[login] 2FA resuelto (o no aplicaba), cargando el perfil…');
-        await loadCurrentUserFromSession(session);
+        await loadCurrentUserFromSession(lastMfaFreshSession || session);
         await refreshAppAfterAuthChange();
         if(DEBUG_LOGIN) console.log('[login] listo, currentUser:', currentUser?.id || null);
         if(currentUser){
@@ -11561,7 +11590,8 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }catch(err){
     console.warn(`[onAuthStateChange] falló al procesar "${event}":`, err);
   }
-});
+}
+sb.auth.onAuthStateChange(handleAuthStateChange);
 // Keep-alive eliminado: la disponibilidad del proyecto se gestiona desde
 // infraestructura (cron externo), no con consultas periódicas desde cada cliente.
 window.addEventListener('unhandledrejection', (event) => {
@@ -11603,7 +11633,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
   try {
     if(session && !passwordRecoveryInProgress){
-      if(await ensureMfaSatisfied(session)) await loadCurrentUserFromSession(session);
+      if(await ensureMfaSatisfied(session)) await loadCurrentUserFromSession(lastMfaFreshSession || session);
       // si canceló el código, la sesión (a medias, sin 2FA) ya se cerró dentro de
       // ensureMfaSatisfied(); seguimos abajo como si no hubiera sesión.
     }
@@ -11644,6 +11674,18 @@ window.addEventListener('unhandledrejection', (event) => {
   // Pase lo que pase arriba, esto SIEMPRE se ejecuta — es lo que evita que la app quede
   // sorda a futuros inicios/cierres de sesión.
   authReady = true;
+
+  // Si alguien inició sesión (o cerró sesión) justo mientras se ejecutaba todo lo de
+  // arriba, ese evento quedó guardado en vez de perderse — se procesa ahora que ya
+  // podemos hacerlo con seguridad. Esto es justo lo que evitaba que el login se
+  // "colgara" 12s cuando el arranque tardaba más de lo normal.
+  if(pendingAuthEvent){
+    const { event: pendingEvent, session: pendingSession } = pendingAuthEvent;
+    pendingAuthEvent = null;
+    handleAuthStateChange(pendingEvent, pendingSession).catch(err =>
+      console.warn('[arranque] error procesando el evento de sesión pendiente:', err)
+    );
+  }
 
   try{
     const savedView = sessionStorage.getItem(LAST_VIEW_KEY);
