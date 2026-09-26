@@ -1458,6 +1458,7 @@
   .message-badge{ min-width:18px; height:18px; border-radius:999px; background: var(--moss); color:#fff; display:inline-flex; align-items:center; justify-content:center; padding:0 6px; font-size:0.62rem; font-weight:700; }
   .message-item-empty{ padding:22px 16px; text-align:center; color:var(--ink-soft); font-size:0.85rem; }
   .messages-empty-state{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-soft); font-size:0.9rem; text-align:center; padding:32px; }
+  .messages-load-older-row{ display:flex; justify-content:center; padding:6px 0 14px; }
   .messages-mobile-back{ display:none; }
   @media (max-width:840px){
     #mensajes.view{ inset: var(--header-h) 0 0 0; }
@@ -3666,14 +3667,20 @@ const DB = {
 
       return data;
     },
-    async listMessages(conversationId, viewerId, knownClearedAt){
+    async listMessages(conversationId, viewerId, knownClearedAt, limit){
+      limit = limit || 100;
       const { data, error } = await sb
         .from('direct_messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending:false })
-        .limit(100);
+        .limit(limit);
       if(error) throw error;
+      // Si llegaron tantas filas como pedimos, es probable que existan más viejas
+      // todavía no traídas — esto se calcula ANTES de filtrar por "eliminado para
+      // mí"/cleared_at de abajo, porque ese filtro puede reducir el conteo sin que
+      // eso signifique que ya no hay más mensajes anteriores en la base.
+      const hasMore = (data || []).length >= limit;
 
       let clearedAt = knownClearedAt || 0;
       if(viewerId && knownClearedAt === undefined){
@@ -3690,7 +3697,7 @@ const DB = {
         }catch(err){ /* si falla, simplemente no se recorta nada */ }
       }
 
-    return (data || [])
+    const messages = (data || [])
       .filter(row => new Date(row.created_at).getTime() > clearedAt)
       .filter(row => !viewerId || !(row.deleted_for || []).includes(viewerId))
       .map(row => ({
@@ -3706,6 +3713,7 @@ const DB = {
         deletedForEveryone: !!row.deleted_for_everyone
       }))
       .sort((a, b) => a.createdAt - b.createdAt);
+    return { messages, hasMore };
     },
     // storyReply opcional: { storyId, photo } cuando el mensaje nace de "Responder"
     // en el visor de historias. photo se guarda tal cual (snapshot) porque la
@@ -7948,6 +7956,7 @@ let dmTypingHideTimer = null;
 let dmTypingSentAt = 0;
 let dmTypingStopTimer = null;
 let dmRenderedConv = null;          // conversación cuyo hilo se pintó por última vez
+const dmMessageLimits = new Map();  // conversationId -> cuántos mensajes pedir (crece al pedir "anteriores")
 const dmRenderedIds = new Map();    // conversación → ids ya pintados (para animar SOLO los mensajes nuevos)
 
 function leaveDmThreadChannel(){
@@ -9271,7 +9280,7 @@ function renderMessageAttachPreview(){
 }
 
 let dmScreenRenderSeq = 0;
-async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false, forceScroll = false } = {}){
+async function renderMessagesScreen(activeConversationId = null, { preserveDraft = false, forceScroll = false, growOlder = false } = {}){
   // Candado de secuencia: si mientras esta llamada esperaba a la red se disparó
   // OTRA llamada más nueva a renderMessagesScreen() (por ejemplo: entras a
   // Mensajes, sales, vuelves a entrar antes de que la primera terminara), esta
@@ -9465,7 +9474,8 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     }
 
     const threadUser = activeConversation.otherUser || { id: activeConversation.otherUserId, name: 'Usuario' };
-    const msgs = await DB.messages.listMessages(activeConversation.id, currentUser.id, activeConversation.clearedAtMine);
+    const msgLimit = dmMessageLimits.get(activeConversation.id) || 100;
+    const { messages: msgs, hasMore: hasOlderMessages } = await DB.messages.listMessages(activeConversation.id, currentUser.id, activeConversation.clearedAtMine, msgLimit);
     if(isStale()) return; // otra llamada más nueva ya tomó el control de esta pantalla
     threadHeaderEl.innerHTML = `
       <button class="btn btn-outline btn-small messages-mobile-back" id="messagesMobileBackBtn" type="button">←</button>
@@ -9543,12 +9553,13 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       }
     });
 
-    // Solo se animan los mensajes que NO estaban en el último pintado de esta misma conversación.
+    // Solo se animan los mensajes que NO estaban en el último pintado de esta misma conversación
+    // (y nunca los que llegaron por pedir "mensajes anteriores" — esos no son nuevos, solo recién traídos).
     const prevIds = dmRenderedConv === activeConversation.id ? dmRenderedIds.get(activeConversation.id) : null;
-    const enterIds = prevIds ? new Set(msgs.filter(m => !prevIds.has(m.id)).map(m => m.id)) : new Set();
+    const enterIds = (prevIds && !growOlder) ? new Set(msgs.filter(m => !prevIds.has(m.id)).map(m => m.id)) : new Set();
     dmRenderedIds.set(activeConversation.id, new Set(msgs.map(m => m.id)));
     dmRenderedConv = activeConversation.id;
-    const prevScroll = { top: threadBodyEl.scrollTop, near: threadBodyEl.scrollHeight - threadBodyEl.scrollTop - threadBodyEl.clientHeight < 140 };
+    const prevScroll = { top: threadBodyEl.scrollTop, height: threadBodyEl.scrollHeight, near: threadBodyEl.scrollHeight - threadBodyEl.scrollTop - threadBodyEl.clientHeight < 140 };
 
     const msgById = new Map(msgs.map(m => [m.id, m]));
     const DELETE_EVERYONE_WINDOW_MS = 15 * 60 * 1000;
@@ -9587,14 +9598,24 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
         </div>
       `;
     };
-    threadBodyEl.innerHTML = groupedMessages.length ? groupedMessages.map((group) => `
+    threadBodyEl.innerHTML =
+      (hasOlderMessages ? `<div class="messages-load-older-row"><button type="button" class="btn btn-outline btn-small" id="loadOlderMessagesBtn">Cargar mensajes anteriores</button></div>` : '') +
+      (groupedMessages.length ? groupedMessages.map((group) => `
       <div class="message-group ${group.sender === 'me' ? 'me' : 'them'}">
         ${group.sender !== 'me' ? `<div class="message-group-avatar"><div class="avatar">${avatarHTML(threadUser)}</div></div>` : ''}
         <div class="message-group-bubbles">
           ${group.items.map(bubbleHTML).join('')}
         </div>
       </div>
-    `).join('') : '<div class="messages-empty-state">Aún no hay mensajes en esta conversación.</div>';
+    `).join('') : '<div class="messages-empty-state">Aún no hay mensajes en esta conversación.</div>');
+
+    document.getElementById('loadOlderMessagesBtn')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = 'Cargando…';
+      dmMessageLimits.set(activeConversation.id, msgLimit + 100);
+      await renderMessagesScreen(activeConversation.id, { preserveDraft: true, growOlder: true });
+    });
 
     const lastMsg = msgs[msgs.length - 1];
     if(lastMsg && lastMsg.senderId === currentUser.id && !lastMsg.deletedForEveryone){
@@ -9823,7 +9844,12 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     if(composerInput && !preserveDraft) autoGrowComposer(composerInput);
 
     // Scroll: al abrir o al enviar baja al final; si estabas leyendo mensajes antiguos, no te mueve.
-    if(!prevIds || prevScroll.near || forceScroll){ scrollMessagesThreadToBottom(threadBodyEl); }
+    if(growOlder){
+      // Se prependieron mensajes arriba: mantener fija la posición visual usando
+      // la diferencia de alturas, en vez de reusar el scrollTop viejo (que ya no
+      // apunta al mismo lugar) o saltar al fondo como con un mensaje nuevo.
+      threadBodyEl.scrollTop = threadBodyEl.scrollHeight - prevScroll.height + prevScroll.top;
+    } else if(!prevIds || prevScroll.near || forceScroll){ scrollMessagesThreadToBottom(threadBodyEl); }
     else { threadBodyEl.scrollTop = prevScroll.top; }
     paintThreadStatus();
     syncDmThreadChannel();
