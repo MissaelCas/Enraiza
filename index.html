@@ -2301,6 +2301,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // =====================================================================
 // CONEXIÓN A SUPABASE (proyecto real del usuario)
@@ -3061,44 +3062,82 @@ async function compressImage(file, maxSize = 1600, quality = 0.82){
   }
 }
 
-// Antes SOLO se tocaba el video si duraba más de 60s (para recortarlo) — uno de 10s pero
-// grabado en 4K/bitrate alto se subía tal cual, sin comprimir nada. Esto re-codifica
-// CUALQUIER video con un límite de bitrate (2 Mbps, razonable para verse en un feed/chat,
-// no para pantalla de cine) usando la misma técnica que ya usa trimVideoFile
-// (captureStream + MediaRecorder), solo que reproduce el video completo en vez de un
-// segmento. Un video de celular sin comprimir suele venir a 15-50+ Mbps, así que esto
-// ahorra bastante almacenamiento y datos. Nunca bloquea la subida: si algo falla, o si el
-// resultado "comprimido" saliera más pesado que el original, se sube el original tal cual.
-const VIDEO_UPLOAD_BITRATE = 2_000_000; // 2 Mbps
+// Compresión real de cualquier video, no solo de los que pasan de 1 minuto.
+// Los videos cortos también pueden venir de celulares a bitrates enormes; se
+// recodifican a ~2 Mbps cuando el navegador lo soporta. Si falla o el resultado
+// pesa más que el original, se conserva el archivo original.
+const VIDEO_UPLOAD_BITRATE = 2_000_000;
 function compressVideo(file){
   return new Promise((resolve) => {
+    if(!isVideoFile(file)){ resolve(file); return; }
+
     const v = document.createElement('video');
     v.muted = false;
     v.playsInline = true;
     v.preload = 'auto';
     const objUrl = URL.createObjectURL(file);
-    v.src = objUrl;
-    const giveUp = () => { URL.revokeObjectURL(objUrl); resolve(file); };
+    let finished = false;
+
+    const giveUp = () => {
+      if(finished) return;
+      finished = true;
+      URL.revokeObjectURL(objUrl);
+      resolve(file);
+    };
+
     v.addEventListener('loadedmetadata', async () => {
       try{
-        const stream = v.captureStream ? v.captureStream() : (v.mozCaptureStream ? v.mozCaptureStream() : null);
+        const stream = v.captureStream
+          ? v.captureStream()
+          : (v.mozCaptureStream ? v.mozCaptureStream() : null);
         if(!stream) return giveUp();
-        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
-        const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: VIDEO_UPLOAD_BITRATE });
+
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+          ? 'video/webm;codecs=vp9,opus'
+          : 'video/webm';
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          videoBitsPerSecond: VIDEO_UPLOAD_BITRATE
+        });
         const chunks = [];
-        recorder.ondataavailable = (e) => { if(e.data && e.data.size) chunks.push(e.data); };
-        recorder.onstop = () => {
-          URL.revokeObjectURL(objUrl);
-          const blob = new Blob(chunks, { type: 'video/webm' });
-          if(!blob.size || blob.size >= file.size) return resolve(file); // nunca empeoramos lo que ya traía
-          resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.webm', { type: 'video/webm' }));
+
+        recorder.ondataavailable = (e) => {
+          if(e.data && e.data.size) chunks.push(e.data);
         };
+
+        recorder.onstop = () => {
+          if(finished) return;
+          finished = true;
+          try{
+            const blob = new Blob(chunks, { type:'video/webm' });
+            URL.revokeObjectURL(objUrl);
+            if(!blob.size || blob.size >= file.size){
+              resolve(file);
+              return;
+            }
+            resolve(new File(
+              [blob],
+              file.name.replace(/\.\w+$/, '') + '.webm',
+              { type:'video/webm' }
+            ));
+          }catch(err){
+            URL.revokeObjectURL(objUrl);
+            resolve(file);
+          }
+        };
+
         recorder.onerror = giveUp;
         recorder.start();
         await v.play().catch(() => {});
-        v.addEventListener('ended', () => recorder.stop(), { once: true });
-      }catch(err){ giveUp(); }
+        v.addEventListener('ended', () => {
+          try{ recorder.stop(); }catch(err){ giveUp(); }
+        }, { once:true });
+      }catch(err){
+        giveUp();
+      }
     });
+
     v.addEventListener('error', giveUp);
   });
 }
@@ -4670,6 +4709,94 @@ function mapSubmissionRow(row){
 }
 
 // =====================================================================
+// AULA — reporte para el profesor (Excel: roster + tareas + calificaciones)
+// Arma dos hojas:
+//  - "Resumen": una fila por alumno, una columna por tarea (calificación, o
+//    "Entregado" si aún no se califica, o "Sin entregar"), más el promedio
+//    de lo YA calificado (no cuenta como 0 lo que falta por entregar/calificar
+//    — el profesor decide esa política, aquí solo se reportan los datos).
+//  - "Detalle": una fila por entrega real, con fecha, si fue a tiempo o
+//    tarde, calificación y el archivo adjunto si lo hay.
+// =====================================================================
+async function exportAulaGradesToExcel(){
+  if(typeof XLSX === 'undefined'){
+    showToast('No se pudo cargar el generador de Excel. Revisa tu conexión e intenta de nuevo.');
+    return;
+  }
+  const cls = aulaClaseCache;
+  if(!cls) return;
+
+  const [roster, assignments] = await Promise.all([
+    DB.classroom.listRoster(cls.id),
+    DB.classroom.listAssignments(cls.id),
+  ]);
+  const submissionsByAssignment = await Promise.all(
+    assignments.map(a => DB.classroom.listSubmissions(a.id).catch(() => []))
+  );
+  await Promise.all(roster.map(r => getUserCached(r.student_id)));
+
+  // Acceso rápido: para el alumno X y la tarea Y, ¿cuál es su entrega (si la hay)?
+  const subByStudentByAssignment = new Map(); // assignmentId -> Map(studentId -> submission)
+  assignments.forEach((a, i) => {
+    const map = new Map();
+    (submissionsByAssignment[i] || []).forEach(s => map.set(s.studentId, s));
+    subByStudentByAssignment.set(a.id, map);
+  });
+
+  const studentsSorted = [...roster].sort((a, b) =>
+    (usersCache[a.student_id]?.name || '').localeCompare(usersCache[b.student_id]?.name || '')
+  );
+
+  // ---------- Hoja "Resumen" ----------
+  const resumenHeader = ['№ control', 'Alumno', ...assignments.map(a => a.title), 'Entregadas', 'Calificadas', 'Promedio'];
+  const resumenRows = [resumenHeader];
+  studentsSorted.forEach(r => {
+    const name = usersCache[r.student_id]?.name || 'Alumno';
+    let entregadas = 0, calificadas = 0, sumaCalificadas = 0;
+    const cells = assignments.map(a => {
+      const sub = subByStudentByAssignment.get(a.id)?.get(r.student_id);
+      if(!sub) return 'Sin entregar';
+      entregadas++;
+      if(sub.grade === null || sub.grade === undefined) return 'Entregado (sin calificar)';
+      calificadas++;
+      sumaCalificadas += sub.grade;
+      return sub.grade;
+    });
+    const promedio = calificadas ? Math.round((sumaCalificadas / calificadas) * 100) / 100 : '';
+    resumenRows.push([r.control_number, name, ...cells, entregadas, calificadas, promedio]);
+  });
+
+  // ---------- Hoja "Detalle" ----------
+  const detalleHeader = ['Tarea', 'Alumno', '№ control', 'Entregado el', 'A tiempo', 'Calificación', 'Máximo', 'Calificado el', 'Archivo adjunto'];
+  const detalleRows = [detalleHeader];
+  assignments.forEach((a, i) => {
+    (submissionsByAssignment[i] || []).forEach(sub => {
+      const rosterRow = roster.find(r => r.student_id === sub.studentId);
+      const name = usersCache[sub.studentId]?.name || 'Alumno';
+      const aTiempo = a.dueAt ? (sub.submittedAt <= a.dueAt ? 'Sí' : 'No') : '—';
+      detalleRows.push([
+        a.title,
+        name,
+        rosterRow?.control_number || '',
+        new Date(sub.submittedAt).toLocaleString('es-MX'),
+        aTiempo,
+        sub.grade === null || sub.grade === undefined ? '' : sub.grade,
+        a.maxScore,
+        sub.gradedAt ? new Date(sub.gradedAt).toLocaleString('es-MX') : 'Pendiente',
+        sub.fileUrl || '',
+      ]);
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumenRows), 'Resumen');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detalleRows), 'Detalle de entregas');
+
+  const safeName = (cls.name || 'clase').replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60);
+  XLSX.writeFile(wb, `${safeName}_calificaciones.xlsx`);
+}
+
+// =====================================================================
 // AULA — interfaz (ver DB.classroom arriba y aula.sql para la base de datos)
 // =====================================================================
 document.getElementById('btnGoAula')?.addEventListener('click', () => showView('aula'));
@@ -5378,7 +5505,21 @@ function renderAulaSubmissionArea(assignment, sub, comments, isLate){
       if(!content && !file){ errorEl.textContent = 'Escribe algo o adjunta un archivo.'; errorEl.style.display = 'block'; return; }
       try{
         let fileUrl = null;
-        if(file) fileUrl = await uploadImageFile(file, 'classroom-submissions');
+        if(file){
+          // Antes esto subía el archivo tal cual sin importar el tipo. Fotos y
+          // "todo lo demás" (PDF, Word, etc.) ya estaban bien así — uploadImageFile
+          // comprime fotos y sube cualquier otra cosa sin tocarla. Lo que faltaba
+          // era el video: se subía a su tamaño original (a veces 50+ MB) en vez de
+          // pasar por el mismo comprimido/recorte que ya usan publicaciones,
+          // historias y mensajes.
+          let toUpload = file;
+          if(isVideoFile(file)){
+            const ready = await prepareVideoFile(file);
+            if(!ready) return; // canceló el recorte/compresión
+            toUpload = ready;
+          }
+          fileUrl = await uploadImageFile(toUpload, 'classroom-submissions');
+        }
         await DB.classroom.submit(assignment.id, { content, fileUrl });
         showToast('Tarea entregada.');
         renderAssignmentDetailStudent(assignment);
@@ -5568,13 +5709,30 @@ async function renderAulaAlumnosTab(body){
   }).join('') : '<p class="aula-empty">Todavía no hay alumnos inscritos. Comparte el código de la clase (pestaña Ajustes).</p>';
 
   body.innerHTML = `
-    <button type="button" class="btn btn-outline btn-small" id="aulaEnrollBtn" style="margin-bottom:14px;">＋ Dar de alta a un alumno</button>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+      <button type="button" class="btn btn-outline btn-small" id="aulaEnrollBtn">＋ Dar de alta a un alumno</button>
+      <button type="button" class="btn btn-outline btn-small" id="aulaExportExcelBtn">📊 Descargar reporte (Excel)</button>
+    </div>
     ${pendingHTML}
     <h4 class="aula-section-label">🧑‍🎓 Alumnos inscritos${roster.length ? ` (${roster.length})` : ''}</h4>
     ${rosterHTML}
   `;
 
   document.getElementById('aulaEnrollBtn')?.addEventListener('click', openEnrollStudentModal);
+  document.getElementById('aulaExportExcelBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generando…';
+    try{
+      await exportAulaGradesToExcel();
+    }catch(err){
+      showToast('No se pudo generar el Excel: ' + (err?.message || 'intenta de nuevo.'));
+    }finally{
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  });
   body.querySelectorAll('.aula-request-approve').forEach(btn => {
     btn.addEventListener('click', async () => {
       btn.disabled = true;
@@ -11557,7 +11715,12 @@ function openAddProjectEntryModal(project){
       closeModal();
       await renderProjectView();
     }catch(err){
-      alert('No se pudo guardar el avance: ' + (err.message || err));
+      const msg = String(err?.message || err || '');
+      if(/notifications_type_check/i.test(msg)){
+        alert('No se pudo guardar el avance porque la base de datos tiene una restricción de notificaciones desactualizada (notifications_type_check). El código de la página ya contempla los avances, pero esa restricción de Supabase debe actualizarse para aceptar el tipo de notificación que genera este guardado.');
+      }else{
+        alert('No se pudo guardar el avance: ' + msg);
+      }
       btn.disabled = false;
     }
   });
@@ -12938,31 +13101,19 @@ async function processAuthStateChange(event, session){
       return;
     }
 
-    if(session && event === 'TOKEN_REFRESHED'){
-      // Esto pasa solo, cada ~hora, y también justo al recuperar internet después de estar
-      // offline — es pura rutina interna de Supabase, el usuario no hizo nada y sus datos no
-      // cambiaron. Antes esto llamaba a refreshAppAfterAuthChange() completo, que recarga el
-      // feed desde cero, las historias y el perfil — dando la sensación de que la app se
-      // "reiniciaba sola" y perdías el scroll/lo que tenías a medias. Ahora solo se actualiza
-      // lo que de verdad depende del token (la sesión guardada y la autenticación de Realtime).
+    if(session && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
       realtimeAuthInvalid = false;
       realtimeAuthInvalidHandledAt = 0;
       currentAuthSession = session;
       if(session.access_token && sb.realtime?.setAuth){
         try{ await sb.realtime.setAuth(session.access_token); }catch(err){ console.warn('[Realtime] setAuth tras auth event:', err); }
       }
-      return;
-    }
-
-    if(session && event === 'USER_UPDATED'){
-      realtimeAuthInvalid = false;
-      realtimeAuthInvalidHandledAt = 0;
-      currentAuthSession = session;
-      if(session.access_token && sb.realtime?.setAuth){
-        try{ await sb.realtime.setAuth(session.access_token); }catch(err){ console.warn('[Realtime] setAuth tras auth event:', err); }
+      // TOKEN_REFRESHED es automático: no reconstruimos feed/historias ni
+      // movemos el scroll. USER_UPDATED sí requiere recargar el perfil.
+      if(event === 'USER_UPDATED'){
+        await loadCurrentUserFromSession(session);
+        await refreshAppAfterAuthChange();
       }
-      await loadCurrentUserFromSession(session);
-      await refreshAppAfterAuthChange();
       return;
     }
 
