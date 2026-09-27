@@ -3061,9 +3061,53 @@ async function compressImage(file, maxSize = 1600, quality = 0.82){
   }
 }
 
+// Antes SOLO se tocaba el video si duraba más de 60s (para recortarlo) — uno de 10s pero
+// grabado en 4K/bitrate alto se subía tal cual, sin comprimir nada. Esto re-codifica
+// CUALQUIER video con un límite de bitrate (2 Mbps, razonable para verse en un feed/chat,
+// no para pantalla de cine) usando la misma técnica que ya usa trimVideoFile
+// (captureStream + MediaRecorder), solo que reproduce el video completo en vez de un
+// segmento. Un video de celular sin comprimir suele venir a 15-50+ Mbps, así que esto
+// ahorra bastante almacenamiento y datos. Nunca bloquea la subida: si algo falla, o si el
+// resultado "comprimido" saliera más pesado que el original, se sube el original tal cual.
+const VIDEO_UPLOAD_BITRATE = 2_000_000; // 2 Mbps
+function compressVideo(file){
+  return new Promise((resolve) => {
+    const v = document.createElement('video');
+    v.muted = false;
+    v.playsInline = true;
+    v.preload = 'auto';
+    const objUrl = URL.createObjectURL(file);
+    v.src = objUrl;
+    const giveUp = () => { URL.revokeObjectURL(objUrl); resolve(file); };
+    v.addEventListener('loadedmetadata', async () => {
+      try{
+        const stream = v.captureStream ? v.captureStream() : (v.mozCaptureStream ? v.mozCaptureStream() : null);
+        if(!stream) return giveUp();
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
+        const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: VIDEO_UPLOAD_BITRATE });
+        const chunks = [];
+        recorder.ondataavailable = (e) => { if(e.data && e.data.size) chunks.push(e.data); };
+        recorder.onstop = () => {
+          URL.revokeObjectURL(objUrl);
+          const blob = new Blob(chunks, { type: 'video/webm' });
+          if(!blob.size || blob.size >= file.size) return resolve(file); // nunca empeoramos lo que ya traía
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.webm', { type: 'video/webm' }));
+        };
+        recorder.onerror = giveUp;
+        recorder.start();
+        await v.play().catch(() => {});
+        v.addEventListener('ended', () => recorder.stop(), { once: true });
+      }catch(err){ giveUp(); }
+    });
+    v.addEventListener('error', giveUp);
+  });
+}
+
 async function uploadImageFile(file, folder){
   const uid = currentUser ? currentUser.id : 'anon';
-  const toUpload = file.type.startsWith('image/') ? await compressImage(file) : file;
+  let toUpload = file;
+  if(file.type.startsWith('image/')) toUpload = await compressImage(file);
+  else if(isVideoFile(file)) toUpload = await compressVideo(file);
   const ext = (toUpload.name.split('.').pop() || 'jpg').toLowerCase();
   const objectId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.floor(Math.random()*1e9)}`);
   const path = `${folder}/${uid}/${objectId}.${ext}`;
@@ -3109,7 +3153,7 @@ function trimVideoFile(file, startSec, endSec){
           const stream = v.captureStream ? v.captureStream() : (v.mozCaptureStream ? v.mozCaptureStream() : null);
           if(!stream) throw new Error('Tu navegador no soporta recortar video.');
           const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' : 'video/webm';
-          const recorder = new MediaRecorder(stream, { mimeType });
+          const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: VIDEO_UPLOAD_BITRATE });
           const chunks = [];
           recorder.ondataavailable = (e) => { if(e.data && e.data.size) chunks.push(e.data); };
           recorder.onstop = () => {
@@ -12894,7 +12938,23 @@ async function processAuthStateChange(event, session){
       return;
     }
 
-    if(session && (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')){
+    if(session && event === 'TOKEN_REFRESHED'){
+      // Esto pasa solo, cada ~hora, y también justo al recuperar internet después de estar
+      // offline — es pura rutina interna de Supabase, el usuario no hizo nada y sus datos no
+      // cambiaron. Antes esto llamaba a refreshAppAfterAuthChange() completo, que recarga el
+      // feed desde cero, las historias y el perfil — dando la sensación de que la app se
+      // "reiniciaba sola" y perdías el scroll/lo que tenías a medias. Ahora solo se actualiza
+      // lo que de verdad depende del token (la sesión guardada y la autenticación de Realtime).
+      realtimeAuthInvalid = false;
+      realtimeAuthInvalidHandledAt = 0;
+      currentAuthSession = session;
+      if(session.access_token && sb.realtime?.setAuth){
+        try{ await sb.realtime.setAuth(session.access_token); }catch(err){ console.warn('[Realtime] setAuth tras auth event:', err); }
+      }
+      return;
+    }
+
+    if(session && event === 'USER_UPDATED'){
       realtimeAuthInvalid = false;
       realtimeAuthInvalidHandledAt = 0;
       currentAuthSession = session;
