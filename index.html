@@ -116,6 +116,14 @@
     flex-direction: column;
   }
   @supports (min-height: 100dvh){ body{ min-height: 100dvh; } }
+  /* Cambio de tema suave: Automático responde al sistema; si el sistema cambia,
+     estas mismas variables se interpolan sin dejar la navegación blanca un instante. */
+  body, header.nav, .messages-screen, .messages-sidebar, .messages-list, .messages-chat,
+  .message-thread-header, .message-thread-body, .message-composer, .message-item,
+  .message-bubble, .modal, .settings-group, .settings-nav, .settings-block, .aula-class-card,
+  .aula-assignment-card, .aula-material-row, .side-tip-card, .mobile-tip-post {
+    transition: background-color .24s ease, color .24s ease, border-color .24s ease, box-shadow .24s ease;
+  }
   .main-content-wrap{ flex: 1 0 auto; width: 100%; }
   footer{ flex-shrink: 0; margin-top: auto; }
   a{ color: var(--moss-dark); }
@@ -1078,6 +1086,8 @@
   .bio-preset-btn.active{ background:var(--moss); color:#fff; border-color:var(--moss); }
   .btn-following{ background:var(--paper-alt); border-color:var(--line); color:var(--ink); }
   .btn-following.is-following{ background:var(--moss); color:#fff; border-color:var(--moss); }
+  .profile-visit-actions .btn-danger{ background:var(--danger); color:#fff; border-color:var(--danger); }
+
   .profile-follow-stat{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:70px; cursor:pointer; }
   .profile-follow-stat.disabled{ opacity:.55; cursor:not-allowed; }
   .profile-follow-stat strong{ font-size:1rem; }
@@ -1475,7 +1485,10 @@
   .message-image-bubble{ display:block; width:220px; max-width:60vw; max-height:280px; object-fit:cover; border-radius:14px; cursor:pointer; }
   /* Estilo por defecto: todas las burbujas redondeadas de las 4 esquinas */
   .message-row.me .message-bubble{ background: var(--moss); color:#fff; }
-  .message-row.them .message-bubble{ background: var(--white-ish); color: var(--ink); border:1px solid var(--line); }
+  /* La burbuja ajena NUNCA usa #fff fijo: cambia con el tema del sistema o el elegido. */
+  .message-row.them .message-bubble{ background: var(--paper-alt); color: var(--ink); border:1px solid var(--line); }
+  .message-row.them .message-text{ color:var(--ink); }
+  .message-row.them .message-meta{ color:var(--ink-soft); }
 
   /* Solo la última burbuja de cada grupo consecutivo tiene la esquina "de cola", como WhatsApp/IG */
   .message-group-bubbles .message-row:not(:last-child) .message-bubble{ border-bottom-right-radius:18px; border-bottom-left-radius:18px; }
@@ -1556,6 +1569,22 @@
   .message-item-top strong{ font-size:0.88rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .message-preview{ display:block; font-size:0.73rem; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .message-time{ font-size:0.68rem; color:var(--ink-soft); }
+  .message-date-separator{ display:flex; justify-content:center; align-items:center; margin:12px 0 4px; position:relative; }
+  .message-date-separator span{ background:var(--paper-alt); border:1px solid var(--line); color:var(--ink-soft); border-radius:999px; padding:4px 10px; font-size:0.64rem; font-weight:800; letter-spacing:.04em; box-shadow:0 1px 3px rgba(35,48,29,.05); }
+  .aula-action-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 auto 12px; max-width:860px; }
+  .aula-action-row .aula-action-copy{ min-width:0; }
+  .aula-action-row .aula-action-copy strong{ display:block; font-size:.9rem; }
+  .aula-action-row .aula-action-copy span{ display:block; font-size:.72rem; color:var(--ink-soft); margin-top:2px; }
+  .aula-assignment-card{ transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+  .aula-assignment-card:active{ transform:scale(.995); }
+  @media (max-width:640px){
+    .aula-clase-head{ border-radius:0 0 14px 14px; padding:18px 16px; }
+    .aula-tabs{ padding:0 8px; margin-bottom:12px; }
+    .aula-tabs button{ padding:10px 11px; font-size:.76rem; }
+    .aula-tab-body{ padding:0 10px; }
+    .aula-assignment-card{ padding:13px 13px; border-radius:12px; }
+    .message-date-separator{ margin:10px 0 2px; }
+  }
   .message-badge{ min-width:18px; height:18px; border-radius:999px; background: var(--moss); color:#fff; display:inline-flex; align-items:center; justify-content:center; padding:0 6px; font-size:0.62rem; font-weight:700; }
   .message-item-empty{ padding:22px 16px; text-align:center; color:var(--ink-soft); font-size:0.85rem; }
   .messages-empty-state{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-soft); font-size:0.9rem; text-align:center; padding:32px; }
@@ -2159,6 +2188,13 @@
         <h3>Comunidad</h3>
         <div class="setting-row"><div><strong>Misiones y logros</strong><small>Tu progreso se conserva aunque borres una publicación o entrada.</small></div><button class="btn btn-outline btn-small" data-view="logros">Ver logros</button></div>
         <div class="setting-row"><div><strong>Actividad</strong><small>Consulta las interacciones recibidas en tus publicaciones.</small></div><button class="btn btn-outline btn-small" id="settingsActivityBtn">Ver actividad</button></div>
+        <div class="setting-row" style="display:block;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div><strong>Personas bloqueadas</strong><small>Las personas bloqueadas no pueden iniciar o continuar conversaciones contigo.</small></div>
+            <span id="blockedUsersCount" style="font-size:.72rem;color:var(--ink-soft);">0</span>
+          </div>
+          <div id="blockedUsersList" style="margin-top:10px;"></div>
+        </div>
       </div>
       <div class="settings-group" data-settings-panel="sesion">
         <h3>Sesión</h3>
@@ -2307,6 +2343,7 @@
           <div class="profile-visit-actions">
             <button type="button" class="btn btn-primary btn-small btn-following" id="profileVisitFollowBtn">Seguir</button>
             <button type="button" class="btn btn-outline btn-small" id="profileVisitMessageBtn">Mensaje</button>
+            <button type="button" class="btn btn-outline btn-small" id="profileVisitBlockBtn">Bloquear</button>
           </div>
           <div class="profile-visit-stats" id="profileVisitStats"></div>
           <div class="profile-visit-bio" id="profileVisitBio"><strong>Enraíza</strong>Construyendo un cambio sostenible, proyecto a proyecto.</div>
@@ -2879,7 +2916,12 @@ function goBackNavigation(fallbackView='inicio'){
   saveViewStack([]);
   showView(fallbackView, { silentReplace: true, force: true });
 }
+const viewScrollPositions = Object.create(null);
 function showView(name, options = {}){
+  const previousActive = document.querySelector('.view.active')?.id || null;
+  if(previousActive && previousActive !== name){
+    viewScrollPositions[previousActive] = window.scrollY || document.documentElement.scrollTop || 0;
+  }
   if(activeInlineFeedClose){
     const closeFn = activeInlineFeedClose;
     activeInlineFeedClose = null;
@@ -2905,7 +2947,9 @@ function showView(name, options = {}){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const target = document.getElementById(targetView);
   if(target) target.classList.add('active');
-  window.scrollTo({top:0, behavior:'instant'});
+  const restoreScroll = Object.prototype.hasOwnProperty.call(viewScrollPositions, targetView)
+    ? viewScrollPositions[targetView] : 0;
+  window.scrollTo({top: restoreScroll, behavior:'instant'});
   if(!silentReplace){ pushViewToStack(targetView); }
   try {
     const url = buildViewUrl(targetView);
@@ -2924,7 +2968,11 @@ function showView(name, options = {}){
   if(targetView === 'perfilVisita') renderUserProfileVisit();
   if(targetView === 'bitacora') renderBitacoraProjectList();
   if(targetView === 'aula') renderAula().catch(err => console.warn('[showView] Aula:', err));
-  if(targetView === 'aulaClase') renderAulaClase().catch(err => console.warn('[showView] Aula clase:', err));
+  if(targetView === 'aulaClase'){
+    const alreadyLoaded = previousActive === 'aulaClase' && aulaClaseCache && currentClassroomView === aulaClaseCache.id;
+    if(!alreadyLoaded) renderAulaClase().catch(err => console.warn('[showView] Aula clase:', err));
+    else { syncAulaClaseChannel(); requestAnimationFrame(() => window.scrollTo({top: viewScrollPositions.aulaClase || 0, behavior:'instant'})); }
+  }
   // Antes solo el clic en el ícono del avión llamaba a renderMessagesScreen()
   // explícitamente, así que recargar la página, usar el botón atrás, o
   // restaurar la sesión dejaban la pantalla de Mensajes vacía hasta que la
@@ -3021,6 +3069,41 @@ function fmtRelative(ts){
   const days = Math.floor(hrs / 24);
   if(days < 7) return `hace ${days} d`;
   return fmtDate(ts);
+}
+function fmtChatTime(ts){
+  return new Date(ts).toLocaleTimeString('es-MX', { hour:'numeric', minute:'2-digit' });
+}
+function chatDayKey(ts){
+  const d = new Date(ts);
+  // La conversación usa el día local del usuario, igual que WhatsApp/IG.
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtChatDayLabel(ts){
+  const d = new Date(ts);
+  const now = new Date();
+  const todayKey = chatDayKey(now.getTime());
+  const dateKey = chatDayKey(d.getTime());
+  if(dateKey === todayKey) return 'HOY';
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if(dateKey === chatDayKey(yesterday.getTime())) return 'AYER';
+  // Para los últimos 6 días mostramos el nombre del día; después, fecha.
+  const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.floor((todayStart - dayStart) / 86400000);
+  if(diffDays > 1 && diffDays < 7){
+    return d.toLocaleDateString('es-MX', { weekday:'long' }).toUpperCase();
+  }
+  return d.toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }).toUpperCase();
+}
+function fmtMessageListTime(ts){
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+  if(sameDay) return fmtChatTime(ts);
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate()-1);
+  if(d.getFullYear()===yesterday.getFullYear() && d.getMonth()===yesterday.getMonth() && d.getDate()===yesterday.getDate()) return 'Ayer';
+  return d.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
 }
 function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
 
@@ -4018,7 +4101,7 @@ const DB = {
       if(error) throw error;
 
       const ts = (v) => v ? new Date(v).getTime() : 0;
-      return (data || []).map(row => {
+      const mapped = (data || []).map(row => {
         const isA = row.participant_a === userId;
         return {
           id: row.id,
@@ -4027,11 +4110,18 @@ const DB = {
           updatedAt: ts(row.updated_at),
           otherUserId: isA ? row.participant_b : row.participant_a,
           clearedAtMine: ts(isA ? row.cleared_at_a : row.cleared_at_b),
-          lastReadAtMine: ts(isA ? row.last_read_at_a : row.last_read_at_b),   // cuándo leí yo (servidor)
-          lastReadAtOther: ts(isA ? row.last_read_at_b : row.last_read_at_a),  // cuándo leyó la otra persona → "Visto"
+          lastReadAtMine: ts(isA ? row.last_read_at_a : row.last_read_at_b),
+          lastReadAtOther: ts(isA ? row.last_read_at_b : row.last_read_at_a),
           pinnedMine: !!(isA ? row.pinned_by_a : row.pinned_by_b),
         };
       });
+      // Un bloqueo es bidireccional para la experiencia: el chat desaparece
+      // para ambos lados aunque la conversación histórica siga en la BD.
+      const checks = await Promise.all(mapped.map(async c => ({
+        c,
+        blocked: await DB.blocks.isBlocked(userId, c.otherUserId).catch(() => false)
+      })));
+      return checks.filter(x => !x.blocked).map(x => x.c);
     },
     // Ancla/desancla la conversación SOLO para quien llama (columna a o b según
     // de qué lado esté). No usa RPC porque la política de UPDATE de
@@ -4268,6 +4358,45 @@ const DB = {
       const { error } = await sb.from('direct_conversations').update({ [field]: new Date().toISOString() }).eq('id', conversationId);
       if(error) throw error;
       return true;
+    }
+  },
+
+  blocks: {
+    async isBlocked(userId, otherUserId){
+      if(!userId || !otherUserId || userId === otherUserId) return false;
+      const { data, error } = await sb.rpc('is_user_blocked', {
+        p_other_user_id: otherUserId
+      });
+      if(error) {
+        // Si todavía no se corrió el SQL de bloqueos, no rompemos la app.
+        if(error.code === '42883' || error.code === 'PGRST202') return false;
+        throw error;
+      }
+      return !!data;
+    },
+    async block(otherUserId){
+      if(!currentUser?.id || !otherUserId || currentUser.id === otherUserId) throw new Error('Usuario no válido.');
+      const { error } = await sb.rpc('block_user', { p_blocked_id: otherUserId });
+      if(error) throw error;
+      return true;
+    },
+    async unblock(otherUserId){
+      if(!currentUser?.id || !otherUserId) return false;
+      const { error } = await sb.rpc('unblock_user', { p_blocked_id: otherUserId });
+      if(error) throw error;
+      return true;
+    },
+    async list(){
+      if(!currentUser?.id) return [];
+      const { data, error } = await sb.rpc('list_blocked_users');
+      if(error){
+        if(error.code === '42883' || error.code === 'PGRST202') return [];
+        throw error;
+      }
+      return (data || []).map(r => ({
+        id:r.user_id, name:r.name || FALLBACK_USER_NAME,
+        username:r.username || '', avatarUrl:r.avatar_url || null
+      }));
     }
   },
 
@@ -4732,7 +4861,7 @@ const DB = {
     },
     // ---------- Exámenes/cuestionarios ----------
     async listQuizQuestions(assignmentId){
-      const { data, error } = await sb.from('classroom_quiz_questions').select('*').eq('assignment_id', assignmentId).order('position', { ascending:true });
+      const { data, error } = await sb.from('classroom_quiz_questions').select('*').eq('assignment_id', assignmentId).order('sort_order', { ascending:true });
       if(error) throw error;
       return (data||[]).map(r => ({ id:r.id, assignmentId:r.assignment_id, position:r.sort_order, type:r.type, prompt:r.prompt, points:Number(r.points), options:r.options||[], correctOptionId:r.correct_option_id, correctBool:r.correct_bool }));
     },
@@ -5138,7 +5267,7 @@ let aulaClaseRosterCount = null;
 
 async function renderAulaClase(){
   if(!currentUser) { showView('inicio'); return; }
-  aulaClaseTab = 'materiales';
+  if(!['materiales','tareas','alumnos','ajustes'].includes(aulaClaseTab)) aulaClaseTab = 'materiales';
   const wrap = document.getElementById('aulaClaseContent');
   if(!wrap) return;
   wrap.innerHTML = '<p class="feed-empty">Cargando…</p>';
@@ -5187,10 +5316,10 @@ function paintAulaClaseShell(){
       </div>
     </div>
     <div class="aula-tabs">
-      <button type="button" data-aula-tab="materiales" class="active">📚 Materiales</button>
-      <button type="button" data-aula-tab="tareas">📝 Tareas</button>
-      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos">🧑‍🎓 Alumnos<span class="aula-tab-badge" id="aulaAlumnosBadge" style="${aulaClasePendingCount ? '' : 'display:none;'}">${aulaClasePendingCount || ''}</span></button>` : ''}
-      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="ajustes">⚙️ Ajustes</button>` : ''}
+      <button type="button" data-aula-tab="materiales" class="${aulaClaseTab==='materiales'?'active':''}">📚 Materiales</button>
+      <button type="button" data-aula-tab="tareas" class="${aulaClaseTab==='tareas'?'active':''}">📝 Tareas</button>
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos" class="${aulaClaseTab==='alumnos'?'active':''}">🧑‍🎓 Alumnos<span class="aula-tab-badge" id="aulaAlumnosBadge" style="${aulaClasePendingCount ? '' : 'display:none;'}">${aulaClasePendingCount || ''}</span></button>` : ''}
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="ajustes" class="${aulaClaseTab==='ajustes'?'active':''}">⚙️ Ajustes</button>` : ''}
     </div>
     <div class="aula-tab-body" id="aulaTabBody"><p class="feed-empty">Cargando…</p></div>
   `;
@@ -5222,6 +5351,7 @@ async function renderAulaClaseTab(){
   if(!body || !aulaClaseCache) return;
   const token = ++aulaTabRenderToken;
   const tab = aulaClaseTab;
+  const savedScroll = window.scrollY || document.documentElement.scrollTop || 0;
   body.innerHTML = '<p class="feed-empty">Cargando…</p>';
   try{
     if(tab === 'materiales') await renderAulaMaterialesTab(body);
@@ -5229,6 +5359,9 @@ async function renderAulaClaseTab(){
     else if(tab === 'alumnos') await renderAulaAlumnosTab(body);
     else if(tab === 'ajustes') await renderAulaAjustesTab(body);
     if(token !== aulaTabRenderToken || aulaClaseTab !== tab) return;
+    requestAnimationFrame(() => {
+      if(token === aulaTabRenderToken && aulaClaseTab === tab) window.scrollTo({top:savedScroll, behavior:'instant'});
+    });
   }catch(err){
     console.warn('[Aula] pestaña:', err);
     if(token === aulaTabRenderToken && aulaClaseTab === tab){
@@ -5259,10 +5392,16 @@ function joinAulaClaseChannel(classroomId){
       onAulaEnrollmentRealtime(payload);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_materials', filter: `classroom_id=eq.${classroomId}` }, () => {
-      if(aulaClaseTab === 'materiales') renderAulaClaseTab();
+      // Realtime sigue activo, pero no reconstruimos la pestaña si el profesor
+      // está escribiendo en un modal. Así un cambio externo no borra lo que
+      // todavía no ha guardado ni mueve el flujo de creación.
+      if(aulaClaseTab === 'materiales' && !isAulaEditingModalOpen()) renderAulaClaseTab();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_assignments', filter: `classroom_id=eq.${classroomId}` }, () => {
-      if(aulaClaseTab === 'tareas') renderAulaClaseTab();
+      // MUY IMPORTANTE: no refrescar la pestaña de tareas mientras se está
+      // creando/editarando una tarea o examen. Antes el INSERT/UPDATE de otro
+      // cliente podía provocar un render y romper el flujo del profesor.
+      if(aulaClaseTab === 'tareas' && !isAulaEditingModalOpen()) renderAulaClaseTab();
     })
     .subscribe((status, err) => {
       rtLog('aula channel', classroomId, status, err || '');
@@ -5286,6 +5425,21 @@ function syncAulaClaseChannel(){
   const id = isAulaClaseViewActive() ? currentClassroomView : null;
   if(id) joinAulaClaseChannel(id);
   else leaveAulaClaseChannel();
+}
+
+// Un modal de Aula es una zona de edición: Realtime puede seguir recibiendo
+// cambios, pero la interfaz no debe reconstruirse encima de lo que el usuario
+// está escribiendo. Cuando se cierra el modal, la siguiente navegación/render
+// normal vuelve a sincronizar los datos.
+function isAulaEditingModalOpen(){
+  const backdrop = document.getElementById('modalBackdrop');
+  if(!backdrop || !backdrop.classList.contains('open')) return false;
+  return !!(
+    document.getElementById('addAssignmentForm') ||
+    document.getElementById('quizAddQuestionForm') ||
+    document.getElementById('addMaterialForm') ||
+    document.getElementById('aulaCreateClassForm')
+  );
 }
 async function refreshAulaPendingCount(){
   if(!aulaClaseIsTeacher || !aulaClaseCache || aulaClaseCache.joinMode !== 'approval'){
@@ -5508,8 +5662,13 @@ function openAddAssignmentModal(){
   });
   document.getElementById('addAssignmentForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if(form.dataset.saving === '1') return;
     const title = document.getElementById('assignTitle').value.trim();
     if(!title) return;
+    form.dataset.saving = '1';
+    if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Creando…'; }
     const kind = kindSelect.value;
     const objective = document.getElementById('assignObjective').value.trim();
     const description = document.getElementById('assignDesc').value.trim();
@@ -5526,7 +5685,11 @@ function openAddAssignmentModal(){
         showToast('Tarea creada.');
         renderAulaClaseTab();
       }
-    }catch(err){ showToast('No se pudo crear la tarea.'); }
+    }catch(err){
+      form.dataset.saving = '0';
+      if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Crear tarea'; }
+      showToast('No se pudo crear la tarea.');
+    }
   });
 }
 
@@ -5615,6 +5778,9 @@ function renderQuizQuestionEditor(assignment, questions){
 
   document.getElementById('quizAddQuestionForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if(form.dataset.saving === '1') return;
     const type = qType.value;
     const prompt = document.getElementById('qPrompt').value.trim();
     const points = Number(document.getElementById('qPoints').value) || 1;
@@ -5631,10 +5797,16 @@ function renderQuizQuestionEditor(assignment, questions){
       correctBool = optionsArea.querySelector('input[name="qBoolCorrect"]:checked').value === 'true';
     }
     try{
+      form.dataset.saving = '1';
+      if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Agregando…'; }
       await DB.classroom.addQuizQuestion(assignment.id, { position: 9999, type, prompt, points, options, correctOptionId, correctBool });
       const fresh = await DB.classroom.listQuizQuestions(assignment.id);
       renderQuizQuestionEditor(assignment, fresh);
-    }catch(err){ showToast('No se pudo agregar la pregunta.'); }
+    }catch(err){
+      form.dataset.saving = '0';
+      if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = '＋ Agregar pregunta'; }
+      showToast('No se pudo agregar la pregunta.');
+    }
   });
 
   document.getElementById('quizEditorDoneBtn').addEventListener('click', () => {
@@ -5868,13 +6040,22 @@ async function renderAssignmentDetailTeacher(assignment){
       </div>`;
   }).join('') : '<p class="aula-empty">Todavía no hay alumnos inscritos.</p>';
 
+  const isQuizTeacher = assignment.kind === 'quiz';
+  let quizEditBtn = '';
+  if(isQuizTeacher){
+    quizEditBtn = `<button type="button" class="btn btn-outline btn-small" id="teacherEditQuizBtn" style="margin-top:10px;">✏️ Editar preguntas del examen</button>`;
+  }
   modalContent.innerHTML = `
     <h3>${escapeHtml(assignment.title)}</h3>
     ${assignment.description ? `<p>${escapeHtml(assignment.description)}</p>` : ''}
-    <div class="aula-assignment-due">${assignment.dueAt ? 'Fecha límite: ' + fmtAulaDate(assignment.dueAt) : 'Sin fecha límite'} · Vale ${assignment.maxScore} pts</div>
+    <div class="aula-assignment-due">${assignment.dueAt ? 'Fecha límite: ' + fmtAulaDate(assignment.dueAt) : 'Sin fecha límite'}${isQuizTeacher ? ' · Examen con calificación automática' : ' · Vale ' + assignment.maxScore + ' pts'}</div>
+    ${quizEditBtn}
     <h4 style="margin-top:14px; display:flex; align-items:center; gap:6px;"><span class="aula-live-dot" title="Se actualiza solo"></span>Entregas</h4>
     ${rosterHTML}
   `;
+  if(isQuizTeacher){
+    document.getElementById('teacherEditQuizBtn')?.addEventListener('click', () => openQuizQuestionEditor(assignment));
+  }
   modalContent.querySelectorAll('[data-student-id]').forEach(row => {
     const sub = subByStudent[row.dataset.studentId];
     if(!sub) return; // nada que calificar todavía
@@ -6578,8 +6759,45 @@ async function renderUserProfileVisit(){
     }
   }
 
+  const blockBtn = document.getElementById('profileVisitBlockBtn');
+  let profileBlocked = false;
+  if(blockBtn){
+    const canBlock = currentUser && currentUser.id !== uid;
+    blockBtn.style.display = canBlock ? 'inline-flex' : 'none';
+    if(canBlock){
+      profileBlocked = await DB.blocks.isBlocked(currentUser.id, uid).catch(() => false);
+      blockBtn.textContent = profileBlocked ? 'Desbloquear' : 'Bloquear';
+      blockBtn.classList.toggle('btn-danger', profileBlocked);
+      blockBtn.onclick = async () => {
+        if(!currentUser) return;
+        try{
+          if(profileBlocked){
+            await DB.blocks.unblock(uid);
+            showToast('Usuario desbloqueado.');
+            profileBlocked = false;
+          }else{
+            const ok = confirm('¿Bloquear a esta persona? No podrán enviarse mensajes mientras esté bloqueada.');
+            if(!ok) return;
+            await DB.blocks.block(uid);
+            profileBlocked = true;
+            showToast('Usuario bloqueado.');
+            if(dmOpenConversationId) {
+              dmOpenConversationId = null;
+              document.getElementById('messagesScreen')?.classList.remove('chat-open');
+            }
+          }
+          blockBtn.textContent = profileBlocked ? 'Desbloquear' : 'Bloquear';
+          blockBtn.classList.toggle('btn-danger', profileBlocked);
+          renderUserProfileVisit();
+        }catch(err){
+          showToast(err?.message || 'No se pudo cambiar el bloqueo.');
+        }
+      };
+    }
+  }
+
   if(messageBtn){
-    const canSeeButton = currentUser && currentUser.id !== uid;
+    const canSeeButton = currentUser && currentUser.id !== uid && !profileBlocked;
     messageBtn.style.display = canSeeButton ? 'inline-flex' : 'none';
     if(canSeeButton){
       const targetPrivacy = getProfilePrivacy(freshUser || usersCache[uid] || {});
@@ -6589,6 +6807,15 @@ async function renderUserProfileVisit(){
       messageBtn.textContent = mutual ? 'Mensaje' : 'Síganse para escribirse';
       messageBtn.onclick = async () => { if(!mutual) return; await openDmConversation(uid); };
     }
+  }
+
+  if(profileBlocked){
+    if(grid){ grid.innerHTML = '<div class="auth-gate" style="grid-column:1/-1;">Has bloqueado a esta persona. Desbloquéala para volver a ver su perfil.</div>'; grid.hidden = false; }
+    if(feed){ feed.innerHTML = ''; feed.hidden = true; }
+    if(logGrid){ logGrid.innerHTML = ''; }
+    const postCountEl = document.getElementById('profileVisitPostCountLabel'); if(postCountEl) postCountEl.textContent = 'Bloqueado';
+    const logCountEl = document.getElementById('profileVisitLogCountLabel'); if(logCountEl) logCountEl.textContent = '—';
+    return;
   }
 
   if(!postsCacheReady) await loadPostsIntoCache();
@@ -10936,7 +11163,7 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
           <div class="message-item-main">
             <div class="message-item-top">
               <strong>${conv.pinned ? '📌 ' : ''}${escapeHtml(conv.otherUser.name || 'Usuario')}</strong>
-              <span class="message-time">${conv.lastMessage ? fmtRelative(conv.lastMessage.createdAt) : ''}</span>
+              <span class="message-time">${conv.lastMessage ? fmtMessageListTime(conv.lastMessage.createdAt) : ''}</span>
             </div>
             <span class="message-preview">${previewText}</span>
           </div>
@@ -11105,8 +11332,9 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     let currentGroup = null;
     msgs.forEach((msg) => {
       const sender = msg.senderId === currentUser.id ? 'me' : 'them';
-      if(!currentGroup || currentGroup.sender !== sender){
-        currentGroup = { sender, items: [msg] };
+      const dayKey = chatDayKey(msg.createdAt);
+      if(!currentGroup || currentGroup.sender !== sender || currentGroup.dayKey !== dayKey){
+        currentGroup = { sender, dayKey, items: [msg] };
         groupedMessages.push(currentGroup);
       }else{
         currentGroup.items.push(msg);
@@ -11144,7 +11372,7 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
               ${quoted ? `<span class="message-reply-quote" data-scroll-to="${quoted.id}"><strong>${escapeHtml(quotedAuthor)}:</strong> ${escapeHtml((quoted.text || '').slice(0,60))}</span>` : ''}
               ${mediaHTML}
               ${(!msg.deletedForEveryone && !msg.text) ? '' : `<span class="message-text">${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(msg.text)}</span>`}
-              <span class="message-meta">${fmtRelative(msg.createdAt)}</span>
+              <span class="message-meta">${fmtChatTime(msg.createdAt)}</span>
             </div>
             ${!msg.deletedForEveryone ? `
               <div class="message-menu">
@@ -11160,7 +11388,8 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     };
     threadBodyEl.innerHTML =
       (hasOlderMessages ? `<div class="messages-load-older-row"><button type="button" class="btn btn-outline btn-small" id="loadOlderMessagesBtn">Cargar mensajes anteriores</button></div>` : '') +
-      (groupedMessages.length ? groupedMessages.map((group) => `
+      (groupedMessages.length ? groupedMessages.map((group, index) => `
+      ${index === 0 || groupedMessages[index-1].dayKey !== group.dayKey ? `<div class="message-date-separator"><span>${fmtChatDayLabel(group.items[0].createdAt)}</span></div>` : ''}
       <div class="message-group ${group.sender === 'me' ? 'me' : 'them'}">
         ${group.sender !== 'me' ? `<div class="message-group-avatar"><div class="avatar">${avatarHTML(threadUser)}</div></div>` : ''}
         <div class="message-group-bubbles">
@@ -12463,9 +12692,61 @@ function initThemeSettingsUI(){
   });
 }
 
+async function renderBlockedUsersSettings(){
+  const list = document.getElementById('blockedUsersList');
+  const count = document.getElementById('blockedUsersCount');
+  if(!list) return;
+  list.innerHTML = '<div class="aula-empty">Cargando…</div>';
+  try{
+    const users = await DB.blocks.list();
+    if(count) count.textContent = String(users.length);
+    if(!users.length){
+      list.innerHTML = '<div class="aula-empty" style="padding:8px 0;">No tienes personas bloqueadas.</div>';
+      return;
+    }
+    list.innerHTML = users.map(u => `
+      <div class="setting-row" style="padding:10px 0;border-bottom:1px solid var(--line);">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div class="avatar" style="width:34px;height:34px;flex:0 0 34px;">${avatarHTML(u)}</div>
+          <div style="min-width:0;"><strong>${escapeHtml(u.name)}</strong><small>${u.username ? '@'+escapeHtml(u.username) : ''}</small></div>
+        </div>
+        <button type="button" class="btn btn-outline btn-small" data-unblock-user="${u.id}">Desbloquear</button>
+      </div>`).join('');
+    list.querySelectorAll('[data-unblock-user]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try{
+          await DB.blocks.unblock(btn.dataset.unblockUser);
+          showToast('Usuario desbloqueado.');
+          renderBlockedUsersSettings();
+        }catch(err){
+          btn.disabled = false;
+          showToast(err?.message || 'No se pudo desbloquear.');
+        }
+      });
+    });
+  }catch(err){
+    list.innerHTML = '<div class="aula-empty" style="padding:8px 0;">No se pudo cargar la lista. Ejecuta el SQL de bloqueos.</div>';
+  }
+}
+
+try{
+  if(window.matchMedia){
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onSystemThemeChange = () => {
+      let saved = null;
+      try{ saved = localStorage.getItem('enraiza:theme'); }catch(err){}
+      if(!saved || saved === 'system') applyTheme('system');
+    };
+    media.addEventListener?.('change', onSystemThemeChange);
+    media.addListener?.(onSystemThemeChange);
+  }
+}catch(err){ /* soporte de tema automático opcional */ }
+
 function renderSettingsPage(){
   initSettingsSecurity();
   initThemeSettingsUI();
+  renderBlockedUsersSettings();
   const state=document.getElementById('settingsAccountState');
   const logoutBtn=document.getElementById('settingsLogoutBtn');
   const nameInput=document.getElementById('settingsProfileName');
