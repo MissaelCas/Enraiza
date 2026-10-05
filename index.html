@@ -4765,14 +4765,27 @@ const DB = {
       if(error) throw error;
       return (data||[]).map(r => r.classrooms).filter(Boolean).map(mapClassroomRow);
     },
-    async joinClass(joinCode, controlNumber){
+    async getMyStudentIdentity(){
+      if(!currentUser) return null;
+      const { data, error } = await withUiTimeout(
+        sb.rpc('get_my_student_identity'),
+        9000,
+        'comprobar tu identidad institucional'
+      );
+      if(error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return row ? {
+        institutionId: row.institution_id || null,
+        controlNumber: row.control_number || null,
+        fullName: row.full_name || null,
+      } : null;
+    },
+    async joinClass(joinCode){
       if(!currentUser) throw new Error('Necesitas iniciar sesión para unirte a una clase.');
       const code = String(joinCode || '').trim().toUpperCase().replace(/\s+/g, '');
-      const control = String(controlNumber || '').trim();
       if(!/^[A-Z2-9]{6}$/.test(code)) throw new Error('El código debe tener 6 caracteres.');
-      if(!control) throw new Error('Escribe tu número de control.');
       const { data, error } = await withUiTimeout(
-        sb.rpc('join_classroom', { p_join_code: code, p_control_number: control }),
+        sb.rpc('join_classroom', { p_join_code: code }),
         10000,
         'unirte a la clase'
       );
@@ -4858,8 +4871,18 @@ const DB = {
       const { error } = await sb.rpc('teacher_review_join_request', { p_enrollment_id: enrollmentId, p_approve: !!approve });
       if(error) throw error;
     },
-    async enrollStudent(classroomId, studentId, controlNumber){
-      const { error } = await sb.rpc('teacher_enroll_student', { p_classroom_id: classroomId, p_student_id: studentId, p_control_number: controlNumber });
+    async getStudentIdentityByUser(userId){
+      const { data, error } = await withUiTimeout(
+        sb.rpc('get_student_identity_by_user', { p_student_id: userId }),
+        9000,
+        'comprobar identidad del alumno'
+      );
+      if(error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      return row ? { institutionId: row.institution_id || null, controlNumber: row.control_number || null, fullName: row.full_name || null } : null;
+    },
+    async enrollStudent(classroomId, studentId){
+      const { error } = await sb.rpc('teacher_enroll_student', { p_classroom_id: classroomId, p_student_id: studentId });
       if(error) throw error;
     },
     async mySubmission(assignmentId){
@@ -5163,17 +5186,13 @@ function openRequestTeacherModal(){
 }
 
 function openJoinClassModal(prefillCode){
-  if(!currentUser){ requireLogin('unirte a una clase'); return; }
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>Unirme a una clase</h3>
-    <p class="section-desc">Escribe el código de 6 caracteres que te dio tu profesor.</p>
+    <p class="section-desc">Solo necesitas el código de la clase. Tu número de control ya está vinculado a tu cuenta y se envía automáticamente al profesor.</p>
     <form id="joinClassForm">
-      <label for="joinClassCode">Código de la clase</label>
+      <label for="joinClassCode">Código de clase</label>
       <input id="joinClassCode" maxlength="6" minlength="6" style="width:100%; text-transform:uppercase;" placeholder="ABC123" value="${escapeHtml((prefillCode||'').toUpperCase().replace(/\s+/g,''))}" required autocomplete="off" spellcheck="false">
-      <label for="joinClassControl" style="margin-top:10px; display:block;">Número de control <strong>(obligatorio)</strong></label>
-      <input id="joinClassControl" style="width:100%;" placeholder="Ej: 21120001" required autocomplete="off" inputmode="numeric" maxlength="24">
-      <p class="section-desc" style="margin-top:6px;">Se usa para identificarte dentro de la clase. El profesor puede comprobarlo antes de aceptarte cuando la clase usa aprobación.</p>
       <p class="auth-error" id="joinClassError" style="display:none;"></p>
       <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;" id="joinClassSubmit">Unirme</button>
     </form>
@@ -5182,7 +5201,6 @@ function openJoinClassModal(prefillCode){
 
   const form = document.getElementById('joinClassForm');
   const codeInput = document.getElementById('joinClassCode');
-  const controlInput = document.getElementById('joinClassControl');
   const errorEl = document.getElementById('joinClassError');
   const submitBtn = document.getElementById('joinClassSubmit');
 
@@ -5191,45 +5209,28 @@ function openJoinClassModal(prefillCode){
     errorEl.style.display = 'none';
   });
 
-  controlInput?.addEventListener('input', () => {
-    controlInput.value = controlInput.value.replace(/[^0-9A-Za-z-]/g, '').slice(0,24);
-    errorEl.style.display = 'none';
-  });
-
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if(submitBtn.disabled) return;
-
     const code = codeInput.value.trim().toUpperCase().replace(/\s+/g,'');
-    const control = controlInput.value.trim();
     errorEl.style.display = 'none';
-
     if(!/^[A-Z2-9]{6}$/.test(code)){
       errorEl.textContent = 'El código debe tener exactamente 6 caracteres.';
       errorEl.style.display = 'block';
       codeInput.focus();
       return;
     }
-    if(!control){
-      errorEl.textContent = 'El número de control es obligatorio para unirte a una clase.';
-      errorEl.style.display = 'block';
-      controlInput.focus();
-      return;
-    }
-    if(!/^[0-9A-Za-z-]{3,24}$/.test(control)){
-      errorEl.textContent = 'Revisa tu número de control. Usa solo letras, números o guiones.';
-      errorEl.style.display = 'block';
-      controlInput.focus();
-      return;
-    }
-
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Uniéndome…';
+    submitBtn.textContent = 'Comprobando…';
     try{
-      const result = await DB.classroom.joinClass(code, control);
+      const identity = await DB.classroom.getMyStudentIdentity();
+      if(!identity?.controlNumber){
+        throw new Error('Tu cuenta todavía no está vinculada a un número de control. Pide a tu institución o administrador que vincule tu cuenta antes de unirte a la clase.');
+      }
+      const result = await DB.classroom.joinClass(code);
       closeModal();
       if(result.status === 'pending'){
-        showToast('Solicitud enviada. El profesor tiene que aceptarte antes de que veas la clase.');
+        showToast('Solicitud enviada. El profesor recibió tu nombre y número de control.');
         await renderAula();
       }else{
         showToast('Te uniste a la clase.');
@@ -5239,12 +5240,7 @@ function openJoinClassModal(prefillCode){
     }catch(err){
       console.warn('[Aula] joinClass:', err);
       const raw = String(err?.message || '');
-      const friendly = /function.*join_classroom|does not exist|PGRST202|42883/i.test(raw)
-        ? 'El servicio para unirse a clases no está disponible en este momento. Revisa la función join_classroom en Supabase.'
-        : /invalid|código|code|not found|no existe|classroom/i.test(raw)
-          ? 'No se pudo encontrar esa clase. Revisa el código y vuelve a intentarlo.'
-          : raw || 'No se pudo unir a la clase. Inténtalo de nuevo.';
-      errorEl.textContent = friendly;
+      errorEl.textContent = raw || 'No se pudo unir a la clase. Inténtalo de nuevo.';
       errorEl.style.display = 'block';
     }finally{
       submitBtn.disabled = false;
@@ -5252,7 +5248,7 @@ function openJoinClassModal(prefillCode){
     }
   });
 
-  setTimeout(() => (prefillCode ? controlInput?.focus() : codeInput?.focus()), 0);
+  setTimeout(() => codeInput?.focus(), 0);
 }
 
 async function openCreateClassModal(){
@@ -5277,10 +5273,7 @@ async function openCreateClassModal(){
       <input id="createClassSubject" style="width:100%;" placeholder="Ej: Sustentabilidad">
       <label for="createClassDesc" style="margin-top:10px; display:block;">Descripción (opcional)</label>
       <textarea id="createClassDesc" rows="3" style="width:100%;"></textarea>
-      <label style="margin-top:10px; display:block;">¿Cómo se inscriben los alumnos?</label>
-      <label class="aula-radio-row"><input type="radio" name="joinMode" value="approval" checked> Con aprobación — tú compruebas a cada alumno antes de aceptarlo</label>
-      <label class="aula-radio-row"><input type="radio" name="joinMode" value="open"> Entrada directa — usa el código y número de control</label>
-      <p class="section-desc" style="margin-top:8px;">Recomendado para escuelas: la aprobación permite comprobar el número de control antes de dar acceso a la clase.</p>
+      <div class="aula-banner" style="margin-top:10px;">🔐 <strong>Ingreso con aprobación</strong><br><small>Los alumnos entran con el código. Enraíza envía automáticamente su nombre y número de control vinculado; tú decides si aceptarlos.</small></div>
       <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Crear clase</button>
     </form>
   `;
@@ -5291,7 +5284,7 @@ async function openCreateClassModal(){
     if(!name) return;
     const subject = document.getElementById('createClassSubject').value.trim();
     const description = document.getElementById('createClassDesc').value.trim();
-    const joinMode = modalContent.querySelector('input[name="joinMode"]:checked')?.value || 'approval';
+    const joinMode = 'approval';
     try{
       const cls = await DB.classroom.createClass({ name, subject, description, joinMode });
       closeModal();
@@ -6506,25 +6499,34 @@ function openEnrollStudentModal(){
   });
 }
 
-function renderEnrollConfirmStep(userId, person){
+async function renderEnrollConfirmStep(userId, person){
+  let identity = null;
+  try{
+    // El administrador/profesor no debe volver a escribir el control si la cuenta ya está vinculada.
+    // La búsqueda por usuario solo muestra la cuenta; el servidor valida la identidad institucional.
+    identity = await DB.classroom.getStudentIdentityByUser(userId);
+  }catch(err){}
+  const displayName = person?.name || 'alumno';
+  const control = identity?.controlNumber || '';
   modalContent.innerHTML = `
     <button type="button" class="btn-text" id="aulaBackToSearch">← Buscar otro</button>
-    <h3>Dar de alta a @${escapeHtml(person?.name || 'alumno')}</h3>
-    <form id="enrollConfirmForm">
-      <label for="enrollControlNumber">Número de control</label>
-      <input id="enrollControlNumber" style="width:100%;" placeholder="Ej: 21120001" required>
-      <p class="auth-error" id="enrollConfirmError" style="display:none;"></p>
-      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Dar de alta</button>
-    </form>
+    <h3>Dar de alta a @${escapeHtml(displayName)}</h3>
+    <div class="aula-material-row" style="margin-top:10px;">
+      <div style="min-width:0; flex:1;">
+        <strong>${escapeHtml(identity?.fullName || displayName)}</strong>
+        <p style="margin:3px 0 0;">№ control: ${escapeHtml(control || 'No vinculado')}</p>
+      </div>
+    </div>
+    ${control ? '<p class="section-desc">El número de control ya está ligado a esta cuenta. No necesitas escribirlo otra vez.</p>' : '<p class="auth-error" style="display:block;">Esta cuenta todavía no tiene un número de control institucional vinculado.</p>'}
+    <p class="auth-error" id="enrollConfirmError" style="display:none;"></p>
+    <button type="button" class="btn btn-primary btn-small" style="margin-top:10px;" id="enrollConfirmBtn" ${control ? '' : 'disabled'}>Dar de alta</button>
   `;
   document.getElementById('aulaBackToSearch').addEventListener('click', openEnrollStudentModal);
-  document.getElementById('enrollConfirmForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const controlNumber = document.getElementById('enrollControlNumber').value.trim();
+  document.getElementById('enrollConfirmBtn').addEventListener('click', async () => {
     const errorEl = document.getElementById('enrollConfirmError');
     errorEl.style.display = 'none';
     try{
-      await DB.classroom.enrollStudent(aulaClaseCache.id, userId, controlNumber);
+      await DB.classroom.enrollStudent(aulaClaseCache.id, userId);
       closeModal();
       showToast('Alumno dado de alta.');
       renderAulaClaseTab();
@@ -6534,7 +6536,6 @@ function renderEnrollConfirmStep(userId, person){
     }
   });
 }
-
 function buildClassJoinUrl(joinCode){
   const url = new URL(window.location.href);
   url.search = '';
