@@ -2631,7 +2631,16 @@ async function invalidateLocalAuthSession(reason='auth-invalid'){
   currentAuthSession = null;
   dailyLoginRecordedForUser = null;
   try{ await refreshAppAfterAuthChange(); }catch(err){ console.warn('[Auth] refresh tras sesión inválida:', err); }
-  try{ showToast('Tu sesión expiró. Inicia sesión nuevamente para continuar.'); }catch(err){}
+  // La recuperación es silenciosa: no recargamos la página ni mostramos errores
+  // técnicos. Solo abrimos el login si realmente hace falta continuar autenticado.
+  setTimeout(() => {
+    try{
+      const authBackdrop = document.getElementById('authBackdrop');
+      if(!currentUser && authBackdrop && !authBackdrop.classList.contains('open')){
+        openAuthModal('login', 'continuar');
+      }
+    }catch(_e){}
+  }, 120);
 }
 
 async function ensureRealtimeAuthSession(){
@@ -5271,25 +5280,83 @@ async function useInstitutionLocation(){
 
 
 async function triggerInstitutionalEmailDelivery(){
-  const { data: sessionData } = await sb.auth.getSession();
-  const accessToken = sessionData?.session?.access_token;
-  if(!accessToken) return { ok:false, error:'Tu sesión expiró. Inicia sesión nuevamente.' };
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/send-institutional-code`, {
-    method:'POST',
-    headers:{
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type':'application/json',
-      'apikey': SUPABASE_KEY
-    },
-    body: JSON.stringify({})
-  });
-  let payload = null;
-  try{ payload = await response.json(); }catch(_e){}
-  if(!response.ok || !payload?.ok){
-    return { ok:false, error:payload?.error || `No se pudo enviar el correo (${response.status}).` };
+  // Primero dejamos que Supabase termine cualquier renovación pendiente.
+  // Esto evita que un usuario normal choque con un refresh token caducado
+  // justo al pulsar "Enviar código". No recargamos la página.
+  if(!currentUser){
+    return { ok:false, error:'Tu sesión ya no está disponible. Inicia sesión nuevamente.' };
+  }
+
+  let sessionData = null;
+  try{
+    const ready = await ensureRealtimeAuthSession();
+    if(!ready) return { ok:false, error:'Tu sesión ya no está disponible. Inicia sesión nuevamente.' };
+    sessionData = (await sb.auth.getSession()).data;
+  }catch(err){
+    if(isInvalidAuthError(err)){
+      await invalidateLocalAuthSession(err);
+      return { ok:false, error:'Tu sesión ya no está disponible. Inicia sesión nuevamente.' };
+    }
+    return { ok:false, error:'No se pudo preparar la sesión. Inténtalo de nuevo.' };
+  }
+
+  let accessToken = sessionData?.session?.access_token || currentAuthSession?.access_token || '';
+  if(!accessToken) return { ok:false, error:'Tu sesión ya no está disponible. Inicia sesión nuevamente.' };
+
+  const send = async token => {
+    try{
+      const response = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/send-institutional-code`, {
+        method:'POST',
+        headers:{
+          'Authorization': `Bearer ${token}`,
+          'Content-Type':'application/json',
+          'apikey': SUPABASE_KEY
+        },
+        body: JSON.stringify({})
+      });
+      let payload = null;
+      try{ payload = await response.json(); }catch(_e){}
+      return { response, payload };
+    }catch(err){
+      return { networkError: err };
+    }
+  };
+
+  let result = await send(accessToken);
+
+  // Si el token cambió entre getSession() y fetch(), esperamos la sesión
+  // actual y reintentamos una sola vez. No generamos bucles de reintento.
+  if(result.response?.status === 401){
+    try{
+      const ready = await ensureRealtimeAuthSession();
+      if(ready){
+        const fresh = (await sb.auth.getSession()).data?.session;
+        if(fresh?.access_token && fresh.access_token !== accessToken){
+          accessToken = fresh.access_token;
+          result = await send(accessToken);
+        }
+      }
+    }catch(err){
+      if(isInvalidAuthError(err)) await invalidateLocalAuthSession(err);
+    }
+  }
+
+  if(result.networkError){
+    // No exponemos CORS/ERR_FAILED/AbortController al usuario.
+    return { ok:false, error:'No se pudo conectar con el servicio de correo. Inténtalo de nuevo en un momento.' };
+  }
+
+  const response = result.response;
+  const payload = result.payload;
+  if(!response?.ok || !payload?.ok){
+    if(response?.status === 401){
+      await invalidateLocalAuthSession('send-institutional-code: 401');
+      return { ok:false, error:'Tu sesión ya no está disponible. Inicia sesión nuevamente.' };
+    }
+    return { ok:false, error:payload?.error || 'No se pudo enviar el correo institucional.' };
   }
   if(Number(payload.sent || 0) < 1){
-    return { ok:false, error:'El correo quedó pendiente y la función de envío no lo procesó.' };
+    return { ok:false, error:'El correo no pudo procesarse todavía. Inténtalo de nuevo en un momento.' };
   }
   return { ok:true, ...payload };
 }
