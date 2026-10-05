@@ -116,14 +116,6 @@
     flex-direction: column;
   }
   @supports (min-height: 100dvh){ body{ min-height: 100dvh; } }
-  /* Cambio de tema suave: Automático responde al sistema; si el sistema cambia,
-     estas mismas variables se interpolan sin dejar la navegación blanca un instante. */
-  body, header.nav, .messages-screen, .messages-sidebar, .messages-list, .messages-chat,
-  .message-thread-header, .message-thread-body, .message-composer, .message-item,
-  .message-bubble, .modal, .settings-group, .settings-nav, .settings-block, .aula-class-card,
-  .aula-assignment-card, .aula-material-row, .side-tip-card, .mobile-tip-post {
-    transition: background-color .24s ease, color .24s ease, border-color .24s ease, box-shadow .24s ease;
-  }
   .main-content-wrap{ flex: 1 0 auto; width: 100%; }
   footer{ flex-shrink: 0; margin-top: auto; }
   a{ color: var(--moss-dark); }
@@ -195,6 +187,38 @@
   .project-meta{ font-size: 0.78rem; color: var(--ink-soft); display:flex; gap:10px; flex-wrap:wrap; }
   .project-meta span{ border: 1px solid var(--line); padding: 2px 8px; border-radius: 999px; }
   .project-card p.desc{ font-size: 0.92rem; color: var(--ink-soft); margin:0; flex:1; }
+
+
+  /* Verificación institucional: modal propio de Enraíza (no prompt del navegador). */
+  .institution-code-backdrop{
+    position:fixed; inset:0; z-index:850; display:none; align-items:center; justify-content:center;
+    padding:20px; background:rgba(35,48,29,.62); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px);
+  }
+  .institution-code-backdrop.open{display:flex; animation:modalBackdropIn .18s ease-out;}
+  .institution-code-card{
+    width:min(100%,460px); background:var(--white-ish); color:var(--ink); border:1px solid var(--line);
+    border-radius:18px; padding:28px; box-shadow:0 24px 70px rgba(0,0,0,.22); position:relative;
+    animation:modalPop .24s cubic-bezier(.2,.8,.2,1);
+  }
+  .institution-code-icon{width:48px;height:48px;border-radius:14px;background:var(--paper-alt);display:grid;place-items:center;font-size:24px;margin-bottom:14px;}
+  .institution-code-card h3{font-family:var(--serif);font-size:1.5rem;margin:0 0 8px;}
+  .institution-code-card p{color:var(--ink-soft);line-height:1.6;margin:0 0 16px;}
+  .institution-code-email{font-weight:700;color:var(--moss-dark);word-break:break-word;}
+  .institution-code-input{
+    width:100%; box-sizing:border-box; text-align:center; letter-spacing:.42em; padding:15px 14px;
+    font-size:1.55rem; font-weight:800; border:1.5px solid var(--line); border-radius:12px;
+    background:var(--paper); color:var(--ink); outline:none;
+  }
+  .institution-code-input:focus{border-color:var(--moss); box-shadow:0 0 0 3px rgba(45,91,58,.12);}
+  .institution-code-help{font-size:.82rem;color:var(--ink-soft);margin-top:9px;}
+  .institution-code-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+  .institution-code-error{display:none;margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(178,70,55,.09);color:#9a3d31;font-size:.88rem;line-height:1.45;}
+  .institution-code-error.show{display:block;}
+  @media(max-width:520px){
+    .institution-code-card{padding:22px;border-radius:16px;}
+    .institution-code-actions{flex-direction:column-reverse;}
+    .institution-code-actions .btn{width:100%;}
+  }
 
   .modal-backdrop{
     position: fixed; inset:0; background: rgba(35,48,29,0.55); display:none;
@@ -1086,8 +1110,6 @@
   .bio-preset-btn.active{ background:var(--moss); color:#fff; border-color:var(--moss); }
   .btn-following{ background:var(--paper-alt); border-color:var(--line); color:var(--ink); }
   .btn-following.is-following{ background:var(--moss); color:#fff; border-color:var(--moss); }
-  .profile-visit-actions .btn-danger{ background:var(--danger); color:#fff; border-color:var(--danger); }
-
   .profile-follow-stat{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:70px; cursor:pointer; }
   .profile-follow-stat.disabled{ opacity:.55; cursor:not-allowed; }
   .profile-follow-stat strong{ font-size:1rem; }
@@ -1485,10 +1507,7 @@
   .message-image-bubble{ display:block; width:220px; max-width:60vw; max-height:280px; object-fit:cover; border-radius:14px; cursor:pointer; }
   /* Estilo por defecto: todas las burbujas redondeadas de las 4 esquinas */
   .message-row.me .message-bubble{ background: var(--moss); color:#fff; }
-  /* La burbuja ajena NUNCA usa #fff fijo: cambia con el tema del sistema o el elegido. */
-  .message-row.them .message-bubble{ background: var(--paper-alt); color: var(--ink); border:1px solid var(--line); }
-  .message-row.them .message-text{ color:var(--ink); }
-  .message-row.them .message-meta{ color:var(--ink-soft); }
+  .message-row.them .message-bubble{ background: var(--white-ish); color: var(--ink); border:1px solid var(--line); }
 
   /* Solo la última burbuja de cada grupo consecutivo tiene la esquina "de cola", como WhatsApp/IG */
   .message-group-bubbles .message-row:not(:last-child) .message-bubble{ border-bottom-right-radius:18px; border-bottom-left-radius:18px; }
@@ -1569,22 +1588,6 @@
   .message-item-top strong{ font-size:0.88rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .message-preview{ display:block; font-size:0.73rem; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .message-time{ font-size:0.68rem; color:var(--ink-soft); }
-  .message-date-separator{ display:flex; justify-content:center; align-items:center; margin:12px 0 4px; position:relative; }
-  .message-date-separator span{ background:var(--paper-alt); border:1px solid var(--line); color:var(--ink-soft); border-radius:999px; padding:4px 10px; font-size:0.64rem; font-weight:800; letter-spacing:.04em; box-shadow:0 1px 3px rgba(35,48,29,.05); }
-  .aula-action-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 auto 12px; max-width:860px; }
-  .aula-action-row .aula-action-copy{ min-width:0; }
-  .aula-action-row .aula-action-copy strong{ display:block; font-size:.9rem; }
-  .aula-action-row .aula-action-copy span{ display:block; font-size:.72rem; color:var(--ink-soft); margin-top:2px; }
-  .aula-assignment-card{ transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
-  .aula-assignment-card:active{ transform:scale(.995); }
-  @media (max-width:640px){
-    .aula-clase-head{ border-radius:0 0 14px 14px; padding:18px 16px; }
-    .aula-tabs{ padding:0 8px; margin-bottom:12px; }
-    .aula-tabs button{ padding:10px 11px; font-size:.76rem; }
-    .aula-tab-body{ padding:0 10px; }
-    .aula-assignment-card{ padding:13px 13px; border-radius:12px; }
-    .message-date-separator{ margin:10px 0 2px; }
-  }
   .message-badge{ min-width:18px; height:18px; border-radius:999px; background: var(--moss); color:#fff; display:inline-flex; align-items:center; justify-content:center; padding:0 6px; font-size:0.62rem; font-weight:700; }
   .message-item-empty{ padding:22px 16px; text-align:center; color:var(--ink-soft); font-size:0.85rem; }
   .messages-empty-state{ display:flex; align-items:center; justify-content:center; height:100%; color:var(--ink-soft); font-size:0.9rem; text-align:center; padding:32px; }
@@ -1725,6 +1728,31 @@
     .project-view-cover{ aspect-ratio: 4/3; }
     .project-social-bar{ position:sticky; top:56px; background:var(--paper); z-index:5; }
   }
+
+  /* Identidad institucional: contraste explícito para claro/oscuro. */
+  #institutionalStudentForm input, #institutionalStudentForm select,
+  #institutionalTeacherForm input, #institutionalTeacherForm select,
+  [data-settings-panel="institucional"] input, [data-settings-panel="institucional"] select {
+    color: var(--ink) !important;
+    background: var(--white-ish) !important;
+    border-color: var(--line) !important;
+  }
+  [data-settings-panel="institucional"] label,
+  [data-settings-panel="institucional"] strong,
+  [data-settings-panel="institucional"] p,
+  [data-settings-panel="institucional"] h3,
+  [data-settings-panel="institucional"] .security-hint { color: var(--ink) !important; }
+  [data-theme="dark"] [data-settings-panel="institucional"] .security-hint { color: var(--ink-soft) !important; }
+  .institution-location-box {
+    border:1px solid var(--line); background:var(--paper-alt); border-radius:12px; padding:12px 14px; margin-bottom:14px;
+  }
+  .institution-location-box small { color:var(--ink-soft); display:block; margin-top:5px; }
+  .institution-location-status { color:var(--ink); font-size:.86rem; margin-top:7px; }
+  .institution-security-note {
+    border-left:3px solid var(--moss); padding:9px 11px; margin:10px 0 14px; background:var(--paper-alt); color:var(--ink);
+    border-radius:4px; font-size:.84rem;
+  }
+
 </style>
 <meta name="google-site-verification" content="XVErqEAd8QyrjNWxcsHiBNC1-EZ7p2iKXFRSL_UHRxc" />
 </head>
@@ -1785,7 +1813,7 @@
         </div>
       </div>
 
-      <button class="ig-icon-btn" id="btnGoAula" title="Aula" aria-label="Aula">
+      <button class="ig-icon-btn" id="btnGoAula" title="Aula" aria-label="Aula" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 9 12 4l10 5-10 5-10-5Z"/><path d="M6 11.5V17c0 1.1 2.7 3 6 3s6-1.9 6-3v-5.5"/><path d="M22 9v6"/></svg>
       </button>
       <div id="authButtonsWrap" style="display:none; align-items:center; gap:8px;">
@@ -2093,6 +2121,7 @@
       <div class="settings-layout">
         <nav class="settings-nav" aria-label="Secciones de configuración">
           <button type="button" class="active" data-settings-section="perfil">Perfil</button>
+          <button type="button" data-settings-section="institucional">🎓 Institucional</button>
           <button type="button" data-settings-section="apariencia">Apariencia</button>
           <button type="button" data-settings-section="privacidad">Privacidad</button>
           <button type="button" data-settings-section="seguridad">Seguridad</button>
@@ -2188,12 +2217,58 @@
         <h3>Comunidad</h3>
         <div class="setting-row"><div><strong>Misiones y logros</strong><small>Tu progreso se conserva aunque borres una publicación o entrada.</small></div><button class="btn btn-outline btn-small" data-view="logros">Ver logros</button></div>
         <div class="setting-row"><div><strong>Actividad</strong><small>Consulta las interacciones recibidas en tus publicaciones.</small></div><button class="btn btn-outline btn-small" id="settingsActivityBtn">Ver actividad</button></div>
-        <div class="setting-row" style="display:block;">
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-            <div><strong>Personas bloqueadas</strong><small>Las personas bloqueadas no pueden iniciar o continuar conversaciones contigo.</small></div>
-            <span id="blockedUsersCount" style="font-size:.72rem;color:var(--ink-soft);">0</span>
+      </div>
+      <div class="settings-group" data-settings-panel="institucional">
+        <h3>Cuenta institucional</h3>
+        <div style="padding:16px;">
+          <p class="security-hint" style="margin:0 0 10px;">Para empezar con el ITD no necesitas estar previamente en una lista de alumnos. Tu cuenta normal de Enraíza y tu identidad institucional son independientes: puedes usar un correo personal en Enraíza y verificar aparte tu <strong>correo institucional del ITD</strong>.</p>
+          <div class="institution-security-note">🔐 <strong>Cómo funciona:</strong> escribes tu correo institucional del ITD y Enraíza envía un código de un solo uso a ese correo. Tu correo personal de Enraíza puede ser diferente. El número de control del alumno se solicita desde el inicio como segunda barrera. No necesitas estar previamente en un padrón; posteriormente el maestro podrá validar la pertenencia a su clase.</div>
+          <div class="institution-location-box">
+            <strong>📍 Encontrar instituciones cercanas</strong>
+            <small>Usa tu ubicación solo para ordenar las instituciones cercanas. No se guarda tu ubicación exacta en Enraíza.</small>
+            <button type="button" class="btn btn-outline btn-small" id="institutionUseLocation" style="margin-top:9px;">Usar mi ubicación</button>
+            <div id="institutionLocationStatus" class="institution-location-status">Ubicación no utilizada. También puedes elegir cualquier institución manualmente.</div>
           </div>
-          <div id="blockedUsersList" style="margin-top:10px;"></div>
+          <div id="institutionalIdentityStatus" class="security-hint" style="margin-bottom:14px;"></div>
+          <style>
+            .institutional-role-tabs{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important;margin-bottom:14px;}
+            .institutional-role-tabs .institutional-role-tab{position:relative;min-height:46px;border-radius:12px!important;font-weight:800;transition:all .2s ease;overflow:hidden;}
+            .institutional-role-tabs .institutional-role-tab.student{--role-color:#2d5b3a;--role-soft:#eaf2ec;}
+            .institutional-role-tabs .institutional-role-tab.teacher{--role-color:#8a5a2b;--role-soft:#f7eee3;}
+            .institutional-role-tabs .institutional-role-tab.active{color:var(--role-color)!important;background:var(--role-soft)!important;border-color:var(--role-color)!important;box-shadow:0 4px 14px rgba(31,42,36,.08);transform:translateY(-1px);}
+            .institutional-role-tabs .institutional-role-tab:not(.active){opacity:.72;background:transparent!important;}
+            .institutional-role-tabs .institutional-role-tab:hover{opacity:1;transform:translateY(-1px);}
+            .institutional-submit{font-weight:800;border-radius:999px!important;transition:transform .18s ease,box-shadow .18s ease,background .18s ease;}
+            .institutional-submit:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(31,42,36,.12);}
+            .student-submit{background:#2d5b3a!important;border-color:#2d5b3a!important;}
+            .teacher-submit{background:#8a5a2b!important;border-color:#8a5a2b!important;}
+            @media(max-width:560px){.institutional-role-tabs .institutional-role-tab{min-height:42px;font-size:13px;}}
+          </style>
+          <div class="institutional-role-tabs" aria-label="Tipo de identidad institucional">
+            <button type="button" class="btn btn-outline btn-small institutional-role-tab student active" id="institutionalStudentTab">🎓 Alumno</button>
+            <button type="button" class="btn btn-outline btn-small institutional-role-tab teacher" id="institutionalTeacherTab">🧑‍🏫 Profesor</button>
+          </div>
+          <form id="institutionalStudentForm">
+            <label for="institutionStudentInstitution">Institución</label>
+            <select id="institutionStudentInstitution" required style="width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;"></select>
+            <label for="institutionStudentEmail">Correo institucional del ITD</label>
+            <input type="email" id="institutionStudentEmail" maxlength="160" autocomplete="email" required placeholder="tu.correo@institucion.edu.mx" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 6px;">
+            <div class="security-hint" id="institutionStudentEmailHint">Puede ser distinto al correo de tu cuenta Enraíza. Recibirás un código de verificación directamente en tu correo institucional del ITD.</div>
+            <label for="institutionStudentControlNumber" style="display:block;margin-top:12px;">Número de control</label>
+            <input type="text" id="institutionStudentControlNumber" maxlength="80" autocomplete="off" required placeholder="Ej. 25040838" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 6px;">
+            <div class="security-hint">Este dato se registra junto con la verificación institucional. No necesitas que Enraíza tenga previamente un padrón completo de alumnos.</div>
+            <div style="margin-top:12px;"><button type="submit" class="btn btn-primary btn-small institutional-submit student-submit">Enviar código al correo ITD</button></div>
+          </form>
+          <form id="institutionalTeacherForm" hidden>
+            <label for="institutionTeacherInstitution">Institución</label>
+            <select id="institutionTeacherInstitution" required style="width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;"></select>
+            <label for="institutionTeacherIdentifier">Identificador docente</label>
+            <input type="text" id="institutionTeacherIdentifier" maxlength="60" autocomplete="off" required placeholder="Clave, número de empleado o identificador institucional" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 12px;">
+            <label for="institutionTeacherEmail">Correo institucional</label>
+            <input type="email" id="institutionTeacherEmail" maxlength="160" autocomplete="email" required placeholder="tu.correo@institucion.edu.mx" style="width:100%;max-width:420px;padding:10px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);font:inherit;margin:6px 0 6px;">
+            <div class="security-hint" id="institutionTeacherEmailHint">Puede ser distinto al correo de tu cuenta Enraíza. Recibirás un código en el correo institucional; la identidad docente seguirá pendiente de validación adicional.</div>
+            <div style="margin-top:12px;"><button type="submit" class="btn btn-primary btn-small institutional-submit teacher-submit">Verificar identidad docente</button></div>
+          </form>
         </div>
       </div>
       <div class="settings-group" data-settings-panel="sesion">
@@ -2343,7 +2418,6 @@
           <div class="profile-visit-actions">
             <button type="button" class="btn btn-primary btn-small btn-following" id="profileVisitFollowBtn">Seguir</button>
             <button type="button" class="btn btn-outline btn-small" id="profileVisitMessageBtn">Mensaje</button>
-            <button type="button" class="btn btn-outline btn-small" id="profileVisitBlockBtn">Bloquear</button>
           </div>
           <div class="profile-visit-stats" id="profileVisitStats"></div>
           <div class="profile-visit-bio" id="profileVisitBio"><strong>Enraíza</strong>Construyendo un cambio sostenible, proyecto a proyecto.</div>
@@ -2405,6 +2479,25 @@
   <div class="modal" style="max-width:460px;">
     <button class="modal-close" id="securityActionClose" aria-label="Cerrar">&times;</button>
     <div id="securityActionContent"></div>
+  </div>
+</div>
+
+
+<!-- MODAL DE VERIFICACIÓN INSTITUCIONAL -->
+<div class="institution-code-backdrop" id="institutionCodeBackdrop" aria-hidden="true">
+  <div class="institution-code-card" role="dialog" aria-modal="true" aria-labelledby="institutionCodeTitle">
+    <button type="button" class="modal-close" id="institutionCodeClose" aria-label="Cerrar">&times;</button>
+    <div class="institution-code-icon">✉️</div>
+    <h3 id="institutionCodeTitle">Verifica tu correo institucional</h3>
+    <p>Enviamos un código de 6 dígitos a <span class="institution-code-email" id="institutionCodeEmail"></span>.</p>
+    <label for="institutionCodeInput" style="display:block;font-weight:700;margin-bottom:7px;">Código de verificación</label>
+    <input id="institutionCodeInput" class="institution-code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" aria-label="Código de verificación de 6 dígitos">
+    <div class="institution-code-help">El código vence en 10 minutos y solo puede utilizarse una vez.</div>
+    <div class="institution-code-error" id="institutionCodeError"></div>
+    <div class="institution-code-actions">
+      <button type="button" class="btn btn-outline btn-small" id="institutionCodeCancel">Cancelar</button>
+      <button type="button" class="btn btn-primary btn-small" id="institutionCodeVerify">Verificar correo</button>
+    </div>
   </div>
 </div>
 
@@ -2916,12 +3009,7 @@ function goBackNavigation(fallbackView='inicio'){
   saveViewStack([]);
   showView(fallbackView, { silentReplace: true, force: true });
 }
-const viewScrollPositions = Object.create(null);
 function showView(name, options = {}){
-  const previousActive = document.querySelector('.view.active')?.id || null;
-  if(previousActive && previousActive !== name){
-    viewScrollPositions[previousActive] = window.scrollY || document.documentElement.scrollTop || 0;
-  }
   if(activeInlineFeedClose){
     const closeFn = activeInlineFeedClose;
     activeInlineFeedClose = null;
@@ -2929,6 +3017,11 @@ function showView(name, options = {}){
   }
   const targetView = name || 'inicio';
   const { silentReplace = false, force = false } = options;
+  if((targetView === 'aula' || targetView === 'aulaClase') && !force){
+    if(!currentUser){ requireLogin('abrir Aula'); return; }
+    if(!institutionalAccessReady){ refreshInstitutionalAccess().then(() => { if(institutionalAccess) showView(targetView, options); else openInstitutionalAccountPanel(); }); return; }
+    if(!institutionalAccess){ openInstitutionalAccountPanel(); showToast('Aula requiere una identidad institucional verificada.'); return; }
+  }
   if(REQUIRE_LOGIN && PRIVATE_VIEWS.has(targetView) && !currentUser && !force){
     openAuthModal('login', 'ver esta sección');
     const home = document.getElementById('inicio');
@@ -2947,9 +3040,7 @@ function showView(name, options = {}){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const target = document.getElementById(targetView);
   if(target) target.classList.add('active');
-  const restoreScroll = Object.prototype.hasOwnProperty.call(viewScrollPositions, targetView)
-    ? viewScrollPositions[targetView] : 0;
-  window.scrollTo({top: restoreScroll, behavior:'instant'});
+  window.scrollTo({top:0, behavior:'instant'});
   if(!silentReplace){ pushViewToStack(targetView); }
   try {
     const url = buildViewUrl(targetView);
@@ -2968,11 +3059,7 @@ function showView(name, options = {}){
   if(targetView === 'perfilVisita') renderUserProfileVisit();
   if(targetView === 'bitacora') renderBitacoraProjectList();
   if(targetView === 'aula') renderAula().catch(err => console.warn('[showView] Aula:', err));
-  if(targetView === 'aulaClase'){
-    const alreadyLoaded = previousActive === 'aulaClase' && aulaClaseCache && currentClassroomView === aulaClaseCache.id;
-    if(!alreadyLoaded) renderAulaClase().catch(err => console.warn('[showView] Aula clase:', err));
-    else { syncAulaClaseChannel(); requestAnimationFrame(() => window.scrollTo({top: viewScrollPositions.aulaClase || 0, behavior:'instant'})); }
-  }
+  if(targetView === 'aulaClase') renderAulaClase().catch(err => console.warn('[showView] Aula clase:', err));
   // Antes solo el clic en el ícono del avión llamaba a renderMessagesScreen()
   // explícitamente, así que recargar la página, usar el botón atrás, o
   // restaurar la sesión dejaban la pantalla de Mensajes vacía hasta que la
@@ -3053,17 +3140,8 @@ function placeholderImage(seed, category){
 // ---------- HELPERS ----------
 function escapeHtml(str){
   const d = document.createElement('div');
-  d.textContent = str == null ? '' : String(str);
+  d.textContent = str || '';
   return d.innerHTML;
-}
-function safeChatText(value, fallback=''){
-  if(value == null) return fallback;
-  const text = String(value).trim();
-  return text === 'undefined' || text === 'null' ? fallback : text;
-}
-function safeChatTimestamp(ts){
-  const n = typeof ts === 'number' ? ts : new Date(ts || 0).getTime();
-  return Number.isFinite(n) && n > 0 ? n : Date.now();
 }
 function fmtDate(ts){
   return new Date(ts).toLocaleDateString('es-MX', {day:'numeric', month:'long', year:'numeric'});
@@ -3078,41 +3156,6 @@ function fmtRelative(ts){
   const days = Math.floor(hrs / 24);
   if(days < 7) return `hace ${days} d`;
   return fmtDate(ts);
-}
-function fmtChatTime(ts){
-  return new Date(safeChatTimestamp(ts)).toLocaleTimeString('es-MX', { hour:'numeric', minute:'2-digit' });
-}
-function chatDayKey(ts){
-  const d = new Date(safeChatTimestamp(ts));
-  // La conversación usa el día local del usuario, igual que WhatsApp/IG.
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function fmtChatDayLabel(ts){
-  const d = new Date(safeChatTimestamp(ts));
-  const now = new Date();
-  const todayKey = chatDayKey(now.getTime());
-  const dateKey = chatDayKey(d.getTime());
-  if(dateKey === todayKey) return 'HOY';
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if(dateKey === chatDayKey(yesterday.getTime())) return 'AYER';
-  // Para los últimos 6 días mostramos el nombre del día; después, fecha.
-  const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diffDays = Math.floor((todayStart - dayStart) / 86400000);
-  if(diffDays > 1 && diffDays < 7){
-    return d.toLocaleDateString('es-MX', { weekday:'long' }).toUpperCase();
-  }
-  return d.toLocaleDateString('es-MX', { day:'numeric', month:'long', year:'numeric' }).toUpperCase();
-}
-function fmtMessageListTime(ts){
-  const d = new Date(safeChatTimestamp(ts));
-  const now = new Date();
-  const sameDay = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
-  if(sameDay) return fmtChatTime(ts);
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate()-1);
-  if(d.getFullYear()===yesterday.getFullYear() && d.getMonth()===yesterday.getMonth() && d.getDate()===yesterday.getDate()) return 'Ayer';
-  return d.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
 }
 function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
 
@@ -4110,7 +4153,7 @@ const DB = {
       if(error) throw error;
 
       const ts = (v) => v ? new Date(v).getTime() : 0;
-      const mapped = (data || []).map(row => {
+      return (data || []).map(row => {
         const isA = row.participant_a === userId;
         return {
           id: row.id,
@@ -4119,18 +4162,11 @@ const DB = {
           updatedAt: ts(row.updated_at),
           otherUserId: isA ? row.participant_b : row.participant_a,
           clearedAtMine: ts(isA ? row.cleared_at_a : row.cleared_at_b),
-          lastReadAtMine: ts(isA ? row.last_read_at_a : row.last_read_at_b),
-          lastReadAtOther: ts(isA ? row.last_read_at_b : row.last_read_at_a),
+          lastReadAtMine: ts(isA ? row.last_read_at_a : row.last_read_at_b),   // cuándo leí yo (servidor)
+          lastReadAtOther: ts(isA ? row.last_read_at_b : row.last_read_at_a),  // cuándo leyó la otra persona → "Visto"
           pinnedMine: !!(isA ? row.pinned_by_a : row.pinned_by_b),
         };
       });
-      // Un bloqueo es bidireccional para la experiencia: el chat desaparece
-      // para ambos lados aunque la conversación histórica siga en la BD.
-      const checks = await Promise.all(mapped.map(async c => ({
-        c,
-        blocked: await DB.blocks.isBlocked(userId, c.otherUserId).catch(() => false)
-      })));
-      return checks.filter(x => !x.blocked).map(x => x.c);
     },
     // Ancla/desancla la conversación SOLO para quien llama (columna a o b según
     // de qué lado esté). No usa RPC porque la política de UPDATE de
@@ -4170,7 +4206,7 @@ const DB = {
           .order('created_at', { ascending: false })
           .limit(5);
         const row = (data || []).find(r => new Date(r.created_at).getTime() > c.clearedAtMine && !(r.deleted_for || []).includes(userId));
-        if(row) out.set(c.id, { id: row.id, senderId: row.sender_id, text: row.deleted_for_everyone ? '' : safeChatText(row.text), createdAt: safeChatTimestamp(row.created_at), deletedForEveryone: !!row.deleted_for_everyone });
+        if(row) out.set(c.id, { id: row.id, senderId: row.sender_id, text: row.deleted_for_everyone ? '' : row.text, createdAt: new Date(row.created_at).getTime(), deletedForEveryone: !!row.deleted_for_everyone });
       }));
       return out;
     },
@@ -4261,8 +4297,8 @@ const DB = {
         id: row.id,
         conversationId: row.conversation_id,
         senderId: row.sender_id,
-        text: row.deleted_for_everyone ? '' : safeChatText(row.text),
-        createdAt: safeChatTimestamp(row.created_at),
+        text: row.deleted_for_everyone ? '' : row.text,
+        createdAt: new Date(row.created_at).getTime(),
         replyToId: row.reply_to_id || null,
         replyStoryPhoto: row.reply_story_photo || null,
         mediaUrl: row.deleted_for_everyone ? null : (row.media_url || null),
@@ -4367,45 +4403,6 @@ const DB = {
       const { error } = await sb.from('direct_conversations').update({ [field]: new Date().toISOString() }).eq('id', conversationId);
       if(error) throw error;
       return true;
-    }
-  },
-
-  blocks: {
-    async isBlocked(userId, otherUserId){
-      if(!userId || !otherUserId || userId === otherUserId) return false;
-      const { data, error } = await sb.rpc('is_user_blocked', {
-        p_other_user_id: otherUserId
-      });
-      if(error) {
-        // Si todavía no se corrió el SQL de bloqueos, no rompemos la app.
-        if(error.code === '42883' || error.code === 'PGRST202') return false;
-        throw error;
-      }
-      return !!data;
-    },
-    async block(otherUserId){
-      if(!currentUser?.id || !otherUserId || currentUser.id === otherUserId) throw new Error('Usuario no válido.');
-      const { error } = await sb.rpc('block_user', { p_blocked_id: otherUserId });
-      if(error) throw error;
-      return true;
-    },
-    async unblock(otherUserId){
-      if(!currentUser?.id || !otherUserId) return false;
-      const { error } = await sb.rpc('unblock_user', { p_blocked_id: otherUserId });
-      if(error) throw error;
-      return true;
-    },
-    async list(){
-      if(!currentUser?.id) return [];
-      const { data, error } = await sb.rpc('list_blocked_users');
-      if(error){
-        if(error.code === '42883' || error.code === 'PGRST202') return [];
-        throw error;
-      }
-      return (data || []).map(r => ({
-        id:r.user_id, name:r.name || FALLBACK_USER_NAME,
-        username:r.username || '', avatarUrl:r.avatar_url || null
-      }));
     }
   },
 
@@ -4695,6 +4692,82 @@ const DB = {
       const { error } = await sb.rpc('admin_review_teacher_request', { p_request_id: requestId, p_approve: approve });
       if(error) throw error;
     },
+    async listInstitutionIdentityRequests(){
+      const { data, error } = await sb.rpc('admin_list_institution_identity_requests');
+      if(error) throw error;
+      return data || [];
+    },
+    async reviewStudentIdentityRequest(requestId, approve, controlNumber=null, displayName=null){
+      const { error } = await sb.rpc('review_student_identity_request', {
+        p_request_id: requestId, p_approve: approve,
+        p_control_number: controlNumber || null, p_display_name: displayName || null
+      });
+      if(error) throw error;
+    },
+    async reviewTeacherIdentityRequest(requestId, approve){
+      const { error } = await sb.rpc('admin_review_teacher_identity_request', { p_request_id: requestId, p_approve: approve });
+      if(error) throw error;
+    },
+  },
+
+  // =====================================================================
+  // IDENTIDAD INSTITUCIONAL — alumno/profesor
+  // =====================================================================
+  institutional: {
+    async listInstitutions(){
+      const { data, error } = await withUiTimeout(sb.rpc('list_institutions_for_registration'), 9000, 'cargar instituciones');
+      if(error) throw error;
+      return data || [];
+    },
+    async studentIdentities(){
+      const { data, error } = await withUiTimeout(sb.rpc('get_my_student_identities'), 9000, 'comprobar identidad de alumno');
+      if(error) throw error;
+      return data || [];
+    },
+    async teacherIdentities(){
+      const { data, error } = await withUiTimeout(sb.rpc('get_my_teacher_identities'), 9000, 'comprobar identidad docente');
+      if(error) throw error;
+      return data || [];
+    },
+    async requests(){
+      const { data, error } = await withUiTimeout(sb.rpc('get_my_institution_identity_requests'), 9000, 'comprobar solicitudes institucionales');
+      if(error) throw error;
+      return data || [];
+    },
+    async requestInstitutionEmailCode(institutionId, institutionalEmail, role){
+      const { data, error } = await withUiTimeout(sb.rpc('request_institutional_email_verification', {
+        p_institution_id: institutionId,
+        p_institutional_email: institutionalEmail,
+        p_role: role
+      }), 10000, 'enviar código institucional');
+      if(error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    },
+    async confirmInstitutionEmailCode(institutionId, institutionalEmail, code, role, controlNumber = null, teacherIdentifier = null){
+      const { data, error } = await withUiTimeout(sb.rpc('confirm_institutional_email_verification', {
+        p_institution_id: institutionId,
+        p_institutional_email: institutionalEmail,
+        p_code: code,
+        p_role: role,
+        p_control_number: controlNumber,
+        p_teacher_identifier: teacherIdentifier
+      }), 10000, 'confirmar correo institucional');
+      if(error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    },
+    async registerStudent(institutionId, controlNumber, institutionalEmail){
+      return this.confirmInstitutionEmailCode(institutionId, institutionalEmail, controlNumber, 'student', null, null);
+    },
+    async registerTeacher(institutionId, identifier, institutionalEmail){
+      const { data, error } = await withUiTimeout(sb.rpc('register_teacher_identity', {
+        p_institution_id: institutionId,
+        p_teacher_identifier: identifier,
+        p_institutional_email: institutionalEmail,
+        p_full_name: currentUser?.name || null,
+      }), 10000, 'verificar identidad docente');
+      if(error) throw error;
+      return Array.isArray(data) ? data[0] : data;
+    },
   },
 
   // =====================================================================
@@ -4702,13 +4775,24 @@ const DB = {
   // =====================================================================
   classroom: {
     async myStatus(){
-      const [teacherResult, requestResult] = await Promise.all([
-        withUiTimeout(sb.rpc('get_my_teacher_flag'), 9000, 'comprobar permisos de profesor'),
-        withUiTimeout(sb.rpc('my_teacher_request_status'), 9000, 'comprobar solicitud de profesor'),
+      // Para decidir si Aula está disponible solo necesitamos identidades
+      // verificadas. NO consultamos aquí las solicitudes pendientes: una cuenta
+      // social normal no debe disparar una RPC adicional que pueda no existir
+      // en una instalación anterior y terminar en HTTP 400.
+      const [students, teachers] = await Promise.all([
+        DB.institutional.studentIdentities(),
+        DB.institutional.teacherIdentities(),
       ]);
-      if(teacherResult?.error) throw teacherResult.error;
-      if(requestResult?.error) throw requestResult.error;
-      return { isTeacher: !!teacherResult?.data, requestStatus: requestResult?.data || null };
+      const verifiedStudents = (students || []).filter(x => x.verification_status === 'verified');
+      const verifiedTeachers = (teachers || []).filter(x => x.verification_status === 'verified');
+      return {
+        isTeacher: verifiedTeachers.length > 0,
+        isVerifiedStudent: verifiedStudents.length > 0,
+        isVerifiedInstitutional: verifiedStudents.length > 0 || verifiedTeachers.length > 0,
+        requestStatus: null,
+        studentIdentities: students || [],
+        teacherIdentities: teachers || [],
+      };
     },
     async requestTeacher(note){
       const { error } = await sb.from('teacher_requests').insert({ user_id: currentUser.id, note });
@@ -4723,18 +4807,24 @@ const DB = {
     async createClass({ name, subject, description, joinMode }){
       if(!currentUser) throw new Error('Necesitas iniciar sesión para crear una clase.');
       const status = await this.myStatus();
-      if(!status.isTeacher) throw new Error('Solo las cuentas de profesor pueden crear clases.');
-      const join_code = this.genJoinCode();
+      if(!status.isTeacher) throw new Error('Necesitas una identidad docente institucional verificada para crear clases.');
+      const institutionId = status.teacherIdentities.find(x => x.verification_status === 'verified')?.institution_id;
+      if(!institutionId) throw new Error('No se encontró una institución docente verificada.');
       const { data, error } = await withUiTimeout(
-        sb.from('classrooms')
-          .insert({ teacher_id: currentUser.id, name, subject: subject||null, description: description||null, join_code, join_mode: joinMode === 'approval' ? 'approval' : 'open' })
-          .select('id,teacher_id,name,subject,description,join_code,join_mode,created_at')
-          .single(),
+        sb.rpc('create_classroom_for_teacher', {
+          p_institution_id: institutionId,
+          p_name: name,
+          p_subject: subject || null,
+          p_description: description || null,
+          p_join_mode: joinMode === 'approval' ? 'approval' : 'open'
+        }),
         10000,
         'crear la clase'
       );
       if(error) throw error;
-      return mapClassroomRow(data);
+      const row = Array.isArray(data) ? data[0] : data;
+      if(!row?.id) throw new Error('La clase no devolvió un identificador válido.');
+      return mapClassroomRow(row);
     },
     async updateJoinMode(classroomId, joinMode){
       // Directo (no RPC): la política classrooms_update_own ya solo deja al
@@ -4765,25 +4855,14 @@ const DB = {
       if(error) throw error;
       return (data||[]).map(r => r.classrooms).filter(Boolean).map(mapClassroomRow);
     },
-    async getMyStudentIdentity(){
-      if(!currentUser) return null;
-      const { data, error } = await withUiTimeout(
-        sb.rpc('get_my_student_identity'),
-        9000,
-        'comprobar tu identidad institucional'
-      );
-      if(error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      return row ? {
-        institutionId: row.institution_id || null,
-        controlNumber: row.control_number || null,
-        fullName: row.full_name || null,
-      } : null;
-    },
     async joinClass(joinCode){
       if(!currentUser) throw new Error('Necesitas iniciar sesión para unirte a una clase.');
       const code = String(joinCode || '').trim().toUpperCase().replace(/\s+/g, '');
       if(!/^[A-Z2-9]{6}$/.test(code)) throw new Error('El código debe tener 6 caracteres.');
+      const status = await this.myStatus();
+      if(!status.isVerifiedInstitutional){
+        throw new Error('Primero verifica tu cuenta institucional para poder unirte a una clase.');
+      }
       const { data, error } = await withUiTimeout(
         sb.rpc('join_classroom', { p_join_code: code }),
         10000,
@@ -4832,19 +4911,6 @@ const DB = {
       if(error) throw error;
       return data.id;
     },
-    async updateAssignment(id, { title, objective, description, dueAt, maxScore }){
-      const patch = {
-        title, objective: objective||null, description: description||null,
-        due_at: dueAt||null, max_score: Number(maxScore) || 0,
-      };
-      const { data, error } = await sb.from('classroom_assignments').update(patch).eq('id', id).eq('teacher_id', currentUser.id).select('*').single();
-      if(error) throw error;
-      return mapAssignmentRow(data);
-    },
-    async removeAssignment(id){
-      const { error } = await sb.from('classroom_assignments').delete().eq('id', id).eq('teacher_id', currentUser.id);
-      if(error) throw error;
-    },
     async getAssignment(id){
       const { data, error } = await sb.from('classroom_assignments').select('*').eq('id', id).maybeSingle();
       if(error) throw error;
@@ -4871,18 +4937,8 @@ const DB = {
       const { error } = await sb.rpc('teacher_review_join_request', { p_enrollment_id: enrollmentId, p_approve: !!approve });
       if(error) throw error;
     },
-    async getStudentIdentityByUser(userId){
-      const { data, error } = await withUiTimeout(
-        sb.rpc('get_student_identity_by_user', { p_student_id: userId }),
-        9000,
-        'comprobar identidad del alumno'
-      );
-      if(error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      return row ? { institutionId: row.institution_id || null, controlNumber: row.control_number || null, fullName: row.full_name || null } : null;
-    },
-    async enrollStudent(classroomId, studentId){
-      const { error } = await sb.rpc('teacher_enroll_student', { p_classroom_id: classroomId, p_student_id: studentId });
+    async enrollStudent(classroomId, studentId, displayName = null){
+      const { error } = await sb.rpc('teacher_enroll_student', { p_classroom_id: classroomId, p_student_id: studentId, p_display_name: displayName || null });
       if(error) throw error;
     },
     async mySubmission(assignmentId){
@@ -4906,7 +4962,7 @@ const DB = {
     },
     // ---------- Exámenes/cuestionarios ----------
     async listQuizQuestions(assignmentId){
-      const { data, error } = await sb.from('classroom_quiz_questions').select('*').eq('assignment_id', assignmentId).order('sort_order', { ascending:true });
+      const { data, error } = await sb.from('classroom_quiz_questions').select('*').eq('assignment_id', assignmentId).order('position', { ascending:true });
       if(error) throw error;
       return (data||[]).map(r => ({ id:r.id, assignmentId:r.assignment_id, position:r.sort_order, type:r.type, prompt:r.prompt, points:Number(r.points), options:r.options||[], correctOptionId:r.correct_option_id, correctBool:r.correct_bool }));
     },
@@ -4915,13 +4971,6 @@ const DB = {
         assignment_id: assignmentId, sort_order: position||0, type, prompt, points: points||1,
         options: options||[], correct_option_id: correctOptionId||null, correct_bool: correctBool ?? null,
       });
-      if(error) throw error;
-    },
-    async updateQuizQuestion(id, { type, prompt, points, options, correctOptionId, correctBool }){
-      const { error } = await sb.from('classroom_quiz_questions').update({
-        type, prompt, points: Number(points)||1, options: options||[],
-        correct_option_id: correctOptionId||null, correct_bool: correctBool ?? null,
-      }).eq('id', id);
       if(error) throw error;
     },
     async removeQuizQuestion(id){
@@ -5055,9 +5104,315 @@ async function exportAulaGradesToExcel(){
 }
 
 // =====================================================================
+// IDENTIDAD INSTITUCIONAL — estado y acceso a Aula
+// =====================================================================
+let institutionalAccessReady = false;
+let institutionalAccess = false;
+let institutionalState = { students: [], teachers: [], requests: [], institutions: [] };
+let institutionalAccessPromise = null;
+
+async function refreshInstitutionalAccess(){
+  if(!currentUser){
+    institutionalAccessReady = true;
+    institutionalAccess = false;
+    institutionalState = { students: [], teachers: [], requests: [], institutions: [] };
+    updateInstitutionalAulaButton();
+    return institutionalState;
+  }
+  if(institutionalAccessPromise) return institutionalAccessPromise;
+  institutionalAccessPromise = (async () => {
+    try{
+      // El botón de Aula depende únicamente de identidades verificadas.
+      // Las solicitudes pendientes se cargan dentro de Configuración, no al
+      // entrar a la app, para evitar un 400 innecesario en cuentas normales.
+      const [students, teachers] = await Promise.all([
+        DB.institutional.studentIdentities(),
+        DB.institutional.teacherIdentities(),
+      ]);
+      institutionalState.students = students || [];
+      institutionalState.teachers = teachers || [];
+      institutionalState.requests = [];
+      institutionalAccess = institutionalState.students.some(x => x.verification_status === 'verified')
+        || institutionalState.teachers.some(x => x.verification_status === 'verified');
+    }catch(err){
+      // Una cuenta social normal no debe quedar con un error visible solo por no tener identidad institucional.
+      institutionalAccess = false;
+      institutionalState = { ...institutionalState, students: [], teachers: [], requests: [] };
+      console.warn('[Institucional] estado:', err);
+    }finally{
+      institutionalAccessReady = true;
+      institutionalAccessPromise = null;
+      updateInstitutionalAulaButton();
+      renderInstitutionalSettingsSummary();
+    }
+    return institutionalState;
+  })();
+  return institutionalAccessPromise;
+}
+
+function updateInstitutionalAulaButton(){
+  const btn = document.getElementById('btnGoAula');
+  // El gorrito SOLO aparece cuando Supabase ya confirmó una identidad institucional verificada.
+  // Si no hay verificación, Aula permanece completamente oculto.
+  if(btn){
+    btn.hidden = !(currentUser && institutionalAccessReady && institutionalAccess);
+    btn.title = 'Aula';
+    btn.setAttribute('aria-label', 'Aula');
+  }
+}
+
+async function openAulaIfAllowed(){
+  if(!currentUser){ requireLogin('abrir Aula'); return; }
+  if(!institutionalAccessReady) await refreshInstitutionalAccess();
+  if(!institutionalAccess){
+    showView('configuracion');
+    setTimeout(() => openInstitutionalAccountPanel(), 0);
+    showToast('Aula requiere una identidad institucional verificada.');
+    return;
+  }
+  showView('aula');
+}
+
+async function openInstitutionalAccountPanel(){
+  showView('configuracion');
+  const btn = document.querySelector('[data-settings-section="institucional"]');
+  if(btn) btn.click();
+  await populateInstitutionSelectors();
+  try{ institutionalState.requests = await DB.institutional.requests(); }catch(err){ console.warn('[Institucional] solicitudes:', err); }
+  renderInstitutionalSettingsSummary();
+}
+
+function renderInstitutionalSettingsSummary(){
+  const el = document.getElementById('institutionalIdentityStatus');
+  if(!el) return;
+  const verifiedStudent = institutionalState.students.filter(x => x.verification_status === 'verified');
+  const verifiedTeacher = institutionalState.teachers.filter(x => x.verification_status === 'verified');
+  const pending = institutionalState.requests.filter(x => x.status === 'pending');
+  if(verifiedStudent.length || verifiedTeacher.length){
+    const roles = [];
+    if(verifiedStudent.length) roles.push('alumno');
+    if(verifiedTeacher.length) roles.push('profesor');
+    el.innerHTML = `<strong style="color:var(--moss-dark);">✓ Identidad institucional verificada</strong><br><span>Rol: ${escapeHtml(roles.join(' y '))}. La evidencia institucional fue aceptada y Aula está disponible.</span>`;
+  }else if(pending.length){
+    el.innerHTML = '⏳ Tu solicitud institucional está pendiente de verificación. Aula aparecerá cuando exista una identidad verificada.';
+  }else{
+    el.innerHTML = 'No tienes una identidad institucional verificada todavía. Puedes solicitar la vinculación con una institución real.';
+  }
+}
+
+async function populateInstitutionSelectors(){
+  const selects = [document.getElementById('institutionStudentInstitution'), document.getElementById('institutionTeacherInstitution')].filter(Boolean);
+  if(!selects.length) return;
+  try{
+    const institutions = (await DB.institutional.listInstitutions())
+      .filter(i => String(i.code || '').toUpperCase() !== 'TEST-ENRAIZA');
+    institutionalState.institutions = institutions;
+    const options = `<option value="">Selecciona tu institución</option>` + institutions.map(i => {
+      const place = [i.municipality, i.state].filter(Boolean).join(', ');
+      return `<option value="${escapeHtml(i.id)}">${escapeHtml(i.name)}${place ? ` · ${escapeHtml(place)}` : ''}</option>`;
+    }).join('');
+    selects.forEach(s => { s.innerHTML = options; });
+  }catch(err){
+    selects.forEach(s => { s.innerHTML = '<option value="">No se pudieron cargar las instituciones</option>'; });
+    console.warn('[Institucional] instituciones:', err);
+  }
+}
+
+function normalizeInstitutionCoords(lat, lon){
+  lat=Number(lat); lon=Number(lon);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)) return null;
+  // Corrige el error clásico de guardar longitud,latitud en columnas invertidas.
+  if(Math.abs(lat)>90 && Math.abs(lon)<=90){ [lat,lon]=[lon,lat]; }
+  // México continental usa longitudes negativas. Si una institución de Durango
+  // quedó con 104.x positivo, se corrige a -104.x antes de calcular.
+  if(Math.abs(lat)>=14 && Math.abs(lat)<=33 && lon>0 && lon>=85 && lon<=120) lon=-lon;
+  if(Math.abs(lat)>90 || Math.abs(lon)>180) return null;
+  return {lat,lon};
+}
+function institutionDistanceKm(lat1, lon1, lat2, lon2){
+  const a=normalizeInstitutionCoords(lat1,lon1), b=normalizeInstitutionCoords(lat2,lon2);
+  if(!a||!b) return Infinity;
+  const R=6371, rad=x=>x*Math.PI/180;
+  const dLat=rad(b.lat-a.lat), dLon=rad(b.lon-a.lon);
+  const h=Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+
+async function useInstitutionLocation(){
+  const status=document.getElementById('institutionLocationStatus');
+  const btn=document.getElementById('institutionUseLocation');
+  if(!navigator.geolocation){
+    if(status) status.textContent='Tu navegador no permite ubicación. Puedes elegir la institución manualmente.';
+    return;
+  }
+  btn && (btn.disabled=true, btn.textContent='Buscando instituciones…');
+  if(status) status.textContent='Solicitando permiso de ubicación…';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      const lat=pos.coords.latitude, lon=pos.coords.longitude;
+      const institutions=(institutionalState.institutions||[]).filter(i=>normalizeInstitutionCoords(i.latitude,i.longitude));
+      institutions.sort((a,b)=>institutionDistanceKm(lat,lon,Number(a.latitude),Number(a.longitude))-institutionDistanceKm(lat,lon,Number(b.latitude),Number(b.longitude)));
+      if(institutions.length){
+        const options = `<option value="">Selecciona tu institución</option>` + institutions.map(i=>{
+          const d=institutionDistanceKm(lat,lon,Number(i.latitude),Number(i.longitude));
+          return `<option value="${escapeHtml(i.id)}">${escapeHtml(i.name)} · ${d<1 ? d.toFixed(1) : Math.round(d)} km · ${escapeHtml(i.municipality||i.state||'')}</option>`;
+        }).join('');
+        [document.getElementById('institutionStudentInstitution'),document.getElementById('institutionTeacherInstitution')].filter(Boolean).forEach(s=>s.innerHTML=options);
+        if(status) status.textContent='Instituciones ordenadas por cercanía. Tu ubicación exacta no se guarda.';
+      }else if(status) status.textContent='No encontramos coordenadas de instituciones cercanas; selecciona una manualmente.';
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='Usar mi ubicación';}
+    }
+  }, err=>{
+    if(status) status.textContent = err.code===1 ? 'Permiso de ubicación denegado. Puedes elegir tu institución manualmente.' : 'No se pudo obtener la ubicación. Puedes elegir tu institución manualmente.';
+    if(btn){btn.disabled=false;btn.textContent='Usar mi ubicación';}
+  }, {enableHighAccuracy:false, timeout:8000, maximumAge:300000});
+}
+
+
+async function triggerInstitutionalEmailDelivery(){
+  const { data: sessionData } = await sb.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if(!accessToken) return { ok:false, error:'Tu sesión expiró. Inicia sesión nuevamente.' };
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/send-institutional-code`, {
+    method:'POST',
+    headers:{
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type':'application/json',
+      'apikey': SUPABASE_KEY
+    },
+    body: JSON.stringify({})
+  });
+  let payload = null;
+  try{ payload = await response.json(); }catch(_e){}
+  if(!response.ok || !payload?.ok){
+    return { ok:false, error:payload?.error || `No se pudo enviar el correo (${response.status}).` };
+  }
+  if(Number(payload.sent || 0) < 1){
+    return { ok:false, error:'El correo quedó pendiente y la función de envío no lo procesó.' };
+  }
+  return { ok:true, ...payload };
+}
+
+function openInstitutionCodeModal(email){
+  const backdrop=document.getElementById('institutionCodeBackdrop');
+  const input=document.getElementById('institutionCodeInput');
+  const emailEl=document.getElementById('institutionCodeEmail');
+  const errorEl=document.getElementById('institutionCodeError');
+  const verifyBtn=document.getElementById('institutionCodeVerify');
+  const cancelBtn=document.getElementById('institutionCodeCancel');
+  const closeBtn=document.getElementById('institutionCodeClose');
+  if(!backdrop || !input) return Promise.resolve(null);
+  emailEl.textContent=email || '';
+  input.value='';
+  errorEl.textContent='';
+  errorEl.classList.remove('show');
+  verifyBtn.disabled=false;
+  backdrop.classList.add('open');
+  backdrop.setAttribute('aria-hidden','false');
+  setTimeout(()=>input.focus(),80);
+  return new Promise(resolve=>{
+    let finished=false;
+    const finish=value=>{
+      if(finished) return;
+      finished=true;
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden','true');
+      verifyBtn.disabled=false;
+      verifyBtn.removeEventListener('click',onVerify);
+      cancelBtn.removeEventListener('click',onCancel);
+      closeBtn.removeEventListener('click',onCancel);
+      input.removeEventListener('keydown',onKey);
+      resolve(value);
+    };
+    const onCancel=()=>finish(null);
+    const onKey=e=>{
+      if(e.key==='Escape') onCancel();
+      if(e.key==='Enter'){ e.preventDefault(); onVerify(); }
+    };
+    const onVerify=()=>{
+      const code=input.value.replace(/\D/g,'').slice(0,6);
+      input.value=code;
+      if(code.length!==6){
+        errorEl.textContent='Escribe los 6 dígitos del código.';
+        errorEl.classList.add('show');
+        input.focus();
+        return;
+      }
+      finish(code);
+    };
+    verifyBtn.addEventListener('click',onVerify);
+    cancelBtn.addEventListener('click',onCancel);
+    closeBtn.addEventListener('click',onCancel);
+    input.addEventListener('keydown',onKey);
+    input.addEventListener('input',()=>{
+      input.value=input.value.replace(/\D/g,'').slice(0,6);
+      errorEl.classList.remove('show');
+    });
+  });
+}
+
+function bindInstitutionalSettings(){
+  const studentTab = document.getElementById('institutionalStudentTab');
+  const teacherTab = document.getElementById('institutionalTeacherTab');
+  const studentForm = document.getElementById('institutionalStudentForm');
+  const teacherForm = document.getElementById('institutionalTeacherForm');
+  if(!studentForm || studentForm.dataset.bound) return;
+  studentForm.dataset.bound = '1';
+  document.getElementById('institutionUseLocation')?.addEventListener('click', useInstitutionLocation);
+  const switchRole = role => {
+    const student = role === 'student';
+    studentForm.hidden = !student;
+    teacherForm.hidden = student;
+    studentTab?.classList.toggle('active', student);
+    teacherTab?.classList.toggle('active', !student);
+  };
+  studentTab?.addEventListener('click', () => switchRole('student'));
+  teacherTab?.addEventListener('click', () => switchRole('teacher'));
+  studentForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const institutionId = document.getElementById('institutionStudentInstitution')?.value;
+    const email = document.getElementById('institutionStudentEmail')?.value.trim().toLowerCase();
+    const controlNumber = document.getElementById('institutionStudentControlNumber')?.value.trim();
+    if(!institutionId || !email || !controlNumber) return showToast('Selecciona la institución, escribe tu correo institucional y tu número de control.');
+    try{
+      await DB.institutional.requestInstitutionEmailCode(institutionId, email, 'student');
+      const delivery = await triggerInstitutionalEmailDelivery();
+      if(!delivery.ok) throw new Error(delivery.error || 'No se pudo enviar el correo institucional.');
+      const code = await openInstitutionCodeModal(email);
+      if(!code) return;
+      const result = await DB.institutional.confirmInstitutionEmailCode(institutionId, email, code, 'student', controlNumber, null);
+      showToast(result?.result_status === 'verified' ? '✓ Correo institucional y número de control verificados. Tu identidad ITD quedó registrada.' : (result?.message || 'Solicitud recibida.'));
+      try{ institutionalState.requests = await DB.institutional.requests(); }catch(_e){}
+      await refreshInstitutionalAccess();
+      renderInstitutionalSettingsSummary();
+    }catch(err){ showToast(err.message || 'No se pudo verificar el correo institucional.'); }
+  });
+  teacherForm.addEventListener('submit', async e => {
+    e.preventDefault();
+    const institutionId = document.getElementById('institutionTeacherInstitution')?.value;
+    const identifier = document.getElementById('institutionTeacherIdentifier')?.value.trim();
+    const email = document.getElementById('institutionTeacherEmail')?.value.trim().toLowerCase();
+    if(!institutionId || !identifier || !email) return showToast('Completa institución, identificador y correo institucional.');
+    try{
+      await DB.institutional.requestInstitutionEmailCode(institutionId, email, 'teacher');
+      const delivery = await triggerInstitutionalEmailDelivery();
+      if(!delivery.ok) throw new Error(delivery.error || 'No se pudo enviar el correo institucional.');
+      const code = await openInstitutionCodeModal(email);
+      if(!code) return;
+      const result = await DB.institutional.confirmInstitutionEmailCode(institutionId, email, code, 'teacher', null, identifier);
+      showToast(result?.message || '✓ Correo institucional verificado. La identidad docente queda pendiente de validación adicional.');
+      try{ institutionalState.requests = await DB.institutional.requests(); }catch(_e){}
+      await refreshInstitutionalAccess();
+      renderInstitutionalSettingsSummary();
+    }catch(err){ showToast(err.message || 'No se pudo verificar el correo institucional.'); }
+  });
+}
+
+// =====================================================================
 // AULA — interfaz (ver DB.classroom arriba y aula.sql para la base de datos)
 // =====================================================================
-document.getElementById('btnGoAula')?.addEventListener('click', () => showView('aula'));
+document.getElementById('btnGoAula')?.addEventListener('click', openAulaIfAllowed);
 let currentClassroomView = null;
 function openAulaClase(id){
   currentClassroomView = id;
@@ -5086,6 +5441,13 @@ async function renderAula({ silent = false } = {}){
     try{
       status = await DB.classroom.myStatus();
       if(token !== aulaRenderToken) return;
+      if(!status.isVerifiedInstitutional){
+        createBtn.hidden = true;
+        joinBtn.hidden = true;
+        statusEl.innerHTML = '<div class="aula-banner">🔒 Aula está disponible únicamente para cuentas con identidad institucional verificada.</div>';
+        contentEl.innerHTML = '<div class="aula-empty"><strong>Activa tu cuenta institucional</strong><br>Verifica tu institución, correo institucional y registro académico para entrar a tus clases.</div>';
+        return;
+      }
       [taught, enrolled] = await Promise.all([
         status.isTeacher ? DB.classroom.myTaughtClasses() : Promise.resolve([]),
         DB.classroom.myEnrolledClasses(),
@@ -5100,17 +5462,13 @@ async function renderAula({ silent = false } = {}){
 
     createBtn.hidden = !status.isTeacher;
     createBtn.disabled = !status.isTeacher;
-    createBtn.setAttribute('aria-hidden', status.isTeacher ? 'false' : 'true');
-    createBtn.onclick = status.isTeacher ? (() => openCreateClassModal()) : null;
+    createBtn.onclick = () => openCreateClassModal();
     joinBtn.disabled = false;
     joinBtn.onclick = () => openJoinClassModal();
 
-    if(status.requestStatus === 'pending' && !status.isTeacher){
-      statusEl.innerHTML = `<div class="aula-banner pending">⏳ Tu solicitud de cuenta de profesor está en revisión.</div>`;
+    if(status.requestStatus?.status === 'pending' && !status.isTeacher){
+      statusEl.innerHTML = `<div class="aula-banner pending">⏳ Tu solicitud de identidad institucional está en revisión.</div>`;
     } else {
-      // Las cuentas normales/alumno no reciben funciones administrativas de Aula.
-      // La alta de profesor se mantiene disponible por su flujo existente, pero no
-      // se muestra como llamada a la acción en cada visita para no forzar el rol.
       statusEl.innerHTML = '';
     }
 
@@ -5186,13 +5544,16 @@ function openRequestTeacherModal(){
 }
 
 function openJoinClassModal(prefillCode){
+  if(!currentUser){ requireLogin('unirte a una clase'); return; }
   modalBox.className = 'modal';
   modalContent.innerHTML = `
     <h3>Unirme a una clase</h3>
-    <p class="section-desc">Solo necesitas el código de la clase. Tu número de control ya está vinculado a tu cuenta y se envía automáticamente al profesor.</p>
+    <p class="section-desc">Escribe el código de 6 caracteres que te dio tu profesor.</p>
     <form id="joinClassForm">
-      <label for="joinClassCode">Código de clase</label>
+      <label for="joinClassCode">Código de la clase</label>
       <input id="joinClassCode" maxlength="6" minlength="6" style="width:100%; text-transform:uppercase;" placeholder="ABC123" value="${escapeHtml((prefillCode||'').toUpperCase().replace(/\s+/g,''))}" required autocomplete="off" spellcheck="false">
+      <label for="joinClassControl" style="margin-top:10px; display:block;">Tu número de control</label>
+      <input id="joinClassControl" style="width:100%;" placeholder="Ej: 21120001" required autocomplete="off" inputmode="numeric">
       <p class="auth-error" id="joinClassError" style="display:none;"></p>
       <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;" id="joinClassSubmit">Unirme</button>
     </form>
@@ -5212,25 +5573,30 @@ function openJoinClassModal(prefillCode){
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if(submitBtn.disabled) return;
+
     const code = codeInput.value.trim().toUpperCase().replace(/\s+/g,'');
     errorEl.style.display = 'none';
+
     if(!/^[A-Z2-9]{6}$/.test(code)){
       errorEl.textContent = 'El código debe tener exactamente 6 caracteres.';
       errorEl.style.display = 'block';
       codeInput.focus();
       return;
     }
+    if(!control){
+      errorEl.textContent = 'Escribe tu número de control.';
+      errorEl.style.display = 'block';
+      controlInput.focus();
+      return;
+    }
+
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Comprobando…';
+    submitBtn.textContent = 'Uniéndome…';
     try{
-      const identity = await DB.classroom.getMyStudentIdentity();
-      if(!identity?.controlNumber){
-        throw new Error('Tu cuenta todavía no está vinculada a un número de control. Pide a tu institución o administrador que vincule tu cuenta antes de unirte a la clase.');
-      }
       const result = await DB.classroom.joinClass(code);
       closeModal();
       if(result.status === 'pending'){
-        showToast('Solicitud enviada. El profesor recibió tu nombre y número de control.');
+        showToast('Solicitud enviada. El profesor tiene que aceptarte antes de que veas la clase.');
         await renderAula();
       }else{
         showToast('Te uniste a la clase.');
@@ -5240,7 +5606,12 @@ function openJoinClassModal(prefillCode){
     }catch(err){
       console.warn('[Aula] joinClass:', err);
       const raw = String(err?.message || '');
-      errorEl.textContent = raw || 'No se pudo unir a la clase. Inténtalo de nuevo.';
+      const friendly = /function.*join_classroom|does not exist|PGRST202|42883/i.test(raw)
+        ? 'El servicio para unirse a clases no está disponible en este momento. Revisa la función join_classroom en Supabase.'
+        : /invalid|código|code|not found|no existe|classroom/i.test(raw)
+          ? 'No se pudo encontrar esa clase. Revisa el código y vuelve a intentarlo.'
+          : raw || 'No se pudo unir a la clase. Inténtalo de nuevo.';
+      errorEl.textContent = friendly;
       errorEl.style.display = 'block';
     }finally{
       submitBtn.disabled = false;
@@ -5248,7 +5619,7 @@ function openJoinClassModal(prefillCode){
     }
   });
 
-  setTimeout(() => codeInput?.focus(), 0);
+  setTimeout(() => (prefillCode ? controlInput?.focus() : codeInput?.focus()), 0);
 }
 
 async function openCreateClassModal(){
@@ -5273,7 +5644,9 @@ async function openCreateClassModal(){
       <input id="createClassSubject" style="width:100%;" placeholder="Ej: Sustentabilidad">
       <label for="createClassDesc" style="margin-top:10px; display:block;">Descripción (opcional)</label>
       <textarea id="createClassDesc" rows="3" style="width:100%;"></textarea>
-      <div class="aula-banner" style="margin-top:10px;">🔐 <strong>Ingreso con aprobación</strong><br><small>Los alumnos entran con el código. Enraíza envía automáticamente su nombre y número de control vinculado; tú decides si aceptarlos.</small></div>
+      <label style="margin-top:10px; display:block;">¿Cómo se inscriben los alumnos?</label>
+      <label class="aula-radio-row"><input type="radio" name="joinMode" value="open" checked> Abierta — con el código o el link entran directo</label>
+      <label class="aula-radio-row"><input type="radio" name="joinMode" value="approval"> Con aprobación — tú aceptas o rechazas cada solicitud</label>
       <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Crear clase</button>
     </form>
   `;
@@ -5284,7 +5657,7 @@ async function openCreateClassModal(){
     if(!name) return;
     const subject = document.getElementById('createClassSubject').value.trim();
     const description = document.getElementById('createClassDesc').value.trim();
-    const joinMode = 'approval';
+    const joinMode = modalContent.querySelector('input[name="joinMode"]:checked')?.value || 'open';
     try{
       const cls = await DB.classroom.createClass({ name, subject, description, joinMode });
       closeModal();
@@ -5303,7 +5676,12 @@ let aulaClaseRosterCount = null;
 
 async function renderAulaClase(){
   if(!currentUser) { showView('inicio'); return; }
-  if(!['materiales','tareas','alumnos','ajustes'].includes(aulaClaseTab)) aulaClaseTab = 'materiales';
+  if(!institutionalAccessReady) await refreshInstitutionalAccess();
+  if(!institutionalAccess){
+    openInstitutionalAccountPanel();
+    return;
+  }
+  aulaClaseTab = 'materiales';
   const wrap = document.getElementById('aulaClaseContent');
   if(!wrap) return;
   wrap.innerHTML = '<p class="feed-empty">Cargando…</p>';
@@ -5352,23 +5730,19 @@ function paintAulaClaseShell(){
       </div>
     </div>
     <div class="aula-tabs">
-      <button type="button" data-aula-tab="materiales" class="${aulaClaseTab==='materiales'?'active':''}">📚 Materiales</button>
-      <button type="button" data-aula-tab="tareas" class="${aulaClaseTab==='tareas'?'active':''}">📝 Tareas</button>
-      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos" class="${aulaClaseTab==='alumnos'?'active':''}">🧑‍🎓 Alumnos<span class="aula-tab-badge" id="aulaAlumnosBadge" style="${aulaClasePendingCount ? '' : 'display:none;'}">${aulaClasePendingCount || ''}</span></button>` : ''}
-      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="ajustes" class="${aulaClaseTab==='ajustes'?'active':''}">⚙️ Ajustes</button>` : ''}
+      <button type="button" data-aula-tab="materiales" class="active">📚 Materiales</button>
+      <button type="button" data-aula-tab="tareas">📝 Tareas</button>
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="alumnos">🧑‍🎓 Alumnos<span class="aula-tab-badge" id="aulaAlumnosBadge" style="${aulaClasePendingCount ? '' : 'display:none;'}">${aulaClasePendingCount || ''}</span></button>` : ''}
+      ${aulaClaseIsTeacher ? `<button type="button" data-aula-tab="ajustes">⚙️ Ajustes</button>` : ''}
     </div>
-    <div class="aula-tab-body aula-tab-panels" id="aulaTabBody">
-      <div class="aula-tab-panel" data-aula-panel="materiales"><p class="feed-empty">Cargando…</p></div>
-      <div class="aula-tab-panel" data-aula-panel="tareas" hidden><p class="feed-empty">Cargando…</p></div>
-      ${aulaClaseIsTeacher ? '<div class="aula-tab-panel" data-aula-panel="alumnos" hidden><p class="feed-empty">Cargando…</p></div>' : ''}
-      ${aulaClaseIsTeacher ? '<div class="aula-tab-panel" data-aula-panel="ajustes" hidden><p class="feed-empty">Cargando…</p></div>' : ''}
-    </div>
+    <div class="aula-tab-body" id="aulaTabBody"><p class="feed-empty">Cargando…</p></div>
   `;
   wrap.querySelectorAll('[data-aula-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
       wrap.querySelectorAll('[data-aula-tab]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      activateAulaTab(btn.dataset.aulaTab);
+      aulaClaseTab = btn.dataset.aulaTab;
+      renderAulaClaseTab();
     });
   });
   document.getElementById('aulaHeadCode')?.addEventListener('click', () => copyToClipboardAula(cls.joinCode, 'Código copiado.'));
@@ -5386,49 +5760,25 @@ function updateAulaAlumnosTabBadge(){
 }
 
 let aulaTabRenderToken = 0;
-let aulaTabRenderBusy = new Set();
-function activateAulaTab(tab){
-  if(!['materiales','tareas','alumnos','ajustes'].includes(tab)) tab = 'materiales';
-  aulaClaseTab = tab;
-  const root = document.getElementById('aulaTabBody');
-  if(!root) return;
-  root.querySelectorAll('[data-aula-panel]').forEach(panel => {
-    panel.hidden = panel.dataset.aulaPanel !== tab;
-  });
-  const panel = root.querySelector(`[data-aula-panel="${tab}"]`);
-  if(panel && panel.dataset.loaded !== '1') renderAulaClaseTab();
-}
 async function renderAulaClaseTab(){
-  const root = document.getElementById('aulaTabBody');
-  if(!root || !aulaClaseCache) return;
-  const tab = aulaClaseTab;
-  const body = root.querySelector(`[data-aula-panel="${tab}"]`);
-  if(!body) return;
+  const body = document.getElementById('aulaTabBody');
+  if(!body || !aulaClaseCache) return;
   const token = ++aulaTabRenderToken;
-  if(aulaTabRenderBusy.has(tab)) return;
-  aulaTabRenderBusy.add(tab);
-  const keepScroll = window.scrollY || document.documentElement.scrollTop || 0;
-  // No vaciamos el panel mientras actualizamos: al cambiar de pestaña el usuario
-  // conserva lo que ya estaba viendo y solo se actualiza en segundo plano.
-  const hadContent = body.dataset.loaded === '1';
-  if(!hadContent) body.innerHTML = '<p class="feed-empty">Cargando…</p>';
+  const tab = aulaClaseTab;
+  body.innerHTML = '<p class="feed-empty">Cargando…</p>';
   try{
     if(tab === 'materiales') await renderAulaMaterialesTab(body);
     else if(tab === 'tareas') await renderAulaTareasTab(body);
     else if(tab === 'alumnos') await renderAulaAlumnosTab(body);
     else if(tab === 'ajustes') await renderAulaAjustesTab(body);
     if(token !== aulaTabRenderToken || aulaClaseTab !== tab) return;
-    body.dataset.loaded = '1';
-    requestAnimationFrame(() => window.scrollTo({top:keepScroll, behavior:'instant'}));
   }catch(err){
     console.warn('[Aula] pestaña:', err);
     if(token === aulaTabRenderToken && aulaClaseTab === tab){
-      if(!hadContent) body.innerHTML = `<p class="aula-empty">No se pudo cargar esta sección.</p>
+      body.innerHTML = `<p class="aula-empty">No se pudo cargar esta sección.</p>
         <button type="button" class="btn btn-outline btn-small" id="aulaTabRetryBtn">Reintentar</button>`;
-      else showToast('No se pudo actualizar esta sección; se conserva la información anterior.');
+      document.getElementById('aulaTabRetryBtn')?.addEventListener('click', () => renderAulaClaseTab());
     }
-  }finally{
-    aulaTabRenderBusy.delete(tab);
   }
 }
 
@@ -5452,17 +5802,10 @@ function joinAulaClaseChannel(classroomId){
       onAulaEnrollmentRealtime(payload);
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_materials', filter: `classroom_id=eq.${classroomId}` }, () => {
-      // Realtime sigue activo, pero no reconstruimos la pestaña si el profesor
-      // está escribiendo en un modal. Así un cambio externo no borra lo que
-      // todavía no ha guardado ni mueve el flujo de creación.
-      if(aulaClaseTab === 'materiales' && !isAulaEditingModalOpen()) renderAulaClaseTab();
+      if(aulaClaseTab === 'materiales') renderAulaClaseTab();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'classroom_assignments', filter: `classroom_id=eq.${classroomId}` }, () => {
-      // MUY IMPORTANTE: no refrescar la pestaña de tareas mientras se está
-      // creando/editarando una tarea o examen. Antes el INSERT/UPDATE de otro
-      // cliente podía provocar un render y romper el flujo del profesor.
-      aulaAssignmentsViewCache.loadedAt = 0;
-      if(aulaClaseTab === 'tareas' && !isAulaEditingModalOpen()) renderAulaClaseTab();
+      if(aulaClaseTab === 'tareas') renderAulaClaseTab();
     })
     .subscribe((status, err) => {
       rtLog('aula channel', classroomId, status, err || '');
@@ -5486,22 +5829,6 @@ function syncAulaClaseChannel(){
   const id = isAulaClaseViewActive() ? currentClassroomView : null;
   if(id) joinAulaClaseChannel(id);
   else leaveAulaClaseChannel();
-}
-
-// Un modal de Aula es una zona de edición: Realtime puede seguir recibiendo
-// cambios, pero la interfaz no debe reconstruirse encima de lo que el usuario
-// está escribiendo. Cuando se cierra el modal, la siguiente navegación/render
-// normal vuelve a sincronizar los datos.
-function isAulaEditingModalOpen(){
-  const backdrop = document.getElementById('modalBackdrop');
-  if(!backdrop || !backdrop.classList.contains('open')) return false;
-  return !!(
-    document.getElementById('addAssignmentForm') ||
-    document.getElementById('quizAddQuestionForm') ||
-    document.getElementById('addMaterialForm') ||
-    document.getElementById('aulaCreateClassForm') ||
-    document.getElementById('editAssignmentForm')
-  );
 }
 async function refreshAulaPendingCount(){
   if(!aulaClaseIsTeacher || !aulaClaseCache || aulaClaseCache.joinMode !== 'approval'){
@@ -5637,14 +5964,28 @@ function fmtAulaDate(ms){
   return new Date(ms).toLocaleString('es-MX', { dateStyle:'medium', timeStyle:'short' });
 }
 
-let aulaAssignmentsViewCache = { classroomId:null, assignments:[], mySubs:{}, rosterTotal:null, subCounts:{}, loadedAt:0 };
-
-function aulaAssignmentsCacheValid(){
-  return aulaAssignmentsViewCache.classroomId === aulaClaseCache?.id && Array.isArray(aulaAssignmentsViewCache.assignments) && aulaAssignmentsViewCache.loadedAt > 0;
-}
-
-function renderAulaTareasCards(body, assignments, mySubs, rosterTotal, subCounts){
-  const addBtn = aulaClaseIsTeacher ? `<button type="button" class="btn btn-outline btn-small" id="aulaAddAssignmentBtn" style="margin-bottom:12px;">＋ Crear</button>` : '';
+async function renderAulaTareasTab(body){
+  let assignments;
+  try{ assignments = await DB.classroom.listAssignments(aulaClaseCache.id); }catch(err){ assignments = []; }
+  const mySubs = {};
+  let rosterTotal = null;
+  const subCounts = {};
+  if(!aulaClaseIsTeacher){
+    const subs = await Promise.all(assignments.map(a => DB.classroom.mySubmission(a.id).catch(() => null)));
+    assignments.forEach((a, i) => { mySubs[a.id] = subs[i]; });
+  } else if(assignments.length){
+    // Cuenta de entregas por tarea, para que el profesor vea de un vistazo
+    // quién va atrasado sin tener que entrar a cada tarea.
+    try{
+      const [roster, allSubs] = await Promise.all([
+        DB.classroom.listRoster(aulaClaseCache.id),
+        Promise.all(assignments.map(a => DB.classroom.listSubmissions(a.id).catch(() => []))),
+      ]);
+      rosterTotal = roster.length;
+      assignments.forEach((a, i) => { subCounts[a.id] = allSubs[i].length; });
+    }catch(err){ /* se pinta sin el contador */ }
+  }
+  const addBtn = aulaClaseIsTeacher ? `<button type="button" class="btn btn-outline btn-small" id="aulaAddAssignmentBtn" style="margin-bottom:12px;">＋ Nueva tarea</button>` : '';
   const cards = assignments.length ? assignments.map(a => {
     let pill = '';
     if(!aulaClaseIsTeacher){
@@ -5659,10 +6000,14 @@ function renderAulaTareasCards(body, assignments, mySubs, rosterTotal, subCounts
       const pillClass = count === 0 ? 'pending' : (rosterTotal > 0 && count >= rosterTotal ? 'ontime' : 'neutral');
       pill = `<span class="aula-pill ${pillClass}">${count}/${rosterTotal} entregados</span>`;
     }
-    return `<div class="aula-assignment-card" data-assignment-id="${a.id}">
-      <div class="aula-assignment-top"><strong>${a.kind === 'quiz' ? '🧩 ' : ''}${escapeHtml(a.title)}</strong>${pill}</div>
-      <div class="aula-assignment-due">${a.dueAt ? 'Fecha límite: ' + fmtAulaDate(a.dueAt) : 'Sin fecha límite'}${a.kind === 'quiz' ? '' : ` · Vale ${a.maxScore} pts`}</div>
-    </div>`;
+    return `
+      <div class="aula-assignment-card" data-assignment-id="${a.id}">
+        <div class="aula-assignment-top">
+          <strong>${a.kind === 'quiz' ? '🧩 ' : ''}${escapeHtml(a.title)}</strong>
+          ${pill}
+        </div>
+        <div class="aula-assignment-due">${a.dueAt ? 'Fecha límite: ' + fmtAulaDate(a.dueAt) : 'Sin fecha límite'}${a.kind === 'quiz' ? '' : ` · Vale ${a.maxScore} pts`}</div>
+      </div>`;
   }).join('') : `<p class="aula-empty">Todavía no hay tareas.${aulaClaseIsTeacher ? ' Crea la primera para que tus alumnos la vean aquí.' : ''}</p>`;
   body.innerHTML = addBtn + cards;
   document.getElementById('aulaAddAssignmentBtn')?.addEventListener('click', openAddAssignmentModal);
@@ -5670,74 +6015,6 @@ function renderAulaTareasCards(body, assignments, mySubs, rosterTotal, subCounts
     const a = assignments.find(x => x.id === card.dataset.assignmentId);
     card.addEventListener('click', () => openAssignmentDetail(a));
   });
-}
-
-async function refreshAulaTareasData(body, silent=false){
-  const classroomId = aulaClaseCache.id;
-  let assignments = [];
-  try{ assignments = await DB.classroom.listAssignments(classroomId); }
-  catch(err){ if(!aulaAssignmentsCacheValid() && !silent) throw err; return; }
-  const mySubs = {};
-  let rosterTotal = null;
-  const subCounts = {};
-  if(!aulaClaseIsTeacher){
-    const subs = await Promise.all(assignments.map(a => DB.classroom.mySubmission(a.id).catch(() => null)));
-    assignments.forEach((a,i) => { mySubs[a.id] = subs[i]; });
-  }else if(assignments.length){
-    try{
-      const [roster, allSubs] = await Promise.all([
-        DB.classroom.listRoster(classroomId),
-        Promise.all(assignments.map(a => DB.classroom.listSubmissions(a.id).catch(() => [])))
-      ]);
-      rosterTotal = roster.length;
-      assignments.forEach((a,i) => { subCounts[a.id] = allSubs[i].length; });
-    }catch(err){}
-  }
-  aulaAssignmentsViewCache = { classroomId, assignments, mySubs, rosterTotal, subCounts, loadedAt:Date.now() };
-  // `body` es el panel de Tareas, no #aulaTabBody. La comprobación anterior
-  // impedía pintar las tareas y dejaba el panel permanentemente en Cargando…
-  // Solo pintamos si este panel sigue siendo la pestaña activa.
-  if(body && aulaClaseTab === 'tareas' && document.contains(body)){
-    renderAulaTareasCards(body, assignments, mySubs, rosterTotal, subCounts);
-    body.dataset.loaded = '1';
-  }
-}
-
-async function renderAulaTareasTab(body){
-  if(aulaAssignmentsCacheValid()){
-    renderAulaTareasCards(body, aulaAssignmentsViewCache.assignments, aulaAssignmentsViewCache.mySubs, aulaAssignmentsViewCache.rosterTotal, aulaAssignmentsViewCache.subCounts);
-    body.dataset.loaded = '1';
-    if(Date.now() - aulaAssignmentsViewCache.loadedAt > 15000) refreshAulaTareasData(body, true).catch(()=>{});
-    return;
-  }
-  await refreshAulaTareasData(body, false);
-}
-
-// Al volver a esta pestaña del navegador NO reconstruimos toda el Aula.
-// Solo ponemos al día la sección que el usuario está viendo, conservando
-// pestaña, scroll, modales y el resto de la interfaz.
-async function refreshAulaVisibleSection(silent=true){
-  if(!currentUser || !aulaClaseCache || !isAulaClaseViewActive()) return;
-  const root = document.getElementById('aulaTabBody');
-  if(!root) return;
-  const body = root.querySelector(`[data-aula-panel="${aulaClaseTab}"]`);
-  if(!body || body.hidden || isAulaEditingModalOpen()) return;
-  try{
-    if(aulaClaseTab === 'tareas'){
-      await refreshAulaTareasData(body, silent);
-    }else if(aulaClaseTab === 'materiales'){
-      await renderAulaMaterialesTab(body);
-      body.dataset.loaded = '1';
-    }else if(aulaClaseTab === 'alumnos'){
-      await renderAulaAlumnosTab(body);
-      body.dataset.loaded = '1';
-    }else if(aulaClaseTab === 'ajustes'){
-      await renderAulaAjustesTab(body);
-      body.dataset.loaded = '1';
-    }
-  }catch(err){
-    if(!silent) console.warn('[Aula] actualización al volver:', err);
-  }
 }
 
 function openAddAssignmentModal(){
@@ -5774,13 +6051,8 @@ function openAddAssignmentModal(){
   });
   document.getElementById('addAssignmentForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if(form.dataset.saving === '1') return;
     const title = document.getElementById('assignTitle').value.trim();
     if(!title) return;
-    form.dataset.saving = '1';
-    if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Creando…'; }
     const kind = kindSelect.value;
     const objective = document.getElementById('assignObjective').value.trim();
     const description = document.getElementById('assignDesc').value.trim();
@@ -5797,65 +6069,7 @@ function openAddAssignmentModal(){
         showToast('Tarea creada.');
         renderAulaClaseTab();
       }
-    }catch(err){
-      form.dataset.saving = '0';
-      if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Crear tarea'; }
-      showToast('No se pudo crear la tarea.');
-    }
-  });
-}
-
-function openEditAssignmentModal(assignment){
-  modalBox.className = 'modal';
-  const dueValue = assignment.dueAt ? new Date(assignment.dueAt - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
-  modalContent.innerHTML = `
-    <h3>Editar ${assignment.kind === 'quiz' ? 'examen' : 'tarea'}</h3>
-    <form id="editAssignmentForm">
-      <label for="editAssignTitle">Título</label>
-      <input id="editAssignTitle" style="width:100%;" value="${escapeHtml(assignment.title)}" required>
-      <label for="editAssignObjective" style="margin-top:10px; display:block;">Objetivo (opcional)</label>
-      <input id="editAssignObjective" style="width:100%;" value="${escapeHtml(assignment.objective || '')}">
-      <label for="editAssignDesc" style="margin-top:10px; display:block;">Instrucciones</label>
-      <textarea id="editAssignDesc" rows="4" style="width:100%;">${escapeHtml(assignment.description || '')}</textarea>
-      <label for="editAssignDue" style="margin-top:10px; display:block;">Fecha y hora límite</label>
-      <input type="datetime-local" id="editAssignDue" style="width:100%;" value="${dueValue}">
-      ${assignment.kind === 'quiz' ? '' : `<label for="editAssignMax" style="margin-top:10px; display:block;">Puntaje máximo</label><input type="number" id="editAssignMax" min="1" step="0.5" style="width:100%;" value="${assignment.maxScore || 10}">`}
-      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
-        <button type="submit" class="btn btn-primary btn-small">Guardar cambios</button>
-        <button type="button" class="btn btn-outline btn-small" id="cancelEditAssignmentBtn">Cancelar</button>
-      </div>
-      <p class="auth-error" id="editAssignmentError" style="display:none;"></p>
-    </form>
-  `;
-  modalBackdrop.classList.add('open');
-  document.getElementById('cancelEditAssignmentBtn').addEventListener('click', () => renderAssignmentDetailTeacher(assignment));
-  document.getElementById('editAssignmentForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    if(form.dataset.saving === '1') return;
-    const btn = form.querySelector('button[type="submit"]');
-    const errorEl = document.getElementById('editAssignmentError');
-    form.dataset.saving = '1';
-    if(btn){ btn.disabled = true; btn.textContent = 'Guardando…'; }
-    errorEl.style.display = 'none';
-    try{
-      const dueRaw = document.getElementById('editAssignDue').value;
-      const updated = await DB.classroom.updateAssignment(assignment.id, {
-        title: document.getElementById('editAssignTitle').value.trim(),
-        objective: document.getElementById('editAssignObjective').value.trim(),
-        description: document.getElementById('editAssignDesc').value.trim(),
-        dueAt: dueRaw ? new Date(dueRaw).toISOString() : null,
-        maxScore: assignment.kind === 'quiz' ? assignment.maxScore : (Number(document.getElementById('editAssignMax').value)||10),
-      });
-      aulaAssignmentsViewCache.loadedAt = 0;
-      showToast('Cambios guardados.');
-      await renderAssignmentDetailTeacher(updated);
-    }catch(err){
-      errorEl.textContent = err?.message || 'No se pudieron guardar los cambios.';
-      errorEl.style.display = 'block';
-      form.dataset.saving = '0';
-      if(btn){ btn.disabled = false; btn.textContent = 'Guardar cambios'; }
-    }
+    }catch(err){ showToast('No se pudo crear la tarea.'); }
   });
 }
 
@@ -5944,9 +6158,6 @@ function renderQuizQuestionEditor(assignment, questions){
 
   document.getElementById('quizAddQuestionForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const submitBtn = form.querySelector('button[type="submit"]');
-    if(form.dataset.saving === '1') return;
     const type = qType.value;
     const prompt = document.getElementById('qPrompt').value.trim();
     const points = Number(document.getElementById('qPoints').value) || 1;
@@ -5963,16 +6174,10 @@ function renderQuizQuestionEditor(assignment, questions){
       correctBool = optionsArea.querySelector('input[name="qBoolCorrect"]:checked').value === 'true';
     }
     try{
-      form.dataset.saving = '1';
-      if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Agregando…'; }
       await DB.classroom.addQuizQuestion(assignment.id, { position: 9999, type, prompt, points, options, correctOptionId, correctBool });
       const fresh = await DB.classroom.listQuizQuestions(assignment.id);
       renderQuizQuestionEditor(assignment, fresh);
-    }catch(err){
-      form.dataset.saving = '0';
-      if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = '＋ Agregar pregunta'; }
-      showToast('No se pudo agregar la pregunta.');
-    }
+    }catch(err){ showToast('No se pudo agregar la pregunta.'); }
   });
 
   document.getElementById('quizEditorDoneBtn').addEventListener('click', () => {
@@ -6206,39 +6411,13 @@ async function renderAssignmentDetailTeacher(assignment){
       </div>`;
   }).join('') : '<p class="aula-empty">Todavía no hay alumnos inscritos.</p>';
 
-  const isQuizTeacher = assignment.kind === 'quiz';
-  let quizEditBtn = '';
-  if(isQuizTeacher){
-    quizEditBtn = `<button type="button" class="btn btn-outline btn-small" id="teacherEditQuizBtn" style="margin-top:10px;">✏️ Editar preguntas del examen</button>`;
-  }
   modalContent.innerHTML = `
     <h3>${escapeHtml(assignment.title)}</h3>
-    ${assignment.objective ? `<p><strong>Objetivo:</strong> ${escapeHtml(assignment.objective)}</p>` : ''}
     ${assignment.description ? `<p>${escapeHtml(assignment.description)}</p>` : ''}
-    <div class="aula-assignment-due">${assignment.dueAt ? 'Fecha límite: ' + fmtAulaDate(assignment.dueAt) : 'Sin fecha límite'}${isQuizTeacher ? ' · Examen' : ' · Vale ' + assignment.maxScore + ' pts'}</div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-      <button type="button" class="btn btn-outline btn-small" id="teacherEditAssignmentBtn">✏️ Editar tarea</button>
-      ${quizEditBtn}
-      <button type="button" class="btn btn-outline btn-small" id="teacherDeleteAssignmentBtn" style="color:var(--danger); border-color:var(--danger);">🗑 Eliminar</button>
-    </div>
+    <div class="aula-assignment-due">${assignment.dueAt ? 'Fecha límite: ' + fmtAulaDate(assignment.dueAt) : 'Sin fecha límite'} · Vale ${assignment.maxScore} pts</div>
     <h4 style="margin-top:14px; display:flex; align-items:center; gap:6px;"><span class="aula-live-dot" title="Se actualiza solo"></span>Entregas</h4>
     ${rosterHTML}
   `;
-  document.getElementById('teacherEditAssignmentBtn')?.addEventListener('click', () => openEditAssignmentModal(assignment));
-  document.getElementById('teacherDeleteAssignmentBtn')?.addEventListener('click', async () => {
-    const ok = confirm(isQuizTeacher ? '¿Eliminar este examen y sus preguntas/entregas relacionadas? Esta acción puede depender de las políticas de tu base de datos.' : '¿Eliminar esta tarea y sus entregas relacionadas? Esta acción puede depender de las políticas de tu base de datos.');
-    if(!ok) return;
-    try{
-      await DB.classroom.removeAssignment(assignment.id);
-      aulaAssignmentsViewCache.loadedAt = 0;
-      closeModal();
-      showToast('Elemento eliminado.');
-      renderAulaClaseTab();
-    }catch(err){ showToast('No se pudo eliminar. Si hay entregas relacionadas, revisa las políticas/relaciones de Supabase.'); }
-  });
-  if(isQuizTeacher){
-    document.getElementById('teacherEditQuizBtn')?.addEventListener('click', () => openQuizQuestionEditor(assignment));
-  }
   modalContent.querySelectorAll('[data-student-id]').forEach(row => {
     const sub = subByStudent[row.dataset.studentId];
     if(!sub) return; // nada que calificar todavía
@@ -6499,34 +6678,25 @@ function openEnrollStudentModal(){
   });
 }
 
-async function renderEnrollConfirmStep(userId, person){
-  let identity = null;
-  try{
-    // El administrador/profesor no debe volver a escribir el control si la cuenta ya está vinculada.
-    // La búsqueda por usuario solo muestra la cuenta; el servidor valida la identidad institucional.
-    identity = await DB.classroom.getStudentIdentityByUser(userId);
-  }catch(err){}
-  const displayName = person?.name || 'alumno';
-  const control = identity?.controlNumber || '';
+function renderEnrollConfirmStep(userId, person){
   modalContent.innerHTML = `
     <button type="button" class="btn-text" id="aulaBackToSearch">← Buscar otro</button>
-    <h3>Dar de alta a @${escapeHtml(displayName)}</h3>
-    <div class="aula-material-row" style="margin-top:10px;">
-      <div style="min-width:0; flex:1;">
-        <strong>${escapeHtml(identity?.fullName || displayName)}</strong>
-        <p style="margin:3px 0 0;">№ control: ${escapeHtml(control || 'No vinculado')}</p>
-      </div>
-    </div>
-    ${control ? '<p class="section-desc">El número de control ya está ligado a esta cuenta. No necesitas escribirlo otra vez.</p>' : '<p class="auth-error" style="display:block;">Esta cuenta todavía no tiene un número de control institucional vinculado.</p>'}
-    <p class="auth-error" id="enrollConfirmError" style="display:none;"></p>
-    <button type="button" class="btn btn-primary btn-small" style="margin-top:10px;" id="enrollConfirmBtn" ${control ? '' : 'disabled'}>Dar de alta</button>
+    <h3>Dar de alta a @${escapeHtml(person?.name || 'alumno')}</h3>
+    <form id="enrollConfirmForm">
+      <label for="enrollControlNumber">Número de control</label>
+      <input id="enrollControlNumber" style="width:100%;" placeholder="Ej: 21120001" required>
+      <p class="auth-error" id="enrollConfirmError" style="display:none;"></p>
+      <button type="submit" class="btn btn-primary btn-small" style="margin-top:10px;">Dar de alta</button>
+    </form>
   `;
   document.getElementById('aulaBackToSearch').addEventListener('click', openEnrollStudentModal);
-  document.getElementById('enrollConfirmBtn').addEventListener('click', async () => {
+  document.getElementById('enrollConfirmForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const controlNumber = document.getElementById('enrollControlNumber').value.trim();
     const errorEl = document.getElementById('enrollConfirmError');
     errorEl.style.display = 'none';
     try{
-      await DB.classroom.enrollStudent(aulaClaseCache.id, userId);
+      await DB.classroom.enrollStudent(aulaClaseCache.id, userId, displayName);
       closeModal();
       showToast('Alumno dado de alta.');
       renderAulaClaseTab();
@@ -6536,6 +6706,7 @@ async function renderEnrollConfirmStep(userId, person){
     }
   });
 }
+
 function buildClassJoinUrl(joinCode){
   const url = new URL(window.location.href);
   url.search = '';
@@ -6950,45 +7121,8 @@ async function renderUserProfileVisit(){
     }
   }
 
-  const blockBtn = document.getElementById('profileVisitBlockBtn');
-  let profileBlocked = false;
-  if(blockBtn){
-    const canBlock = currentUser && currentUser.id !== uid;
-    blockBtn.style.display = canBlock ? 'inline-flex' : 'none';
-    if(canBlock){
-      profileBlocked = await DB.blocks.isBlocked(currentUser.id, uid).catch(() => false);
-      blockBtn.textContent = profileBlocked ? 'Desbloquear' : 'Bloquear';
-      blockBtn.classList.toggle('btn-danger', profileBlocked);
-      blockBtn.onclick = async () => {
-        if(!currentUser) return;
-        try{
-          if(profileBlocked){
-            await DB.blocks.unblock(uid);
-            showToast('Usuario desbloqueado.');
-            profileBlocked = false;
-          }else{
-            const ok = confirm('¿Bloquear a esta persona? No podrán enviarse mensajes mientras esté bloqueada.');
-            if(!ok) return;
-            await DB.blocks.block(uid);
-            profileBlocked = true;
-            showToast('Usuario bloqueado.');
-            if(dmOpenConversationId) {
-              dmOpenConversationId = null;
-              document.getElementById('messagesScreen')?.classList.remove('chat-open');
-            }
-          }
-          blockBtn.textContent = profileBlocked ? 'Desbloquear' : 'Bloquear';
-          blockBtn.classList.toggle('btn-danger', profileBlocked);
-          renderUserProfileVisit();
-        }catch(err){
-          showToast(err?.message || 'No se pudo cambiar el bloqueo.');
-        }
-      };
-    }
-  }
-
   if(messageBtn){
-    const canSeeButton = currentUser && currentUser.id !== uid && !profileBlocked;
+    const canSeeButton = currentUser && currentUser.id !== uid;
     messageBtn.style.display = canSeeButton ? 'inline-flex' : 'none';
     if(canSeeButton){
       const targetPrivacy = getProfilePrivacy(freshUser || usersCache[uid] || {});
@@ -6998,15 +7132,6 @@ async function renderUserProfileVisit(){
       messageBtn.textContent = mutual ? 'Mensaje' : 'Síganse para escribirse';
       messageBtn.onclick = async () => { if(!mutual) return; await openDmConversation(uid); };
     }
-  }
-
-  if(profileBlocked){
-    if(grid){ grid.innerHTML = '<div class="auth-gate" style="grid-column:1/-1;">Has bloqueado a esta persona. Desbloquéala para volver a ver su perfil.</div>'; grid.hidden = false; }
-    if(feed){ feed.innerHTML = ''; feed.hidden = true; }
-    if(logGrid){ logGrid.innerHTML = ''; }
-    const postCountEl = document.getElementById('profileVisitPostCountLabel'); if(postCountEl) postCountEl.textContent = 'Bloqueado';
-    const logCountEl = document.getElementById('profileVisitLogCountLabel'); if(logCountEl) logCountEl.textContent = '—';
-    return;
   }
 
   if(!postsCacheReady) await loadPostsIntoCache();
@@ -7781,6 +7906,10 @@ function translateAuthError(msg){
 async function loadCurrentUserFromSession(session){
   if(!session || !session.user){ currentUser = null; currentAuthEmail = ''; currentAuthSession = null; return; }
   currentAuthEmail = String(session.user.email || '').trim().toLowerCase();
+  institutionalAccessReady = false;
+  institutionalAccess = false;
+  updateInstitutionalAulaButton();
+  setTimeout(() => refreshInstitutionalAccess(), 0);
   currentAuthSession = session; // se reusa más abajo (refreshAdminStatus, openAdminPanel) para leer el
   // nivel de 2FA y los factores sin volver a pedirle nada a Supabase — ver la nota junto a ensureMfaSatisfied.
   let profile = await DB.users.findById(session.user.id, true);
@@ -9483,7 +9612,7 @@ function startAulaFallbackRefresh(){
     if(document.getElementById('aula')?.classList.contains('active')){
       renderAula({ silent: true });
     }else if(document.getElementById('aulaClase')?.classList.contains('active')){
-      refreshAulaVisibleSection(true).catch(()=>{});
+      renderAulaClase();
     }
   }, AULA_REFRESH_MS);
 }
@@ -9496,7 +9625,7 @@ document.addEventListener('visibilitychange', () => {
     if(document.getElementById('aula')?.classList.contains('active')){
       renderAula({ silent: true });
     }else if(document.getElementById('aulaClase')?.classList.contains('active')){
-      refreshAulaVisibleSection(true).catch(()=>{});
+      renderAulaClase();
     }
   }
 });
@@ -9517,7 +9646,7 @@ function catchUpAppAfterReturn(){
     }else if(document.getElementById('aula')?.classList.contains('active')){
       renderAula({ silent:true }).catch(() => {});
     }else if(document.getElementById('aulaClase')?.classList.contains('active')){
-      refreshAulaVisibleSection(true).catch(() => {});
+      renderAulaClase().catch(() => {});
     }
   }, 250);
 }
@@ -10992,7 +11121,7 @@ async function renderDmPanel(){
     await Promise.all(conversations.map(async conv => { const user = await getUserCached(conv.otherUserId); if(user) usersCache[conv.otherUserId] = user; }));
     const conversationList = conversations.map(conv => {
       const otherUser = usersCache[conv.otherUserId] || { id: conv.otherUserId, name: 'Usuario' };
-      const preview = conv.lastMessage ? (conv.lastMessage.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(safeChatText(conv.lastMessage.text, conv.lastMessage.mediaUrl ? '📎 Archivo multimedia' : ''))) : 'Sin mensajes aún';
+      const preview = conv.lastMessage ? (conv.lastMessage.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(conv.lastMessage.text)) : 'Sin mensajes aún';
       return `
         <button type="button" class="dm-list-item ${activeConversation && activeConversation.id === conv.id ? 'active' : ''}" data-dm-conv="${conv.id}">
           <div class="avatar" style="width:34px;height:34px;font-size:0.72rem;">${avatarHTML(otherUser)}</div>
@@ -11347,14 +11476,14 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
 
     const listHtml = sorted.length ? sorted.map((conv) => {
       const selected = activeConversation && activeConversation.id === conv.id;
-      const previewText = conv.lastMessage ? (conv.lastMessage.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(safeChatText(conv.lastMessage.text, conv.lastMessage.mediaUrl ? '📎 Archivo multimedia' : ''))) : 'Sin mensajes aún';
+      const previewText = conv.lastMessage ? (conv.lastMessage.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(conv.lastMessage.text)) : 'Sin mensajes aún';
       return `
         <button type="button" class="message-item ${selected ? 'active' : ''} ${conv.pinned ? 'pinned' : ''} ${conv.unreadCount > 0 ? 'unread' : ''}" data-msg-conversation="${conv.id}">
           <div class="avatar" style="width:38px;height:38px;font-size:0.74rem;">${avatarHTML(conv.otherUser)}</div>
           <div class="message-item-main">
             <div class="message-item-top">
-              <strong>${conv.pinned ? '📌 ' : ''}${escapeHtml(safeChatText(conv.otherUser?.name, 'Usuario'))}</strong>
-              <span class="message-time">${conv.lastMessage ? fmtMessageListTime(conv.lastMessage.createdAt) : ''}</span>
+              <strong>${conv.pinned ? '📌 ' : ''}${escapeHtml(conv.otherUser.name || 'Usuario')}</strong>
+              <span class="message-time">${conv.lastMessage ? fmtRelative(conv.lastMessage.createdAt) : ''}</span>
             </div>
             <span class="message-preview">${previewText}</span>
           </div>
@@ -11456,8 +11585,7 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
       return;
     }
 
-    const threadUser = { id: activeConversation.otherUserId, ...(activeConversation.otherUser || {}) };
-    threadUser.name = safeChatText(threadUser.name, 'Usuario');
+    const threadUser = activeConversation.otherUser || { id: activeConversation.otherUserId, name: 'Usuario' };
     const msgLimit = dmMessageLimits.get(activeConversation.id) || 100;
     const { messages: msgs, hasMore: hasOlderMessages } = await DB.messages.listMessages(activeConversation.id, currentUser.id, activeConversation.clearedAtMine, msgLimit);
     if(isStale()) return; // otra llamada más nueva ya tomó el control de esta pantalla
@@ -11524,9 +11652,8 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     let currentGroup = null;
     msgs.forEach((msg) => {
       const sender = msg.senderId === currentUser.id ? 'me' : 'them';
-      const dayKey = chatDayKey(msg.createdAt);
-      if(!currentGroup || currentGroup.sender !== sender || currentGroup.dayKey !== dayKey){
-        currentGroup = { sender, dayKey, items: [msg] };
+      if(!currentGroup || currentGroup.sender !== sender){
+        currentGroup = { sender, items: [msg] };
         groupedMessages.push(currentGroup);
       }else{
         currentGroup.items.push(msg);
@@ -11563,8 +11690,8 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
               ${msg.replyStoryPhoto ? `<span class="message-story-reply"><img loading="lazy" decoding="async" src="${escapeHtml(msg.replyStoryPhoto)}" alt=""><span>${storyReplyLabel}</span></span>` : ''}
               ${quoted ? `<span class="message-reply-quote" data-scroll-to="${quoted.id}"><strong>${escapeHtml(quotedAuthor)}:</strong> ${escapeHtml((quoted.text || '').slice(0,60))}</span>` : ''}
               ${mediaHTML}
-              ${(!msg.deletedForEveryone && !safeChatText(msg.text) && !msg.mediaUrl) ? '' : `<span class="message-text">${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(safeChatText(msg.text, msg.mediaUrl ? '📎 Archivo multimedia' : ''))}</span>`}
-              <span class="message-meta">${fmtChatTime(msg.createdAt)}</span>
+              ${(!msg.deletedForEveryone && !msg.text) ? '' : `<span class="message-text">${msg.deletedForEveryone ? 'Mensaje eliminado' : escapeHtml(msg.text)}</span>`}
+              <span class="message-meta">${fmtRelative(msg.createdAt)}</span>
             </div>
             ${!msg.deletedForEveryone ? `
               <div class="message-menu">
@@ -11580,8 +11707,7 @@ async function renderMessagesScreen(activeConversationId = null, { preserveDraft
     };
     threadBodyEl.innerHTML =
       (hasOlderMessages ? `<div class="messages-load-older-row"><button type="button" class="btn btn-outline btn-small" id="loadOlderMessagesBtn">Cargar mensajes anteriores</button></div>` : '') +
-      (groupedMessages.length ? groupedMessages.map((group, index) => `
-      ${index === 0 || groupedMessages[index-1].dayKey !== group.dayKey ? `<div class="message-date-separator"><span>${fmtChatDayLabel(group.items[0].createdAt)}</span></div>` : ''}
+      (groupedMessages.length ? groupedMessages.map((group) => `
       <div class="message-group ${group.sender === 'me' ? 'me' : 'them'}">
         ${group.sender !== 'me' ? `<div class="message-group-avatar"><div class="avatar">${avatarHTML(threadUser)}</div></div>` : ''}
         <div class="message-group-bubbles">
@@ -12884,61 +13010,11 @@ function initThemeSettingsUI(){
   });
 }
 
-async function renderBlockedUsersSettings(){
-  const list = document.getElementById('blockedUsersList');
-  const count = document.getElementById('blockedUsersCount');
-  if(!list) return;
-  list.innerHTML = '<div class="aula-empty">Cargando…</div>';
-  try{
-    const users = await DB.blocks.list();
-    if(count) count.textContent = String(users.length);
-    if(!users.length){
-      list.innerHTML = '<div class="aula-empty" style="padding:8px 0;">No tienes personas bloqueadas.</div>';
-      return;
-    }
-    list.innerHTML = users.map(u => `
-      <div class="setting-row" style="padding:10px 0;border-bottom:1px solid var(--line);">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <div class="avatar" style="width:34px;height:34px;flex:0 0 34px;">${avatarHTML(u)}</div>
-          <div style="min-width:0;"><strong>${escapeHtml(u.name)}</strong><small>${u.username ? '@'+escapeHtml(u.username) : ''}</small></div>
-        </div>
-        <button type="button" class="btn btn-outline btn-small" data-unblock-user="${u.id}">Desbloquear</button>
-      </div>`).join('');
-    list.querySelectorAll('[data-unblock-user]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        btn.disabled = true;
-        try{
-          await DB.blocks.unblock(btn.dataset.unblockUser);
-          showToast('Usuario desbloqueado.');
-          renderBlockedUsersSettings();
-        }catch(err){
-          btn.disabled = false;
-          showToast(err?.message || 'No se pudo desbloquear.');
-        }
-      });
-    });
-  }catch(err){
-    list.innerHTML = '<div class="aula-empty" style="padding:8px 0;">No se pudo cargar la lista. Ejecuta el SQL de bloqueos.</div>';
-  }
-}
-
-try{
-  if(window.matchMedia){
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const onSystemThemeChange = () => {
-      let saved = null;
-      try{ saved = localStorage.getItem('enraiza:theme'); }catch(err){}
-      if(!saved || saved === 'system') applyTheme('system');
-    };
-    media.addEventListener?.('change', onSystemThemeChange);
-    media.addListener?.(onSystemThemeChange);
-  }
-}catch(err){ /* soporte de tema automático opcional */ }
-
 function renderSettingsPage(){
+  renderInstitutionalSettingsSummary();
+  populateInstitutionSelectors();
   initSettingsSecurity();
   initThemeSettingsUI();
-  renderBlockedUsersSettings();
   const state=document.getElementById('settingsAccountState');
   const logoutBtn=document.getElementById('settingsLogoutBtn');
   const nameInput=document.getElementById('settingsProfileName');
@@ -13397,7 +13473,9 @@ function showMfaChallengeModal(factorId, resolve, opts = {}){
       if(challenge.error) throw challenge.error;
       const verified = await sb.auth.mfa.verify({ factorId, challengeId: challenge.data.id, code });
       if(verified.error) throw verified.error;
-      await refreshCurrentAuthSessionAfterMfa();
+      // mfa.verify devuelve la sesión elevada a aal2; hay que conservarla.
+      // Antes se llamaba sin pasar verified.data.session y el panel admin seguía viendo aal1.
+      await refreshCurrentAuthSessionAfterMfa(verified.data?.session || null);
       if(offerTrustDevice && document.getElementById('mfaTrustDeviceCheck')?.checked){
         await trustThisDevice(30);
       }
@@ -13548,6 +13626,7 @@ function initSettingsNavigation(){
   }
 }
 initSettingsNavigation();
+bindInstitutionalSettings();
 
 async function renderProfile(){
   // El perfil propio depende de una sesión válida. Si Auth acaba de invalidar
@@ -13703,6 +13782,7 @@ async function openAdminPanel(){
       <button type="button" data-admintab="conversaciones" class="${adminReportsTab==='conversaciones'?'active':''}">Conversaciones</button>
       <button type="button" data-admintab="publicaciones" class="${adminReportsTab==='publicaciones'?'active':''}">Publicaciones</button>
       <button type="button" data-admintab="profesores" class="${adminReportsTab==='profesores'?'active':''}">Profesores</button>
+      <button type="button" data-admintab="institucional" class="${adminReportsTab==='institucional'?'active':''}">Institucional</button>
     </div>
     <div id="adminPanelBody"><p class="admin-panel-empty">Cargando…</p></div>
   `;
@@ -13713,10 +13793,48 @@ async function openAdminPanel(){
   }));
   await renderAdminPanelBody();
 }
+async function renderAdminInstitutionalRequests(body){
+  try{
+    const rows = await DB.admin.listInstitutionIdentityRequests();
+    if(!rows.length){ body.innerHTML='<p class="admin-panel-empty">No hay solicitudes institucionales pendientes 🌱</p>'; return; }
+    body.innerHTML = '<div class="admin-moderation-note">La aprobación NO crea identidades desde cero: solo puede aprobarse si el número de control/identificador ya existe en el padrón institucional oficial.</div>' + rows.map(r => {
+      const role = r.role === 'student' ? 'Alumno' : 'Profesor';
+      const identifier = r.role === 'student' ? (r.control_number || '—') : (r.teacher_identifier || '—');
+      return `<div class="admin-report-row" data-instreq="${escapeHtml(r.id)}">
+        <div class="admin-report-meta"><span>${escapeHtml(r.institution_name||'Institución')}</span><span>${role}</span><span>${fmtRelative(new Date(r.created_at).getTime())}</span></div>
+        <p><strong>${escapeHtml(r.full_name || 'Usuario')}</strong> · ${escapeHtml(identifier)} · ${escapeHtml(r.institutional_email || 'sin correo institucional')}</p>
+        <div class="admin-report-actions">
+          <button type="button" class="btn btn-primary" data-instapprove="${escapeHtml(r.id)}">Verificar</button>
+          <button type="button" class="btn btn-outline" data-instreject="${escapeHtml(r.id)}">Rechazar</button>
+        </div>
+      </div>`;
+    }).join('');
+    body.querySelectorAll('[data-instapprove],[data-instreject]').forEach(btn=>btn.addEventListener('click',async()=>{
+      const approve=btn.hasAttribute('data-instapprove');
+      const id=btn.dataset.instapprove||btn.dataset.instreject;
+      const row=rows.find(x=>x.id===id);
+      btn.disabled=true;
+      try{
+        if(row?.role==='student'){
+          await DB.admin.reviewStudentIdentityRequest(id,approve,row.control_number||null,row.full_name||null);
+        }else{
+          await DB.admin.reviewTeacherIdentityRequest(id,approve);
+        }
+        showToast(approve?'Identidad institucional verificada.':'Solicitud institucional rechazada.');
+        await renderAdminPanelBody();
+      }catch(err){
+        showToast(err?.message||'No se pudo actualizar la solicitud.');
+        btn.disabled=false;
+      }
+    }));
+  }catch(err){ body.innerHTML=`<p class="admin-panel-empty">No se pudieron cargar las solicitudes institucionales${err?.message?': '+escapeHtml(err.message):''}.</p>`; }
+}
+
 async function renderAdminPanelBody(){
   const body = document.getElementById('adminPanelBody');
   if(!body) return;
   if(adminReportsTab === 'profesores') return renderAdminTeacherRequests(body);
+  if(adminReportsTab === 'institucional') return renderAdminInstitutionalRequests(body);
   try{
     const rows = adminReportsTab === 'conversaciones' ? await DB.admin.listConversationReports() : await DB.admin.listPostReports();
     if(!rows.length){ body.innerHTML='<p class="admin-panel-empty">No hay reportes por revisar 🌱</p>'; return; }
